@@ -20,7 +20,7 @@ const player = {
     onGround: false, facing: 1,
     maxHp: 100, hp: 100,
     // attack state
-    attacking: false, attackFrame: 0, attackCooldown: 0, attackType: null, attackExt:0,
+    attacking: false, attackFrame: 0, attackCooldown: 0, attackType: null, attackExt: 0,
     // animation state
     animT: 0, walkSpeed: 0
 };
@@ -290,10 +290,10 @@ function draw() {
     // draw spin attack visual if active
     if (player.attacking && player.attackType === 'spin' && player.attackRadius) {
         ctx.fillStyle = 'rgba(255,255,255,0.12)';
-        const cx = player.x + player.w/2; const cy = player.y + player.h/2;
+        const cx = player.x + player.w / 2; const cy = player.y + player.h / 2;
         const R = player.attackRadius;
-        ctx.beginPath(); ctx.arc(cx, cy, R, 0, Math.PI*2); ctx.fill();
-        ctx.strokeStyle = 'rgba(255,255,255,0.25)'; ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(cx, cy, R+6, 0, Math.PI*2); ctx.stroke();
+        ctx.beginPath(); ctx.arc(cx, cy, R, 0, Math.PI * 2); ctx.fill();
+        ctx.strokeStyle = 'rgba(255,255,255,0.25)'; ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(cx, cy, R + 6, 0, Math.PI * 2); ctx.stroke();
     }
     ctx.restore();
 
