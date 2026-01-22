@@ -15,3 +15,8 @@ Notes:
  - The level is now a wide horizontal world made of themed sections: Louge Town, Alabasta, Skypiea, Water7, Enies Lobby, Punk Hazard, and Egghead. The camera scrolls as you move.
  - The background uses simple, non-copyrighted block art and color palettes to evoke each area (Louge Town has a town palette near the start).
  - To extend: add higher-resolution sprites, sound effects, more enemy types, and refined level art.
+ - Controls: Move with Arrow/A-D, Jump W/Up. New attacks:
+	 - `K`: Light melee (quick, short reach)
+	 - `J`: Heavy stretch (slower, long reach)
+	 - `L`: Spin attack (area around the player)
+ - Attacks have different reach, damage and cooldowns; try them out across the themed sections.

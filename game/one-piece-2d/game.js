@@ -19,8 +19,10 @@ const player = {
     vx: 0, vy: 0, speed: 4.5, jump: 16,
     onGround: false, facing: 1,
     maxHp: 100, hp: 100,
-    attacking: false, attackFrame: 0, attackCooldown: 0,
-    animT: 0
+    // attack state
+    attacking: false, attackFrame: 0, attackCooldown: 0, attackType: null, attackExt:0,
+    // animation state
+    animT: 0, walkSpeed: 0
 };
 
 // World and level platforms (multiple themed horizontal sections)
@@ -77,16 +79,38 @@ function update() {
 
     if (up && player.onGround) { player.vy = -player.jump; player.onGround = false }
 
-    // Attack handling
-    if (attackKey && player.attackCooldown <= 0 && !player.attacking) { player.attacking = true; player.attackFrame = 8; player.attackCooldown = 24 }
-    if (player.attacking) { player.attackFrame--; if (player.attackFrame <= 0) player.attacking = false }
+    // Attack handling: K = light, J = heavy stretch, L = spin
+    let lightKey = keys['k'];
+    let heavyKey = keys['j'];
+    let spinKey = keys['l'];
+
+    if (lightKey && player.attackCooldown <= 0 && !player.attacking) {
+        player.attacking = true; player.attackType = 'light'; player.attackFrame = 8; player.attackCooldown = 22;
+    }
+    if (heavyKey && player.attackCooldown <= 0 && !player.attacking) {
+        player.attacking = true; player.attackType = 'heavy'; player.attackFrame = 18; player.attackCooldown = 48;
+    }
+    if (spinKey && player.attackCooldown <= 0 && !player.attacking) {
+        player.attacking = true; player.attackType = 'spin'; player.attackFrame = 20; player.attackCooldown = 80;
+    }
+
+    if (player.attacking) {
+        player.attackFrame--; if (player.attackFrame <= 0) { player.attacking = false; player.attackType = null }
+    }
     if (player.attackCooldown > 0) player.attackCooldown--
 
-    // compute attack extension value for collision (larger when animating)
+    // compute attack extension / radius based on type and progress
     if (player.attacking) {
-        const t = (8 - Math.max(0, player.attackFrame)) / 8; // 0->1
-        player.attackExt = Math.round(t * 56) + 8;
-    } else player.attackExt = 0;
+        const tot = player.attackType === 'heavy' ? 18 : player.attackType === 'spin' ? 20 : 8;
+        const t = (tot - Math.max(0, player.attackFrame)) / tot; // 0->1
+        if (player.attackType === 'light') {
+            player.attackExt = Math.round(t * 28) + 8; player.attackRadius = 0;
+        } else if (player.attackType === 'heavy') {
+            player.attackExt = Math.round(t * 96) + 12; player.attackRadius = 0;
+        } else if (player.attackType === 'spin') {
+            player.attackExt = 0; player.attackRadius = Math.round(20 + t * 56);
+        }
+    } else { player.attackExt = 0; player.attackRadius = 0 }
 
     // Physics
     player.vy += gravity * 0.6;
@@ -114,22 +138,34 @@ function update() {
         e.x += e.vx;
         if (e.x < e.patrol[0] || e.x > e.patrol[1]) e.vx *= -1;
 
-        // Simple collision with player
-        if (rectsOverlap(player, e)) {
-            // If player attacking and attack hitbox overlaps enemy
-            if (player.attacking) {
+        // Attack hit detection (allow hits even if not touching player)
+        if (player.attacking && player.attackType) {
+            if (player.attackType === 'spin') {
+                const R = player.attackRadius || 0;
+                const hb = { x: player.x - R, y: player.y - R, w: player.w + R * 2, h: player.h + R * 2 };
+                if (rectsOverlap(hb, e)) {
+                    const dmg = 30;
+                    e.hp -= dmg; e.x += (e.x < player.x ? -1 : 1) * 8;
+                    if (e.hp <= 0) { e.alive = false; score += 120 }
+                    continue;
+                }
+            } else {
                 const ext = player.attackExt || 0;
                 const hw = 32 + ext;
                 const hx = player.facing === 1 ? player.x + player.w : player.x - hw;
                 const hb = { x: hx, y: player.y + 8, w: hw, h: player.h - 16 };
                 if (rectsOverlap(hb, e)) {
-                    e.hp -= 20; e.x += player.facing * 6; // knockback
-                    if (e.hp <= 0) { e.alive = false; score += 100 }
+                    const dmg = player.attackType === 'heavy' ? 40 : 20;
+                    e.hp -= dmg; e.x += player.facing * 10;
+                    if (e.hp <= 0) { e.alive = false; score += (player.attackType === 'heavy' ? 180 : 100) }
+                    continue;
                 }
-            } else {
-                // player takes damage
-                if (!player._inv) { player.hp -= 8; player._inv = 40 }
             }
+        }
+
+        // Simple collision with player (damage to player)
+        if (rectsOverlap(player, e)) {
+            if (!player._inv) { player.hp -= 8; player._inv = 40 }
         }
     }
 
@@ -247,8 +283,18 @@ function draw() {
 
     // Player (8-bit sprite) - draw at world coords relative to camera
     player.animT += 0.12;
+    // walking speed used for leg animation
+    player.walkSpeed = Math.abs(player.vx);
     ctx.save(); ctx.translate(-camX, 0);
     drawPlayer(ctx, player);
+    // draw spin attack visual if active
+    if (player.attacking && player.attackType === 'spin' && player.attackRadius) {
+        ctx.fillStyle = 'rgba(255,255,255,0.12)';
+        const cx = player.x + player.w/2; const cy = player.y + player.h/2;
+        const R = player.attackRadius;
+        ctx.beginPath(); ctx.arc(cx, cy, R, 0, Math.PI*2); ctx.fill();
+        ctx.strokeStyle = 'rgba(255,255,255,0.25)'; ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(cx, cy, R+6, 0, Math.PI*2); ctx.stroke();
+    }
     ctx.restore();
 
     // Player HP bar
