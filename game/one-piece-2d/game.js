@@ -19,7 +19,8 @@ const player = {
     vx: 0, vy: 0, speed: 4.5, jump: 16,
     onGround: false, facing: 1,
     maxHp: 100, hp: 100,
-    attacking: false, attackFrame: 0, attackCooldown: 0
+    attacking: false, attackFrame: 0, attackCooldown: 0,
+    animT: 0
 };
 
 // Level platforms
@@ -112,6 +113,72 @@ function update() {
     document.getElementById('pts').textContent = score;
 }
 
+// Draw an 8-bit style character and arm-stretch animation
+function drawPlayer(ctx, p) {
+    ctx.save();
+    // center the sprite on player position
+    ctx.translate(Math.round(p.x + p.w / 2), Math.round(p.y + p.h / 2));
+    if (p.facing < 0) ctx.scale(-1, 1);
+
+    const S = 2; // pixel scale
+    const w = p.w, h = p.h;
+
+    // helper to draw pixel rects relative to center
+    function r(x, y, wpx, hpx, color) {
+        ctx.fillStyle = color;
+        ctx.fillRect(Math.round(x * S), Math.round(y * S), Math.round(wpx * S), Math.round(hpx * S));
+    }
+
+    // offsets: draw relative so top-left of sprite area is at (-w/2, -h/2)
+    const ox = -Math.round(w / 2 / S);
+    const oy = -Math.round(h / 2 / S);
+
+    // Slight leg bob when running
+    const legBob = Math.abs(Math.sin(p.animT * 6)) * 1.5;
+
+    // Colors
+    const skin = '#f1c27d';
+    const straw = '#f4d542';
+    const band = '#b11';
+    const shirt = '#d43';
+    const pants = '#102a1a';
+
+    // Head (10x10 pixels)
+    r(ox + 6, oy + 2, 10, 10, skin);
+    // Hat brim and top
+    r(ox + 4, oy - 4, 14, 4, straw);
+    r(ox + 6, oy - 8, 10, 6, straw);
+    r(ox + 6, oy - 2, 10, 2, band);
+
+    // Torso
+    r(ox + 4, oy + 12, 16, 12, shirt);
+    // Pants
+    r(ox + 6, oy + 26, 12, 8, pants);
+
+    // Legs (animated)
+    r(ox + 6, oy + 34 + legBob, 5, 8, pants);
+    r(ox + 15, oy + 34 - legBob, 5, 8, pants);
+
+    // Right shoulder position (relative)
+    const sx = ox + 20; const sy = oy + 16;
+
+    // Arm stretch: when attacking extend forearm outward
+    let baseArmLen = 6;
+    let ext = 0;
+    if (p.attacking) {
+        // animate extension based on attackFrame (0..8)
+        const t = (8 - Math.max(0, p.attackFrame)) / 8; // 0->1
+        ext = Math.round(t * 18) + 2;
+    }
+
+    // Upper arm
+    r(sx - 2, sy + 2, 6 + ext, 4, skin);
+    // Hand
+    r(sx + 4 + ext, sy + 2, 4, 4, skin);
+
+    ctx.restore();
+}
+
 function draw() {
     // Background
     ctx.clearRect(0, 0, W, H);
@@ -136,21 +203,9 @@ function draw() {
         ctx.fillStyle = '#0f0'; ctx.fillRect(e.x, e.y - 8, e.w * Math.max(0, e.hp / 30), 4);
     }
 
-    // Player
-    // simple body
-    ctx.save();
-    ctx.translate(player.x + player.w / 2, player.y + player.h / 2);
-    if (player.facing < 0) ctx.scale(-1, 1);
-    ctx.fillStyle = player._inv > 0 ? '#ffd700' : '#0a3';
-    ctx.fillRect(-player.w / 2, -player.h / 2, player.w, player.h);
-    // head (bandana hint)
-    ctx.fillStyle = '#f44'; ctx.fillRect(-player.w / 2, -player.h / 2 - 6, player.w, 8);
-    // sword slash / fist as attack indicator
-    if (player.attacking) {
-        ctx.fillStyle = 'rgba(255,255,255,0.9)';
-        ctx.beginPath(); ctx.ellipse(player.w / 2 + 10, 0, 22, 12, 0, 0, Math.PI * 2); ctx.fill();
-    }
-    ctx.restore();
+    // Player (8-bit sprite)
+    player.animT += 0.12;
+    drawPlayer(ctx, player);
 
     // Player HP bar
     ctx.fillStyle = '#222'; ctx.fillRect(14, 12, 220, 14);
