@@ -1,0 +1,111 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>One Piece 3D — Prototype</title>
+  <style>
+    html,body{height:100%;margin:0}
+    body{overflow:hidden;font-family:Arial,Helvetica,sans-serif}
+    canvas{display:block}
+    #info{position:fixed;left:8px;top:8px;padding:6px 10px;background:rgba(0,0,0,0.4);color:#fff;border-radius:4px;font-size:13px}
+  </style>
+</head>
+<body>
+  <div id="info">WASD / Arrow keys to move — Orbit mouse to look</div>
+
+  <script type="module">
+    import * as THREE from 'https://unpkg.com/three@0.152.2/build/three.module.js';
+    import { OrbitControls } from 'https://unpkg.com/three@0.152.2/examples/jsm/controls/OrbitControls.js';
+
+    const scene = new THREE.Scene();
+    scene.background = new THREE.Color(0x87ceeb);
+
+    const camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 1000);
+    camera.position.set(0, 4, 8);
+
+    const renderer = new THREE.WebGLRenderer({ antialias: true });
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    document.body.appendChild(renderer.domElement);
+
+    window.addEventListener('resize', () => {
+      camera.aspect = window.innerWidth / window.innerHeight;
+      camera.updateProjectionMatrix();
+      renderer.setSize(window.innerWidth, window.innerHeight);
+    });
+
+    const controls = new OrbitControls(camera, renderer.domElement);
+    controls.enableDamping = true;
+
+    const hemi = new THREE.HemisphereLight(0xffffbb, 0x080820, 1);
+    scene.add(hemi);
+    const dir = new THREE.DirectionalLight(0xffffff, 0.8);
+    dir.position.set(5, 10, 7);
+    scene.add(dir);
+
+    const groundMat = new THREE.MeshStandardMaterial({ color: 0x2e8b57 });
+    const ground = new THREE.Mesh(new THREE.PlaneGeometry(200, 200), groundMat);
+    ground.rotation.x = -Math.PI / 2;
+    ground.receiveShadow = true;
+    scene.add(ground);
+
+    const grid = new THREE.GridHelper(200, 50, 0x444444, 0x444444);
+    grid.position.y = 0.001;
+    scene.add(grid);
+
+    // Player placeholder (simple box)
+    const playerGeom = new THREE.BoxGeometry(0.8, 1.8, 0.6);
+    const playerMat = new THREE.MeshStandardMaterial({ color: 0xff3333 });
+    const player = new THREE.Mesh(playerGeom, playerMat);
+    player.position.set(0, 0.9, 0);
+    scene.add(player);
+
+    // Simple camera follow offset
+    const camOffset = new THREE.Vector3(0, 2.2, 5);
+
+    // Movement
+    const clock = new THREE.Clock();
+    const keys = {};
+    const speed = 5; // units per second
+
+    document.addEventListener('keydown', (e) => { keys[e.key.toLowerCase()] = true; });
+    document.addEventListener('keyup', (e) => { keys[e.key.toLowerCase()] = false; });
+
+    function updatePlayer(delta) {
+      const dir = new THREE.Vector3();
+      if (keys['w'] || keys['arrowup']) dir.z -= 1;
+      if (keys['s'] || keys['arrowdown']) dir.z += 1;
+      if (keys['a'] || keys['arrowleft']) dir.x -= 1;
+      if (keys['d'] || keys['arrowright']) dir.x += 1;
+      if (dir.lengthSq() > 0) {
+        dir.normalize();
+        // Move relative to camera forward
+        const camDir = new THREE.Vector3();
+        camera.getWorldDirection(camDir);
+        camDir.y = 0; camDir.normalize();
+        const camRight = new THREE.Vector3().crossVectors(new THREE.Vector3(0, 1, 0), camDir).normalize();
+        const move = camDir.clone().multiplyScalar(-dir.z).add(camRight.clone().multiplyScalar(dir.x));
+        move.multiplyScalar(speed * delta);
+        player.position.add(move);
+      }
+    }
+
+    function animate() {
+      const delta = clock.getDelta();
+      updatePlayer(delta);
+      // camera follows player
+      const desired = player.position.clone().add(camOffset);
+      camera.position.lerp(desired, 1 - Math.pow(0.001, delta));
+      controls.target.copy(player.position.clone().add(new THREE.Vector3(0, 1, 0)));
+      controls.update();
+      renderer.render(scene, camera);
+      requestAnimationFrame(animate);
+    }
+
+    animate();
+  </script>
+
+  <!-- Run with a local server (python -m http.server). -->
+</body>
+</html>
+import * as THREE from 'https://unpkg.com/three@0.152.2/build/three.module.js';
