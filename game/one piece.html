@@ -6,216 +6,275 @@
     <meta name="viewport" content="width=device-width,initial-scale=1">
     <title>One Piece 3D — Prototype</title>
     <style>
-        <div id="info">WASD / Arrow keys to move — Left click to attack</div>
+        <div id="info">WASD / Arrow keys to move — Left click to attack</div><script type="module">import * as THREE from 'https://unpkg.com/three@0.152.2/build/three.module.js';
 
-        <script type="module">
-            import * as THREE from 'https://unpkg.com/three@0.152.2/build/three.module.js';
-            import { OrbitControls } from 'https://unpkg.com/three@0.152.2/examples/jsm/controls/OrbitControls.js';
-            import { GLTFLoader } from 'https://unpkg.com/three@0.152.2/examples/jsm/loaders/GLTFLoader.js';
+        import {
+            OrbitControls
+        }
 
-            const scene = new THREE.Scene();
-            scene.background = new THREE.Color(0x87ceeb);
+        from 'https://unpkg.com/three@0.152.2/examples/jsm/controls/OrbitControls.js';
 
-            const camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 1000);
-            camera.position.set(0, 4, 8);
+        import {
+            GLTFLoader
+        }
 
-            const renderer = new THREE.WebGLRenderer({ antialias: true });
-            renderer.setSize(window.innerWidth, window.innerHeight);
-            renderer.outputColorSpace = THREE.SRGBColorSpace;
-            document.body.appendChild(renderer.domElement);
+        from 'https://unpkg.com/three@0.152.2/examples/jsm/loaders/GLTFLoader.js';
 
-            window.addEventListener('resize', () => {
-                camera.aspect = window.innerWidth / window.innerHeight;
+        const scene=new THREE.Scene();
+        scene.background=new THREE.Color(0x87ceeb);
+
+        const camera=new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 1000);
+        camera.position.set(0, 4, 8);
+
+        const renderer=new THREE.WebGLRenderer({
+            antialias: true
+        });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.outputColorSpace=THREE.SRGBColorSpace;
+        document.body.appendChild(renderer.domElement);
+
+        window.addEventListener('resize', ()=> {
+                camera.aspect=window.innerWidth / window.innerHeight;
                 camera.updateProjectionMatrix();
                 renderer.setSize(window.innerWidth, window.innerHeight);
             });
 
-            const controls = new OrbitControls(camera, renderer.domElement);
-            controls.enableDamping = true;
+        const controls=new OrbitControls(camera, renderer.domElement);
+        controls.enableDamping=true;
 
-            const hemi = new THREE.HemisphereLight(0xffffbb, 0x080820, 1);
-            scene.add(hemi);
-            const dir = new THREE.DirectionalLight(0xffffff, 0.8);
-            dir.position.set(5, 10, 7);
-            scene.add(dir);
+        const hemi=new THREE.HemisphereLight(0xffffbb, 0x080820, 1);
+        scene.add(hemi);
+        const dir=new THREE.DirectionalLight(0xffffff, 0.8);
+        dir.position.set(5, 10, 7);
+        scene.add(dir);
 
-            const groundMat = new THREE.MeshStandardMaterial({ color: 0x8dbf8f });
-            const ground = new THREE.Mesh(new THREE.PlaneGeometry(200, 200), groundMat);
-            ground.rotation.x = -Math.PI / 2;
-            ground.receiveShadow = true;
-            scene.add(ground);
+        const groundMat=new THREE.MeshStandardMaterial({
+            color: 0x8dbf8f
+        });
+        const ground=new THREE.Mesh(new THREE.PlaneGeometry(200, 200), groundMat);
+        ground.rotation.x=-Math.PI / 2;
+        ground.receiveShadow=true;
+        scene.add(ground);
 
-            const grid = new THREE.GridHelper(200, 50, 0x444444, 0x444444);
-            grid.position.y = 0.001;
-            scene.add(grid);
+        const grid=new THREE.GridHelper(200, 50, 0x444444, 0x444444);
+        grid.position.y=0.001;
+        scene.add(grid);
 
-            // Player variables
-            let player = new THREE.Object3D();
-            player.position.set(0, 0, 0);
-            scene.add(player);
+        // Player variables
+        let player=new THREE.Object3D();
+        player.position.set(0, 0, 0);
+        scene.add(player);
 
-            let mixer = null;
-            let actions = {};
-            let activeAction = null;
+        let mixer=null;
 
-            // Load a free character (placeholder). Not an official Luffy model — use your own model if you have one.
-            const loader = new GLTFLoader();
-            loader.load('https://threejs.org/examples/models/gltf/RobotExpressive/RobotExpressive.glb', (gltf) => {
-                const model = gltf.scene;
-                model.traverse((c) => { if (c.isMesh) c.castShadow = true; });
+        let actions= {}
+
+        ;
+        let activeAction=null;
+
+        // Load a free character (placeholder). Not an official Luffy model — use your own model if you have one.
+        const loader=new GLTFLoader();
+
+        loader.load('https://threejs.org/examples/models/gltf/RobotExpressive/RobotExpressive.glb', (gltf)=> {
+                const model=gltf.scene;
+
+                model.traverse((c)=> {
+                        if (c.isMesh) c.castShadow=true;
+                    });
                 model.scale.set(0.7, 0.7, 0.7);
                 player.add(model);
 
                 // animations
                 if (gltf.animations && gltf.animations.length) {
-                    mixer = new THREE.AnimationMixer(model);
-                    gltf.animations.forEach((clip) => { actions[clip.name] = mixer.clipAction(clip); });
-                    // try to pick sensible actions
-                    activeAction = actions['Idle'] || Object.values(actions)[0];
-                    if (activeAction) { activeAction.play(); }
-                }
-            }, undefined, (err) => { console.warn('GLTF load error', err); });
+                    mixer=new THREE.AnimationMixer(model);
 
-            // Enemies (simple spheres)
-            const enemies = [];
-            const enemyMat = new THREE.MeshStandardMaterial({ color: 0x3333ff });
-            function spawnEnemy(x, z) {
-                const geo = new THREE.SphereGeometry(0.6, 16, 12);
-                const m = new THREE.Mesh(geo, enemyMat.clone());
-                m.position.set(x, 0.6, z);
-                m.userData = { hp: 20, hitTimer: 0 };
-                scene.add(m);
-                enemies.push(m);
+                    gltf.animations.forEach((clip)=> {
+                            actions[clip.name]=mixer.clipAction(clip);
+                        });
+                    // try to pick sensible actions
+                    activeAction=actions['Idle'] || Object.values(actions)[0];
+
+                    if (activeAction) {
+                        activeAction.play();
+                    }
+                }
             }
 
-            // spawn a few
-            spawnEnemy(4, -2);
-            spawnEnemy(-3, -5);
-            spawnEnemy(2, -8);
+            , undefined, (err)=> {
+                console.warn('GLTF load error', err);
+            });
 
-            // Movement
-            const clock = new THREE.Clock();
-            const keys = {};
-            const speed = 4;
+        // Enemies (simple spheres)
+        const enemies=[];
 
-            document.addEventListener('keydown', (e) => { keys[e.key.toLowerCase()] = true; });
-            document.addEventListener('keyup', (e) => { keys[e.key.toLowerCase()] = false; });
+        const enemyMat=new THREE.MeshStandardMaterial({
+            color: 0x3333ff
+        });
 
-            // Attack
-            let attackCooldown = 0;
-            const attackRange = 2.2;
-            const attackDamage = 10;
+        function spawnEnemy(x, z) {
+            const geo=new THREE.SphereGeometry(0.6, 16, 12);
+            const m=new THREE.Mesh(geo, enemyMat.clone());
+            m.position.set(x, 0.6, z);
 
-            window.addEventListener('mousedown', (e) => {
-                if (attackCooldown <= 0) {
+            m.userData= {
+                hp: 20, hitTimer: 0
+            }
+
+            ;
+            scene.add(m);
+            enemies.push(m);
+        }
+
+        // spawn a few
+        spawnEnemy(4, -2);
+        spawnEnemy(-3, -5);
+        spawnEnemy(2, -8);
+
+        // Movement
+        const clock=new THREE.Clock();
+
+        const keys= {}
+
+        ;
+        const speed=4;
+
+        document.addEventListener('keydown', (e)=> {
+                keys[e.key.toLowerCase()]=true;
+            });
+
+        document.addEventListener('keyup', (e)=> {
+                keys[e.key.toLowerCase()]=false;
+            });
+
+        // Attack
+        let attackCooldown=0;
+        const attackRange=2.2;
+        const attackDamage=10;
+
+        window.addEventListener('mousedown', (e)=> {
+                if (attackCooldown <=0) {
                     doAttack();
-                    attackCooldown = 0.6; // seconds
+                    attackCooldown=0.6; // seconds
                 }
             });
 
-            function doAttack() {
-                // play attack animation if found
-                if (actions && (actions['Punch'] || actions['Attack'])) {
-                    const a = actions['Punch'] || actions['Attack'];
-                    if (activeAction) activeAction.fadeOut(0.1);
-                    activeAction = a;
-                    a.reset().setLoop(THREE.LoopOnce).play();
-                    a.clampWhenFinished = true;
-                }
+        function doAttack() {
 
-                // damage nearby enemies
-                enemies.forEach((en) => {
-                    const d = en.position.distanceTo(player.position);
-                    if (d <= attackRange && en.userData.hp > 0) {
-                        en.userData.hp -= attackDamage;
-                        en.userData.hitTimer = 0.2;
-                        if (en.userData.hp <= 0) {
+            // play attack animation if found
+            if (actions && (actions['Punch'] || actions['Attack'])) {
+                const a=actions['Punch'] || actions['Attack'];
+                if (activeAction) activeAction.fadeOut(0.1);
+                activeAction=a;
+                a.reset().setLoop(THREE.LoopOnce).play();
+                a.clampWhenFinished=true;
+            }
+
+            // damage nearby enemies
+            enemies.forEach((en)=> {
+                    const d=en.position.distanceTo(player.position);
+
+                    if (d <=attackRange && en.userData.hp > 0) {
+                        en.userData.hp -=attackDamage;
+                        en.userData.hitTimer=0.2;
+
+                        if (en.userData.hp <=0) {
                             // death effect
                             scene.remove(en);
                         }
                     }
                 });
-            }
+        }
 
-            // Camera follow offset
-            const camOffset = new THREE.Vector3(0, 2.2, 5);
+        // Camera follow offset
+        const camOffset=new THREE.Vector3(0, 2.2, 5);
 
-            function updatePlayer(delta) {
-                const dir = new THREE.Vector3();
-                if (keys['w'] || keys['arrowup']) dir.z -= 1;
-                if (keys['s'] || keys['arrowdown']) dir.z += 1;
-                if (keys['a'] || keys['arrowleft']) dir.x -= 1;
-                if (keys['d'] || keys['arrowright']) dir.x += 1;
+        function updatePlayer(delta) {
+            const dir=new THREE.Vector3();
+            if (keys['w'] || keys['arrowup']) dir.z -=1;
+            if (keys['s'] || keys['arrowdown']) dir.z+=1;
+            if (keys['a'] || keys['arrowleft']) dir.x -=1;
+            if (keys['d'] || keys['arrowright']) dir.x+=1;
 
-                if (dir.lengthSq() > 0) {
-                    dir.normalize();
-                    const camDir = new THREE.Vector3();
-                    camera.getWorldDirection(camDir);
-                    camDir.y = 0; camDir.normalize();
-                    const camRight = new THREE.Vector3().crossVectors(new THREE.Vector3(0, 1, 0), camDir).normalize();
-                    const move = camDir.clone().multiplyScalar(-dir.z).add(camRight.clone().multiplyScalar(dir.x));
-                    move.multiplyScalar(speed * delta);
-                    player.position.add(move);
-                    // rotate player to movement direction
-                    const look = move.clone().setY(0).normalize();
-                    if (look.lengthSq() > 0) {
-                        player.quaternion.slerp(new THREE.Quaternion().setFromUnitVectors(new THREE.Vector3(0, 0, 1), look), 0.2);
-                    }
-                    // play walking animation if available
-                    if (actions && actions['Walking'] && activeAction !== actions['Walking']) {
-                        if (activeAction) activeAction.fadeOut(0.2);
-                        activeAction = actions['Walking'];
-                        activeAction.reset().play();
-                    }
-                } else {
-                    // idle
-                    if (actions && actions['Idle'] && activeAction !== actions['Idle']) {
-                        if (activeAction) activeAction.fadeOut(0.2);
-                        activeAction = actions['Idle'];
-                        activeAction.reset().play();
-                    }
+            if (dir.lengthSq() > 0) {
+                dir.normalize();
+                const camDir=new THREE.Vector3();
+                camera.getWorldDirection(camDir);
+                camDir.y=0;
+                camDir.normalize();
+                const camRight=new THREE.Vector3().crossVectors(new THREE.Vector3(0, 1, 0), camDir).normalize();
+                const move=camDir.clone().multiplyScalar(-dir.z).add(camRight.clone().multiplyScalar(dir.x));
+                move.multiplyScalar(speed * delta);
+                player.position.add(move);
+                // rotate player to movement direction
+                const look=move.clone().setY(0).normalize();
+
+                if (look.lengthSq() > 0) {
+                    player.quaternion.slerp(new THREE.Quaternion().setFromUnitVectors(new THREE.Vector3(0, 0, 1), look), 0.2);
+                }
+
+                // play walking animation if available
+                if (actions && actions['Walking'] && activeAction !==actions['Walking']) {
+                    if (activeAction) activeAction.fadeOut(0.2);
+                    activeAction=actions['Walking'];
+                    activeAction.reset().play();
                 }
             }
 
-            function animate() {
-                const delta = clock.getDelta();
-                if (mixer) mixer.update(delta);
-                if (attackCooldown > 0) attackCooldown -= delta;
+            else {
 
-                updatePlayer(delta);
+                // idle
+                if (actions && actions['Idle'] && activeAction !==actions['Idle']) {
+                    if (activeAction) activeAction.fadeOut(0.2);
+                    activeAction=actions['Idle'];
+                    activeAction.reset().play();
+                }
+            }
+        }
 
-                // enemies hit flash and simple idle behaviour
-                enemies.forEach((en) => {
-                    if (!en.parent) return; // removed
+        function animate() {
+            const delta=clock.getDelta();
+            if (mixer) mixer.update(delta);
+            if (attackCooldown > 0) attackCooldown -=delta;
+
+            updatePlayer(delta);
+
+            // enemies hit flash and simple idle behaviour
+            enemies.forEach((en)=> {
+                    if ( !en.parent) return; // removed
+
                     if (en.userData.hitTimer > 0) {
                         en.material.color.set(0xff0000);
-                        en.userData.hitTimer -= delta;
-                    } else {
+                        en.userData.hitTimer -=delta;
+                    }
+
+                    else {
                         en.material.color.set(0x3333ff);
                     }
+
                     // simple chase if alive
                     if (en.userData.hp > 0) {
-                        const toPlayer = player.position.clone().sub(en.position);
-                        const dist = toPlayer.length();
+                        const toPlayer=player.position.clone().sub(en.position);
+                        const dist=toPlayer.length();
+
                         if (dist > 1.2) {
                             toPlayer.normalize();
                             en.position.add(toPlayer.multiplyScalar(1.2 * delta));
-                        } else {
+                        }
+
+                        else {
                             // damage player stub (no player HP yet)
                         }
                     }
                 });
 
-                // camera follows player
-                const desired = player.position.clone().add(camOffset);
-                camera.position.lerp(desired, 1 - Math.pow(0.001, delta));
-                controls.target.copy(player.position.clone().add(new THREE.Vector3(0, 1, 0)));
-                controls.update();
-                renderer.render(scene, camera);
-                requestAnimationFrame(animate);
-            }
+            // camera follows player
+            const desired=player.position.clone().add(camOffset);
+            camera.position.lerp(desired, 1 - Math.pow(0.001, delta));
+            controls.target.copy(player.position.clone().add(new THREE.Vector3(0, 1, 0)));
+            controls.update();
+            renderer.render(scene, camera);
+            requestAnimationFrame(animate);
+        }
 
-            animate();
-        </script>
-
-        <!-- Run with a local server (python -m http.server). -->
+        animate();
+        </script>< !-- Run with a local server (python -m http.server). -->
