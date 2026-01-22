@@ -12,9 +12,9 @@ renderer.setSize(window.innerWidth, window.innerHeight);
 document.body.appendChild(renderer.domElement);
 
 window.addEventListener('resize', () => {
-  camera.aspect = window.innerWidth / window.innerHeight;
-  camera.updateProjectionMatrix();
-  renderer.setSize(window.innerWidth, window.innerHeight);
+    camera.aspect = window.innerWidth / window.innerHeight;
+    camera.updateProjectionMatrix();
+    renderer.setSize(window.innerWidth, window.innerHeight);
 });
 
 const controls = new OrbitControls(camera, renderer.domElement);
@@ -55,34 +55,34 @@ document.addEventListener('keydown', (e) => { keys[e.key.toLowerCase()] = true; 
 document.addEventListener('keyup', (e) => { keys[e.key.toLowerCase()] = false; });
 
 function updatePlayer(delta) {
-  const dir = new THREE.Vector3();
-  if (keys['w'] || keys['arrowup']) dir.z -= 1;
-  if (keys['s'] || keys['arrowdown']) dir.z += 1;
-  if (keys['a'] || keys['arrowleft']) dir.x -= 1;
-  if (keys['d'] || keys['arrowright']) dir.x += 1;
-  if (dir.lengthSq() > 0) {
-    dir.normalize();
-    // Move relative to camera forward
-    const camDir = new THREE.Vector3();
-    camera.getWorldDirection(camDir);
-    camDir.y = 0; camDir.normalize();
-    const camRight = new THREE.Vector3().crossVectors(new THREE.Vector3(0, 1, 0), camDir).normalize();
-    const move = camDir.clone().multiplyScalar(-dir.z).add(camRight.clone().multiplyScalar(dir.x));
-    move.multiplyScalar(speed * delta);
-    player.position.add(move);
-  }
+    const dir = new THREE.Vector3();
+    if (keys['w'] || keys['arrowup']) dir.z -= 1;
+    if (keys['s'] || keys['arrowdown']) dir.z += 1;
+    if (keys['a'] || keys['arrowleft']) dir.x -= 1;
+    if (keys['d'] || keys['arrowright']) dir.x += 1;
+    if (dir.lengthSq() > 0) {
+        dir.normalize();
+        // Move relative to camera forward
+        const camDir = new THREE.Vector3();
+        camera.getWorldDirection(camDir);
+        camDir.y = 0; camDir.normalize();
+        const camRight = new THREE.Vector3().crossVectors(new THREE.Vector3(0, 1, 0), camDir).normalize();
+        const move = camDir.clone().multiplyScalar(-dir.z).add(camRight.clone().multiplyScalar(dir.x));
+        move.multiplyScalar(speed * delta);
+        player.position.add(move);
+    }
 }
 
 function animate() {
-  const delta = clock.getDelta();
-  updatePlayer(delta);
-  // camera follows player
-  const desired = player.position.clone().add(camOffset);
-  camera.position.lerp(desired, 1 - Math.pow(0.001, delta));
-  controls.target.copy(player.position.clone().add(new THREE.Vector3(0, 1, 0)));
-  controls.update();
-  renderer.render(scene, camera);
-  requestAnimationFrame(animate);
+    const delta = clock.getDelta();
+    updatePlayer(delta);
+    // camera follows player
+    const desired = player.position.clone().add(camOffset);
+    camera.position.lerp(desired, 1 - Math.pow(0.001, delta));
+    controls.target.copy(player.position.clone().add(new THREE.Vector3(0, 1, 0)));
+    controls.update();
+    renderer.render(scene, camera);
+    requestAnimationFrame(animate);
 }
 
 // On-screen help
