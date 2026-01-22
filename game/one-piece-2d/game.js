@@ -27,29 +27,29 @@ const player = {
 const WORLD_W = 6500;
 const SECTION_W = 1000; // each themed area width
 const themes = [
-    {name:'Louge Town', bg:'#dbeefc'},
-    {name:'Alabasta', bg:'#f6e1c4'},
-    {name:'Skypiea', bg:'#eaf7ff'},
-    {name:'Water7', bg:'#e6f7fb'},
-    {name:'Enies Lobby', bg:'#f1e9e6'},
-    {name:'Punk Hazard', bg:'#f3e9eef0'},
-    {name:'Egghead', bg:'#eef2ff'}
+    { name: 'Louge Town', bg: '#dbeefc' },
+    { name: 'Alabasta', bg: '#f6e1c4' },
+    { name: 'Skypiea', bg: '#eaf7ff' },
+    { name: 'Water7', bg: '#e6f7fb' },
+    { name: 'Enies Lobby', bg: '#f1e9e6' },
+    { name: 'Punk Hazard', bg: '#f3e9eef0' },
+    { name: 'Egghead', bg: '#eef2ff' }
 ];
 
 let platforms = [];
-function buildLevel(){
+function buildLevel() {
     platforms = [];
     // ground across world
-    platforms.push({x:0,y:460,w:WORLD_W,h:80});
+    platforms.push({ x: 0, y: 460, w: WORLD_W, h: 80 });
 
     // add themed platform clusters
-    for(let i=0;i<themes.length;i++){
-        const baseX = i*SECTION_W + 80;
+    for (let i = 0; i < themes.length; i++) {
+        const baseX = i * SECTION_W + 80;
         // a few platforms per section
-        platforms.push({x:baseX + 120, y: 380 - (i%3)*10, w:160, h:16});
-        platforms.push({x:baseX + 340, y: 300 - (i%2)*8, w:150, h:16});
-        platforms.push({x:baseX + 560, y: 360 - ((i+1)%3)*12, w:120, h:16});
-        platforms.push({x:baseX + 760, y: 280 - (i%2)*6, w:120, h:16});
+        platforms.push({ x: baseX + 120, y: 380 - (i % 3) * 10, w: 160, h: 16 });
+        platforms.push({ x: baseX + 340, y: 300 - (i % 2) * 8, w: 150, h: 16 });
+        platforms.push({ x: baseX + 560, y: 360 - ((i + 1) % 3) * 12, w: 120, h: 16 });
+        platforms.push({ x: baseX + 760, y: 280 - (i % 2) * 6, w: 120, h: 16 });
     }
 }
 buildLevel();
@@ -83,7 +83,7 @@ function update() {
     if (player.attackCooldown > 0) player.attackCooldown--
 
     // compute attack extension value for collision (larger when animating)
-    if(player.attacking){
+    if (player.attacking) {
         const t = (8 - Math.max(0, player.attackFrame)) / 8; // 0->1
         player.attackExt = Math.round(t * 56) + 8;
     } else player.attackExt = 0;
@@ -116,17 +116,17 @@ function update() {
 
         // Simple collision with player
         if (rectsOverlap(player, e)) {
-                // If player attacking and attack hitbox overlaps enemy
-                if (player.attacking) {
-                    const ext = player.attackExt || 0;
-                    const hw = 32 + ext;
-                    const hx = player.facing === 1 ? player.x + player.w : player.x - hw;
-                    const hb = { x: hx, y: player.y + 8, w: hw, h: player.h - 16 };
-                    if (rectsOverlap(hb, e)) {
-                        e.hp -= 20; e.x += player.facing * 6; // knockback
-                        if (e.hp <= 0) { e.alive = false; score += 100 }
-                    }
-                } else {
+            // If player attacking and attack hitbox overlaps enemy
+            if (player.attacking) {
+                const ext = player.attackExt || 0;
+                const hw = 32 + ext;
+                const hx = player.facing === 1 ? player.x + player.w : player.x - hw;
+                const hb = { x: hx, y: player.y + 8, w: hw, h: player.h - 16 };
+                if (rectsOverlap(hb, e)) {
+                    e.hp -= 20; e.x += player.facing * 6; // knockback
+                    if (e.hp <= 0) { e.alive = false; score += 100 }
+                }
+            } else {
                 // player takes damage
                 if (!player._inv) { player.hp -= 8; player._inv = 40 }
             }
@@ -139,7 +139,7 @@ function update() {
     enemies = enemies.filter(e => e.alive || Math.random() < 0.01);
 
     // Camera follow player, clamp
-    camX = Math.round(player.x - W/2 + player.w/2);
+    camX = Math.round(player.x - W / 2 + player.w / 2);
     camX = Math.max(0, Math.min(camX, WORLD_W - W));
 
     // Update UI
@@ -201,7 +201,7 @@ function drawPlayer(ctx, p) {
     // Arm base position
     const ax = 12; const ay = 12;
     // Arm extension based on attackExt
-    const ext = p.attackExt ? Math.round((p.attackExt/8)) : 0;
+    const ext = p.attackExt ? Math.round((p.attackExt / 8)) : 0;
     // Upper arm
     r(ax - 2, ay, 4 + ext, 3, skin);
     // Hand
@@ -214,8 +214,8 @@ function draw() {
     // Background
     ctx.clearRect(0, 0, W, H);
     // Draw themed background sections
-    for(let i=0;i<themes.length;i++){
-        const x = i*SECTION_W;
+    for (let i = 0; i < themes.length; i++) {
+        const x = i * SECTION_W;
         ctx.fillStyle = themes[i].bg;
         ctx.fillRect(x - camX, 0, SECTION_W, H);
         // theme label
@@ -223,7 +223,7 @@ function draw() {
         ctx.fillText(themes[i].name, x - camX + 12, 36);
         // small decorative skyline/land for each theme
         ctx.fillStyle = 'rgba(0,0,0,0.06)';
-        for(let s=0;s<6;s++) ctx.fillRect(x - camX + 40 + s*140, 120 + (i%3)*6, 80, 24 + (s%2)*8);
+        for (let s = 0; s < 6; s++) ctx.fillRect(x - camX + 40 + s * 140, 120 + (i % 3) * 6, 80, 24 + (s % 2) * 8);
     }
 
     // Ground tiles / platforms
@@ -247,7 +247,7 @@ function draw() {
 
     // Player (8-bit sprite) - draw at world coords relative to camera
     player.animT += 0.12;
-    ctx.save(); ctx.translate(-camX,0);
+    ctx.save(); ctx.translate(-camX, 0);
     drawPlayer(ctx, player);
     ctx.restore();
 
