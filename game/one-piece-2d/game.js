@@ -23,14 +23,36 @@ const player = {
     animT: 0
 };
 
-// Level platforms
-const platforms = [
-    { x: 0, y: 460, w: 960, h: 80 },
-    { x: 220, y: 380, w: 160, h: 16 },
-    { x: 420, y: 300, w: 150, h: 16 },
-    { x: 620, y: 360, w: 120, h: 16 },
-    { x: 820, y: 280, w: 120, h: 16 }
+// World and level platforms (multiple themed horizontal sections)
+const WORLD_W = 6500;
+const SECTION_W = 1000; // each themed area width
+const themes = [
+    {name:'Louge Town', bg:'#dbeefc'},
+    {name:'Alabasta', bg:'#f6e1c4'},
+    {name:'Skypiea', bg:'#eaf7ff'},
+    {name:'Water7', bg:'#e6f7fb'},
+    {name:'Enies Lobby', bg:'#f1e9e6'},
+    {name:'Punk Hazard', bg:'#f3e9eef0'},
+    {name:'Egghead', bg:'#eef2ff'}
 ];
+
+let platforms = [];
+function buildLevel(){
+    platforms = [];
+    // ground across world
+    platforms.push({x:0,y:460,w:WORLD_W,h:80});
+
+    // add themed platform clusters
+    for(let i=0;i<themes.length;i++){
+        const baseX = i*SECTION_W + 80;
+        // a few platforms per section
+        platforms.push({x:baseX + 120, y: 380 - (i%3)*10, w:160, h:16});
+        platforms.push({x:baseX + 340, y: 300 - (i%2)*8, w:150, h:16});
+        platforms.push({x:baseX + 560, y: 360 - ((i+1)%3)*12, w:120, h:16});
+        platforms.push({x:baseX + 760, y: 280 - (i%2)*6, w:120, h:16});
+    }
+}
+buildLevel();
 
 // Enemies
 let enemies = [];
@@ -42,6 +64,7 @@ spawnEnemy(700, 320);
 spawnEnemy(880, 236);
 
 let score = 0;
+let camX = 0;
 
 function update() {
     // Input
@@ -59,6 +82,12 @@ function update() {
     if (player.attacking) { player.attackFrame--; if (player.attackFrame <= 0) player.attacking = false }
     if (player.attackCooldown > 0) player.attackCooldown--
 
+    // compute attack extension value for collision (larger when animating)
+    if(player.attacking){
+        const t = (8 - Math.max(0, player.attackFrame)) / 8; // 0->1
+        player.attackExt = Math.round(t * 56) + 8;
+    } else player.attackExt = 0;
+
     // Physics
     player.vy += gravity * 0.6;
     player.x += player.vx;
@@ -74,9 +103,9 @@ function update() {
         }
     }
 
-    // Keep in bounds
+    // Keep in world bounds
     if (player.x < 0) player.x = 0;
-    if (player.x + player.w > W) player.x = W - player.w;
+    if (player.x + player.w > WORLD_W) player.x = WORLD_W - player.w;
     if (player.y > H) { player.hp = 0 }
 
     // Enemies update
@@ -87,16 +116,17 @@ function update() {
 
         // Simple collision with player
         if (rectsOverlap(player, e)) {
-            // If player attacking and attack hitbox overlaps enemy
-            if (player.attacking) {
-                // create attack hitbox
-                const hx = player.facing === 1 ? player.x + player.w : player.x - 32;
-                const hb = { x: hx, y: player.y + 8, w: 32, h: player.h - 16 };
-                if (rectsOverlap(hb, e)) {
-                    e.hp -= 20; e.x += player.facing * 6; // knockback
-                    if (e.hp <= 0) { e.alive = false; score += 100 }
-                }
-            } else {
+                // If player attacking and attack hitbox overlaps enemy
+                if (player.attacking) {
+                    const ext = player.attackExt || 0;
+                    const hw = 32 + ext;
+                    const hx = player.facing === 1 ? player.x + player.w : player.x - hw;
+                    const hb = { x: hx, y: player.y + 8, w: hw, h: player.h - 16 };
+                    if (rectsOverlap(hb, e)) {
+                        e.hp -= 20; e.x += player.facing * 6; // knockback
+                        if (e.hp <= 0) { e.alive = false; score += 100 }
+                    }
+                } else {
                 // player takes damage
                 if (!player._inv) { player.hp -= 8; player._inv = 40 }
             }
@@ -108,6 +138,10 @@ function update() {
     // Remove dead enemies periodically
     enemies = enemies.filter(e => e.alive || Math.random() < 0.01);
 
+    // Camera follow player, clamp
+    camX = Math.round(player.x - W/2 + player.w/2);
+    camX = Math.max(0, Math.min(camX, WORLD_W - W));
+
     // Update UI
     document.getElementById('hp').textContent = Math.max(0, Math.round(player.hp));
     document.getElementById('pts').textContent = score;
@@ -116,65 +150,62 @@ function update() {
 // Draw an 8-bit style character and arm-stretch animation
 function drawPlayer(ctx, p) {
     ctx.save();
-    // center the sprite on player position
-    ctx.translate(Math.round(p.x + p.w / 2), Math.round(p.y + p.h / 2));
-    if (p.facing < 0) ctx.scale(-1, 1);
+    // draw at top-left world coords (so feet align with platform y)
+    ctx.translate(Math.round(p.x), Math.round(p.y));
+    if (p.facing < 0) {
+        ctx.scale(-1, 1);
+        // when mirrored, translate so drawing still uses positive coordinates
+        ctx.translate(-(pxw * S), 0);
+    }
 
-    const S = 2; // pixel scale
-    const w = p.w, h = p.h;
+    const S = 2; // pixel scale: sprite grid is 16x28 -> 32x56
+    const pxw = 16, pxh = 28;
 
-    // helper to draw pixel rects relative to center
     function r(x, y, wpx, hpx, color) {
         ctx.fillStyle = color;
         ctx.fillRect(Math.round(x * S), Math.round(y * S), Math.round(wpx * S), Math.round(hpx * S));
     }
 
-    // offsets: draw relative so top-left of sprite area is at (-w/2, -h/2)
-    const ox = -Math.round(w / 2 / S);
-    const oy = -Math.round(h / 2 / S);
+    // Slight leg bob
+    const legBob = Math.round(Math.abs(Math.sin(p.animT * 6)) * 1.5);
 
-    // Slight leg bob when running
-    const legBob = Math.abs(Math.sin(p.animT * 6)) * 1.5;
-
-    // Colors
+    // Palette
     const skin = '#f1c27d';
     const straw = '#f4d542';
     const band = '#b11';
     const shirt = '#d43';
-    const pants = '#102a1a';
+    const pants = '#1b4a7a';
+    const shoe = '#321b0f';
 
-    // Head (10x10 pixels)
-    r(ox + 6, oy + 2, 10, 10, skin);
-    // Hat brim and top
-    r(ox + 4, oy - 4, 14, 4, straw);
-    r(ox + 6, oy - 8, 10, 6, straw);
-    r(ox + 6, oy - 2, 10, 2, band);
+    // Head area (pixel coords)
+    r(4, 1, 8, 8, skin);       // face
+    r(2, -2, 12, 4, straw);     // hat brim
+    r(4, -6, 8, 6, straw);      // hat top
+    r(4, -1, 8, 2, band);       // band
 
-    // Torso
-    r(ox + 4, oy + 12, 16, 12, shirt);
-    // Pants
-    r(ox + 6, oy + 26, 12, 8, pants);
+    // scar under eye (tiny)
+    r(9, 4, 1, 1, '#a33');
 
-    // Legs (animated)
-    r(ox + 6, oy + 34 + legBob, 5, 8, pants);
-    r(ox + 15, oy + 34 - legBob, 5, 8, pants);
+    // Torso and shirt
+    r(2, 9, 12, 10, shirt);
 
-    // Right shoulder position (relative)
-    const sx = ox + 20; const sy = oy + 16;
+    // Shorts
+    r(4, 19, 8, 6, pants);
 
-    // Arm stretch: when attacking extend forearm outward
-    let baseArmLen = 6;
-    let ext = 0;
-    if (p.attacking) {
-        // animate extension based on attackFrame (0..8)
-        const t = (8 - Math.max(0, p.attackFrame)) / 8; // 0->1
-        ext = Math.round(t * 18) + 2;
-    }
+    // Legs and shoes (with bob)
+    r(4, 25 + legBob, 3, 3, pants);
+    r(9, 25 - legBob, 3, 3, pants);
+    r(3, 28 + legBob, 3, 2, shoe);
+    r(10, 28 - legBob, 3, 2, shoe);
 
+    // Arm base position
+    const ax = 12; const ay = 12;
+    // Arm extension based on attackExt
+    const ext = p.attackExt ? Math.round((p.attackExt/8)) : 0;
     // Upper arm
-    r(sx - 2, sy + 2, 6 + ext, 4, skin);
+    r(ax - 2, ay, 4 + ext, 3, skin);
     // Hand
-    r(sx + 4 + ext, sy + 2, 4, 4, skin);
+    r(ax + 2 + ext, ay, 3, 3, skin);
 
     ctx.restore();
 }
@@ -182,30 +213,43 @@ function drawPlayer(ctx, p) {
 function draw() {
     // Background
     ctx.clearRect(0, 0, W, H);
-    // sky gradient handled by CSS; draw some distant islands
-    ctx.fillStyle = '#c6f0ff';
-    // Ground tiles
-    for (let p of platforms) {
-        ctx.fillStyle = '#6b4f2b';
-        ctx.fillRect(p.x, p.y, p.w, p.h);
-        // top edge
-        ctx.fillStyle = '#8b5d3b';
-        ctx.fillRect(p.x, p.y - 6, p.w, 6);
+    // Draw themed background sections
+    for(let i=0;i<themes.length;i++){
+        const x = i*SECTION_W;
+        ctx.fillStyle = themes[i].bg;
+        ctx.fillRect(x - camX, 0, SECTION_W, H);
+        // theme label
+        ctx.fillStyle = 'rgba(0,0,0,0.6)'; ctx.font = '16px sans-serif';
+        ctx.fillText(themes[i].name, x - camX + 12, 36);
+        // small decorative skyline/land for each theme
+        ctx.fillStyle = 'rgba(0,0,0,0.06)';
+        for(let s=0;s<6;s++) ctx.fillRect(x - camX + 40 + s*140, 120 + (i%3)*6, 80, 24 + (s%2)*8);
     }
 
-    // Enemies
+    // Ground tiles / platforms
+    for (let p of platforms) {
+        ctx.fillStyle = '#6b4f2b';
+        ctx.fillRect(p.x - camX, p.y, p.w, p.h);
+        // top edge
+        ctx.fillStyle = '#8b5d3b';
+        ctx.fillRect(p.x - camX, p.y - 6, p.w, 6);
+    }
+
+    // Enemies (world coords -> draw relative to camera)
     for (let e of enemies) {
         if (!e.alive) continue;
         ctx.fillStyle = '#a22';
-        ctx.fillRect(e.x, e.y, e.w, e.h);
+        ctx.fillRect(e.x - camX, e.y, e.w, e.h);
         // HP bar
-        ctx.fillStyle = '#000'; ctx.fillRect(e.x, e.y - 8, e.w, 4);
-        ctx.fillStyle = '#0f0'; ctx.fillRect(e.x, e.y - 8, e.w * Math.max(0, e.hp / 30), 4);
+        ctx.fillStyle = '#000'; ctx.fillRect(e.x - camX, e.y - 8, e.w, 4);
+        ctx.fillStyle = '#0f0'; ctx.fillRect(e.x - camX, e.y - 8, e.w * Math.max(0, e.hp / 30), 4);
     }
 
-    // Player (8-bit sprite)
+    // Player (8-bit sprite) - draw at world coords relative to camera
     player.animT += 0.12;
+    ctx.save(); ctx.translate(-camX,0);
     drawPlayer(ctx, player);
+    ctx.restore();
 
     // Player HP bar
     ctx.fillStyle = '#222'; ctx.fillRect(14, 12, 220, 14);
@@ -224,7 +268,13 @@ function loop() { update(); draw(); requestAnimationFrame(loop); }
 loop();
 
 // Basic spawn wave to keep action going
-setInterval(() => { if (Math.random() < 0.7) spawnEnemy(40 + Math.random() * 880, 0 + Math.random() * 40 + 220) }, 3000);
+setInterval(() => {
+    if (Math.random() < 0.7) {
+        const sx = 80 + Math.random() * (WORLD_W - 240);
+        const sy = 200 + Math.random() * 260;
+        spawnEnemy(sx, sy);
+    }
+}, 3000);
 
 // Simple help for touch devices: clicks make attacks
 canvas.addEventListener('pointerdown', () => { keys['k'] = true; setTimeout(() => keys['k'] = false, 80) });

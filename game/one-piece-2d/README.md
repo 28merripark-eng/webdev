@@ -12,3 +12,6 @@ Notes:
 - To extend: add sprite art, sounds, more enemy types, better animations, level design.
  - This prototype now includes a simple 8-bit, fan-inspired character (straw hat + red shirt) and a stretch-arm attack animation inspired by the anime.
  - To extend: add higher-resolution sprites, sound effects, more enemy types, and level design.
+ - The level is now a wide horizontal world made of themed sections: Louge Town, Alabasta, Skypiea, Water7, Enies Lobby, Punk Hazard, and Egghead. The camera scrolls as you move.
+ - The background uses simple, non-copyrighted block art and color palettes to evoke each area (Louge Town has a town palette near the start).
+ - To extend: add higher-resolution sprites, sound effects, more enemy types, and refined level art.
