@@ -10,9 +10,9 @@
         <h2 style=" color:aqua">I like to hangout with friends or go to work</h2>
         <p style="color:aliceblue">My favorite videogame is one piece pirate warriors 4</p>
 
-        <img style="border:1px solid rgb(253, 253, 253)" src="images/download.jpg"alt="One Piece Pirate Warriors 4 cover" width="200" height="100">
-        <img style="border:1px solid rgb(126, 126, 126)" src="images/lucci.jpg"alt="One Piece Pirate Warriors 4 cover" width="200" height="100">
-        <img style="border:1px solid rgb(0, 255, 213)" src="images/luffy.jpg"alt="One Piece Pirate Warriors 4 cover" width="200" height="100">
+        <img style="border:1px solid rgb(253, 253, 253)" src="images/School.png"alt="One Piece Pirate Warriors 4 cover" width="200" height="100">
+        <img style="border:1px solid rgb(126, 126, 126)" src="images/education.jpg"alt="One Piece Pirate Warriors 4 cover" width="200" height="100">
+        <img style="border:1px solid rgb(0, 255, 213)" src="images/hardworker.jpg"alt="One Piece Pirate Warriors 4 cover" width="200" height="100">
         <img style="border:1px solid black" src="images/zoroxdrake.jpg"alt="One Piece Pirate Warriors 4 cover" width="200" height="100">
 
     <hr>
