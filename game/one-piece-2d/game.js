@@ -305,7 +305,7 @@ function update() {
                     if (player.charId === 'boa') { e.petrified = true; e.petrifiedByBoa = true; e.removedTimer = 30; e.alive = false; score += 260; continue; }
 
                     // Kizaru: heavy becomes beam (long-range) - apply beam when attack progress sufficient
-                        // Kizaru beam removed: heavy attacks no longer create a long-range beam
+                    // Kizaru beam removed: heavy attacks no longer create a long-range beam
 
                     // default damage
                     const dmg = player.attackType === 'heavy' ? 40 : 20;
@@ -366,7 +366,7 @@ function update() {
     // Update UI
     document.getElementById('hp').textContent = Math.max(0, Math.round(player.hp));
     document.getElementById('pts').textContent = score;
-    
+
     // spin attack visual: emit yellow radial lines when active (L attack)
     if (player.attacking && player.attackType === 'spin' && player.attackRadius) {
         const cx = Math.round(player.x + player.w / 2 - camX);
@@ -387,7 +387,7 @@ function update() {
             }
         }
     }
-    
+
     // spin attack visual: emit yellow radial lines when active (L attack)
     if (player.attacking && player.attackType === 'spin' && player.attackRadius) {
         const cx = Math.round(player.x + player.w / 2 - camX);
