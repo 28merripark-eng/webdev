@@ -200,6 +200,9 @@ function update() {
         if (h.x < -100 || h.x > WORLD_W + 100 || h.returning) { hands.splice(i, 1); }
     }
 
+    // update player hand-out state
+    player.handsOut = hands.length > 0;
+
     // Platform collisions
     player.onGround = false;
     for (let p of platforms) {
@@ -275,7 +278,8 @@ function update() {
                     // Buggy: attempt to grab on heavy
                     if (player.charId === 'buggy' && player.attackType === 'heavy' && !e.grabbed && !e.slamming) {
                         // spawn a detachable hand that targets this enemy
-                        hands.push({ x: player.x + (player.facing === 1 ? player.w : -8), y: player.y + 12, vx: player.facing * 12, vy: -2, target: e, attached: false, returning: false });
+                        hands.push({ x: player.x + (player.facing === 1 ? player.w : -8), y: player.y + 12, vx: player.facing * 12, vy: -2, target: e, attached: false, returning: false, side: player.facing });
+                        player.handsOut = true;
                         continue;
                     }
 
@@ -293,12 +297,9 @@ function update() {
                         }
                     }
 
-                    // default damage (respect immunities)
+                    // default damage
                     const dmg = player.attackType === 'heavy' ? 40 : 20;
-                    let effective = dmg;
-                    if (e.weapon === 'gun' && player.gunImmune) effective = 0;
-                    if (e.weapon === 'sword' && player.swordImmune) effective = 0;
-                    e.hp -= effective; e.x += player.facing * 10;
+                    e.hp -= dmg; e.x += player.facing * 10;
                     if (e.hp <= 0) { e.alive = false; score += (player.attackType === 'heavy' ? 180 : 100) }
                     continue;
                 }
@@ -395,8 +396,13 @@ function drawPlayer(ctx, p) {
         r(3, 30 + legBob, 4, 3, shoeB);
         r(9, 30 - legBob, 4, 3, shoeB);
 
-        // Arms / gloves
-        r(0, 12, 4, 4, glove); r(14, 12, 4, 4, glove);
+        // Arms / gloves (hide while hands detached)
+        if (!p.handsOut) {
+            r(0, 12, 4, 4, glove); r(14, 12, 4, 4, glove);
+        } else {
+            // draw small shoulder stubs to imply detached hands
+            r(1, 12, 2, 3, '#ddd'); r(14, 12, 2, 3, '#ddd');
+        }
 
     } else {
         // Luffy-style model (default)
