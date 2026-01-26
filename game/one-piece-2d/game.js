@@ -21,6 +21,8 @@ const player = {
     maxHp: 100, hp: 100,
     // attack state
     attacking: false, attackFrame: 0, attackCooldown: 0, attackType: null, attackExt: 0,
+    // flight / special move
+    flyCooldown: 0, flyTimer: 0, flyMode: null,
     // animation state
     animT: 0, walkSpeed: 0,
     // character identity
@@ -54,7 +56,7 @@ function drawTitleScreen(ctx) {
     ctx.fillStyle = '#ffd'; ctx.font = '36px sans-serif'; ctx.fillText('one piece pirate warriors 5', W / 2 - 260, H / 2 - 80);
     ctx.font = '16px sans-serif'; ctx.fillStyle = '#fff'; ctx.fillText('Choose your character to begin', W / 2 - 120, H / 2 - 40);
 
-    const choices = ['buggy', 'boa', 'kizaru'];
+    const choices = ['luffy', 'kizaru', 'buggy', 'boa'];
     const w = 240, h = 72;
     for (let i = 0; i < choices.length; i++) {
         const x = W / 2 - (choices.length * (w + 14)) / 2 + i * (w + 14);
@@ -64,7 +66,7 @@ function drawTitleScreen(ctx) {
         // hint
         ctx.fillStyle = 'rgba(255,255,255,0.06)'; ctx.fillRect(x + 12, y + 46, w - 24, 10);
     }
-    ctx.fillStyle = '#ccc'; ctx.font = '12px sans-serif'; ctx.fillText('Click a portrait or press 1-3', W / 2 - 90, H / 2 + 70);
+    ctx.fillStyle = '#ccc'; ctx.font = '12px sans-serif'; ctx.fillText('Click a portrait or press 1-4', W / 2 - 90, H / 2 + 70);
 }
 
 // World and level platforms (multiple themed horizontal sections)
@@ -165,6 +167,71 @@ function update() {
         player.attackFrame--; if (player.attackFrame <= 0) { player.attacking = false; player.attackType = null }
     }
     if (player.attackCooldown > 0) player.attackCooldown--
+
+    // Flight / special move (F) - per-character, Boa cannot use
+    if (player.flyCooldown > 0) player.flyCooldown--;
+    if (keys['f'] && player.flyCooldown <= 0 && player.charId !== 'boa') {
+        // start special flight
+        player.flyCooldown = 240; // cooldown frames
+        player.flyTimer = 0;
+        if (player.charId === 'kizaru') {
+            player.flyMode = 'kizaru_light';
+            // become light: increase speed and slim hitbox for duration
+            player.vx = player.facing * 8; player.vy = 0;
+        } else if (player.charId === 'luffy') {
+            player.flyMode = 'luffy_stretch';
+            // try to grab an enemy or platform in range immediately
+            // find enemy within 160 px
+            let grabbed = null;
+            for (const e of enemies) {
+                if (!e.alive) continue;
+                const dx = Math.abs(e.x - player.x);
+                const dy = Math.abs((e.y) - player.y);
+                if (dx < 160 && dy < 80) { grabbed = e; break; }
+            }
+            if (grabbed) {
+                // launch enemy two levels ahead
+                const shift = 2 * (SECTION_W + GAP);
+                grabbed.x = Math.min(WORLD_W - grabbed.w - 8, grabbed.x + shift);
+                grabbed.hp = Math.max(0, grabbed.hp - 50);
+                grabbed.petrified = false; grabbed.grabbed = false; grabbed.slamming = false;
+            } else {
+                // check for a platform above within reach - pull player forward two sections
+                let ptarget = null;
+                for (const p of platforms) {
+                    if (p.x - 40 < player.x && player.x < p.x + p.w + 40) continue; // not a grab if directly overlapping
+                    const dx = Math.abs((p.x + p.w/2) - player.x);
+                    const dy = (player.y - p.y);
+                    if (dx < 200 && dy > 20 && dy < 260) { ptarget = p; break; }
+                }
+                if (ptarget) {
+                    const shift = 2 * (SECTION_W + GAP);
+                    player.x = Math.min(WORLD_W - player.w - 8, player.x + shift);
+                }
+            }
+        } else if (player.charId === 'buggy') {
+            player.flyMode = 'buggy_pieces';
+            // spawn pieces array attached to player
+            player._pieces = [];
+            for (let i=0;i<6;i++) player._pieces.push({ox: -12 + i*6, oy: -28 - (i%2)*6, vy: -1 - i*0.4});
+        } else {
+            player.flyMode = 'generic_fly';
+            player.vx = player.facing * 6;
+        }
+    }
+
+    // advance flying timer / handle end
+    if (player.flyMode) {
+        player.flyTimer++;
+        // durations
+        const dur = player.charId === 'kizaru' ? 80 : player.charId === 'luffy' ? 28 : player.charId === 'buggy' ? 60 : 40;
+        if (player.flyTimer > dur) {
+            // clear state
+            player.flyMode = null; player.flyTimer = 0; player._pieces = null;
+            // restore normal speed
+            player.vx = 0;
+        }
+    }
 
     // compute attack extension / radius based on type and progress
     if (player.attacking) {
@@ -704,6 +771,37 @@ function draw() {
         if (h.attached) { ctx.fillStyle = 'rgba(0,0,0,0.2)'; ctx.fillRect(hx - 2, hy + 8, 12, 3) }
     }
 
+    // Draw flying / special visuals
+    if (player.flyMode) {
+        if (player.flyMode === 'kizaru_light') {
+            // draw bright yellow square at player's position
+            const sx = Math.round(player.x - camX);
+            const sy = Math.round(player.y);
+            ctx.fillStyle = 'rgba(255,230,120,0.98)'; ctx.fillRect(sx, sy - 2, player.w, player.h);
+        }
+        if (player.flyMode === 'buggy_pieces' && player._pieces) {
+            const baseX = Math.round(player.x - camX);
+            const baseY = Math.round(player.y);
+            for (const ps of player._pieces) {
+                ps.oy += ps.vy; // float
+                ctx.fillStyle = '#ffddff'; ctx.fillRect(baseX + ps.ox, baseY + ps.oy, 6, 6);
+            }
+            // feet remain visible (vulnerable)
+            ctx.fillStyle = '#3b2d20'; ctx.fillRect(baseX + 6, baseY + player.h - 8, 8, 6);
+            ctx.fillRect(baseX + player.w - 14, baseY + player.h - 8, 8, 6);
+        }
+        if (player.flyMode === 'luffy_stretch') {
+            // draw a stretched arm line forward/up showing grab effect briefly
+            const cx = Math.round(player.x + player.w/2 - camX);
+            const cy = Math.round(player.y + 12);
+            ctx.strokeStyle = 'rgba(200,120,40,0.9)'; ctx.lineWidth = 3;
+            ctx.beginPath(); ctx.moveTo(cx, cy);
+            const reach = 140;
+            const tx = cx + player.facing * reach; const ty = cy - 40;
+            ctx.lineTo(tx, ty); ctx.stroke();
+        }
+    }
+
     // draw boat at the end of Egghead
     const boatX = Math.round(eggEnd - 60 - camX);
     const boatY = platforms[0].y - 18;
@@ -801,7 +899,7 @@ canvas.addEventListener('pointerdown', (ev) => {
     const rect = canvas.getBoundingClientRect();
     const mx = ev.clientX - rect.left; const my = ev.clientY - rect.top;
     if (!gameStarted) {
-        const choices = ['buggy', 'boa', 'kizaru'];
+        const choices = ['luffy', 'kizaru', 'buggy', 'boa'];
         const w = 240, h = 72;
         const startX = W / 2 - (choices.length * (w + 14)) / 2;
         const y = H / 2 - 10;
@@ -829,7 +927,7 @@ canvas.addEventListener('pointerdown', (ev) => {
 document.addEventListener('keydown', e => {
     // if on title screen, allow 1-3 to pick starting character
     if (!gameStarted && gamePaused) {
-        const map0 = { '1': 'buggy', '2': 'boa', '3': 'kizaru' };
+        const map0 = { '1': 'luffy', '2': 'kizaru', '3': 'buggy', '4': 'boa' };
         const id0 = map0[e.key];
         if (id0) { applyCharacter(id0); gameStarted = true; gamePaused = false; return }
     }
