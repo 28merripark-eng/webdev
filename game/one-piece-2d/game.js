@@ -447,6 +447,39 @@ function drawPlayer(ctx, p) {
             r(1, 12, 2, 3, '#ddd'); r(14, 12, 2, 3, '#ddd');
         }
 
+    } else if (p.charId === 'kizaru') {
+        // Kizaru 8-bit inspired model: yellow suit + cape with blue logo
+        const skinK = '#f1c27d';
+        const suit = '#ffd700'; // bright yellow suit
+        const suitShade = '#e6c200';
+        const cape = '#072f6b'; // dark blue cape
+        const capeLogo = '#4da6ff'; // light blue logo
+        const hairK = '#e6d07a';
+        const shoeK = '#2b2b2b';
+
+        // Cape drawn slightly behind (left and right panels)
+        r(-1, 6, 18, 18, cape);
+        // cape logo near shoulder
+        r(6, 10, 4, 4, capeLogo);
+
+        // Head / hair
+        r(4, 0, 8, 6, hairK);
+        r(5, 2, 6, 6, skinK);
+        // Eyes
+        r(6, 3, 1, 1, '#000'); r(9, 3, 1, 1, '#000');
+
+        // Suit torso (bright yellow) with slight shading
+        r(3, 10, 10, 10, suit);
+        r(3, 12, 10, 2, suitShade);
+
+        // Trousers / boots
+        r(4, 22, 6, 6, suit);
+        r(9, 22, 3, 6, suit);
+        r(3, 28, 4, 2, shoeK); r(10, 28, 4, 2, shoeK);
+
+        // Arms (slim)
+        r(1, 12, 3, 4, skinK); r(14, 12, 3, 4, skinK);
+
     } else if (p.charId === 'boa') {
         // Boa Hancock 8-bit inspired model (refined proportions)
         const skinB = '#fde0d6';
@@ -653,9 +686,9 @@ function draw() {
         if (t > 0.45) {
             const beamLen = Math.max(120, player.attackExt || 200);
             const bx = player.facing === 1 ? player.x + player.w : player.x - beamLen;
-            ctx.fillStyle = 'rgba(255,240,200,0.18)';
+            ctx.fillStyle = 'rgba(255,215,0,0.28)';
             ctx.fillRect(bx - camX, player.y + 6, beamLen, player.h - 8);
-            ctx.strokeStyle = 'rgba(255,240,200,0.5)'; ctx.lineWidth = 2; ctx.strokeRect(bx - camX, player.y + 6, beamLen, player.h - 8);
+            ctx.strokeStyle = 'rgba(255,215,0,0.9)'; ctx.lineWidth = 2; ctx.strokeRect(bx - camX, player.y + 6, beamLen, player.h - 8);
         }
     }
     ctx.restore();
