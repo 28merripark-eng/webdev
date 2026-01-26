@@ -224,7 +224,7 @@ function update() {
         // petrified corpses: countdown then expire
         if (e.petrified) {
             e.removedTimer = (e.removedTimer || 60) - 1;
-            if (e.removedTimer <= 0) e.petrified = false;
+            if (e.removedTimer <= 0) { e.petrified = false; e.petrifiedByBoa = false; }
             continue;
         }
 
@@ -263,7 +263,7 @@ function update() {
                 const hb = { x: player.x - R, y: player.y - R, w: player.w + R * 2, h: player.h + R * 2 };
                 if (rectsOverlap(hb, e)) {
                     // Boa turns to stone and instantly kill
-                    if (player.charId === 'boa') { e.petrified = true; e.removedTimer = 40; e.alive = false; score += 260; continue; }
+                    if (player.charId === 'boa') { e.petrified = true; e.petrifiedByBoa = true; e.removedTimer = 30; e.alive = false; score += 260; continue; }
                     const dmg = 30;
                     e.hp -= dmg; e.x += (e.x < player.x ? -1 : 1) * 8;
                     if (e.hp <= 0) { e.alive = false; score += 120 }
@@ -284,8 +284,8 @@ function update() {
                         continue;
                     }
 
-                    // Boa: stone-kill
-                    if (player.charId === 'boa') { e.petrified = true; e.removedTimer = 40; e.alive = false; score += 260; continue; }
+                    // Boa: turn light-grey then defeat (mark petrified-by-Boa)
+                    if (player.charId === 'boa') { e.petrified = true; e.petrifiedByBoa = true; e.removedTimer = 30; e.alive = false; score += 260; continue; }
 
                     // Kizaru: heavy becomes beam (long-range) - apply beam when attack progress sufficient
                     if (player.charId === 'kizaru' && player.attackType === 'heavy') {
@@ -406,36 +406,37 @@ function drawPlayer(ctx, p) {
         }
 
     } else if (p.charId === 'boa') {
-        // Boa Hancock 8-bit inspired model (distinct from Luffy)
+        // Boa Hancock 8-bit inspired model (refined proportions)
         const skinB = '#fde0d6';
-        const hair = '#2b1b3a';
+        const hair = '#22172a';
         const dress = '#c8376b';
         const gold = '#ffd86b';
         const shoeB = '#3b1f2b';
 
-        // Hair (long flowing)
-        r(1, -6, 14, 6, hair);
-        r(2, -2, 12, 4, hair);
+        // Hair - add side flow and softer top
+        r(0, -6, 6, 6, hair); r(10, -6, 6, 6, hair);
+        r(1, -2, 14, 4, hair);
 
-        // Face
-        r(4, 1, 8, 8, skinB);
+        // Face (slightly narrower)
+        r(5, 0, 6, 8, skinB);
 
-        // Eyes
-        r(6, 3, 1, 1, '#000'); r(10, 3, 1, 1, '#000');
+        // Eyes (a little more distance)
+        r(6, 3, 1, 1, '#000'); r(9, 3, 1, 1, '#000');
 
-        // Dress top with gold accents
-        r(2, 11, 12, 10, dress);
-        r(4, 9, 8, 2, gold);
+        // Decorative gold collar / epaulets
+        r(3, 8, 10, 3, gold);
+        r(2, 11, 12, 6, dress);
 
-        // Long skirt
-        r(3, 21, 10, 12, dress);
+        // slimmer skirt with center panel
+        r(5, 19, 6, 10, dress);
+        r(4, 21, 8, 6, '#a62f57');
 
-        // Legs / shoes
-        r(5, 33 + legBob, 3, 3, shoeB);
-        r(9, 33 - legBob, 3, 3, shoeB);
+        // Legs / shoes (subtle bob)
+        r(6, 31 + legBob, 2, 3, shoeB);
+        r(8, 31 - legBob, 2, 3, shoeB);
 
-        // Arms + shoulders
-        r(0, 12, 3, 4, skinB); r(15, 12, 3, 4, skinB);
+        // Arms + shoulders (graceful pose)
+        r(1, 12, 3, 4, skinB); r(14, 12, 3, 4, skinB);
 
     } else {
         // Luffy-style model (default)
@@ -516,9 +517,12 @@ function draw() {
         const dx = Math.round(e.x - camX);
         const dy = Math.round(e.y);
 
-        // choose body color by state
+        // choose body color by state; Boa-petrified corpses use a lighter grey so player sees the "turn grey then die" effect
         let bodyCol = '#5b3a2b';
-        if (e.petrified) bodyCol = '#999'; else if (e.grabbedByHand) bodyCol = '#a0a'; else if (e.slamming) bodyCol = '#600';
+        if (e.petrifiedByBoa) bodyCol = '#ddd';
+        else if (e.petrified) bodyCol = '#999';
+        else if (e.grabbedByHand) bodyCol = '#a0a';
+        else if (e.slamming) bodyCol = '#600';
 
         // head (bigger)
         ctx.fillStyle = bodyCol; ctx.fillRect(dx + 8, dy + 2, 16, 12);
@@ -542,8 +546,8 @@ function draw() {
             ctx.fillStyle = '#bbb'; ctx.fillRect(dx + 22, dy + 6, 3, 18); ctx.fillStyle = '#aa3333'; ctx.fillRect(dx + 20, dy + 4, 6, 3);
         }
 
-        // HP bar (based on larger HP)
-        if (e.alive) { ctx.fillStyle = '#000'; ctx.fillRect(dx, dy - 10, e.w, 5); ctx.fillStyle = '#0f0'; ctx.fillRect(dx, dy - 10, Math.round(e.w * Math.max(0, e.hp / 60)), 5); }
+        // HP bar (hide while petrified so player sees the greyed-out corpse clearly)
+        if (e.alive && !e.petrified) { ctx.fillStyle = '#000'; ctx.fillRect(dx, dy - 10, e.w, 5); ctx.fillStyle = '#0f0'; ctx.fillRect(dx, dy - 10, Math.round(e.w * Math.max(0, e.hp / 60)), 5); }
         if (e.petrified) { ctx.fillStyle = 'rgba(0,0,0,0.12)'; ctx.fillRect(dx + 12, dy + 8, 6, 6); }
     }
 
