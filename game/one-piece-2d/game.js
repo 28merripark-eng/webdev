@@ -181,7 +181,7 @@ function update() {
             // when hand has lifted high enough, trigger slam
             if (h.y < player.y - 140) {
                 if (h.target) {
-                    h.target.grabbed = false; h.target.slamming = true; h.target.slamspeed = 18; h.target.origY = h.target.y;
+                    h.target.grabbed = false; h.target.grabbedByHand = false; h.target.slamming = true; h.target.slamspeed = 18; h.target.origY = h.target.y;
                 }
                 h.returning = true; hands.splice(i, 1); continue;
             }
@@ -192,8 +192,8 @@ function update() {
         h.x += h.vx; h.y += h.vy; h.vy += gravity * 0.2;
         // collision with target enemy
         const t = h.target;
-        if (t && !t.grabbed && !t.slamming && Math.abs(h.x - t.x) < 18 && Math.abs(h.y - t.y) < 18) {
-            h.attached = true; h.vx = 0; h.vy = -6; t.grabbed = true; t.grabbedBy = h; continue;
+        if (t && !t.grabbed && !t.slamming && Math.abs(h.x - t.x) < 18 && Math.abs(h.y - t.y) < 18){
+            h.attached = true; h.vx = 0; h.vy = -6; t.grabbed = true; t.grabbedByHand = true; t.grabbedBy = h; continue;
         }
 
         // remove if out of world bounds or returning
@@ -224,8 +224,8 @@ function update() {
             continue;
         }
 
-        // If enemy is grabbed, attach to player until slam
-        if (e.grabbed) {
+        // If enemy is grabbed by player (not by Buggy's hand), attach to player until slam
+        if (e.grabbed && !e.grabbedByHand) {
             e.x = player.x + (player.facing === 1 ? player.w + 8 : -12);
             e.y = player.y + 12;
             if (player.attackFrame <= 2 && !e.slamming) { e.grabbed = false; e.slamming = true; e.slamspeed = 14; }
@@ -471,30 +471,44 @@ function draw() {
         ctx.fillRect(p.x - camX, p.y - 6, p.w, 6);
     }
 
-    // Enemies (world coords -> draw relative to camera)
+    // Enemies (world coords -> draw relative to camera) - bandit sprites with weapon icons
     for (let e of enemies) {
         if (!(e.alive || e.petrified || e.grabbed || e.slamming)) continue;
-        // visual states
-        if (e.petrified) ctx.fillStyle = '#999';
-        else if (e.grabbed) ctx.fillStyle = '#a0a';
-        else if (e.slamming) ctx.fillStyle = '#600';
-        else ctx.fillStyle = '#a22';
+        const dx = Math.round(e.x - camX);
+        const dy = Math.round(e.y);
 
-        ctx.fillRect(e.x - camX, e.y, e.w, e.h);
-        // HP bar (only for alive enemies)
-        if (e.alive) {
-            ctx.fillStyle = '#000'; ctx.fillRect(e.x - camX, e.y - 8, e.w, 4);
-            ctx.fillStyle = '#0f0'; ctx.fillRect(e.x - camX, e.y - 8, e.w * Math.max(0, e.hp / 30), 4);
-        } else if (e.petrified) {
-            // small stone crack mark
-            ctx.fillStyle = 'rgba(0,0,0,0.12)'; ctx.fillRect(e.x - camX + 6, e.y + 6, 4, 4);
+        // body color depending on state
+        let bodyCol = '#6b3';
+        if (e.petrified) bodyCol = '#999'; else if (e.grabbedByHand) bodyCol = '#a0a'; else if (e.slamming) bodyCol = '#600'; else bodyCol = '#5b3a2b';
+
+        // head
+        ctx.fillStyle = bodyCol; ctx.fillRect(dx + 6, dy + 2, 12, 10);
+        // bandana/hat
+        ctx.fillStyle = '#222'; ctx.fillRect(dx + 6, dy - 2, 12, 3);
+        // torso
+        ctx.fillStyle = '#7b5'; ctx.fillRect(dx + 4, dy + 12, 16, 12);
+
+        // weapon icon
+        if (e.weapon === 'gun') {
+            ctx.fillStyle = '#111'; ctx.fillRect(dx + 18, dy + 8, 8, 4); ctx.fillRect(dx + 22, dy + 6, 2, 2);
+        } else {
+            // sword
+            ctx.fillStyle = '#bbb'; ctx.fillRect(dx + 18, dy + 6, 2, 14); ctx.fillStyle = '#aa3333'; ctx.fillRect(dx + 17, dy + 4, 4, 2);
         }
+
+        // HP bar only when alive
+        if (e.alive) { ctx.fillStyle = '#000'; ctx.fillRect(dx, dy - 8, e.w, 4); ctx.fillStyle = '#0f0'; ctx.fillRect(dx, dy - 8, e.w * Math.max(0, e.hp / 30), 4); }
+        if (e.petrified) { ctx.fillStyle = 'rgba(0,0,0,0.12)'; ctx.fillRect(dx + 10, dy + 6, 4, 4); }
     }
 
     // draw Buggy hands
     for (const h of hands) {
-        ctx.fillStyle = '#f9c'; ctx.fillRect(h.x - camX, h.y, 8, 8);
-        if (h.attached) { ctx.fillStyle = 'rgba(0,0,0,0.2)'; ctx.fillRect(h.x - camX - 2, h.y + 8, 12, 3) }
+        const hx = Math.round(h.x - camX), hy = Math.round(h.y);
+        // simple pixel glove: white base with pink fingers
+        ctx.fillStyle = '#fff'; ctx.fillRect(hx, hy, 8, 8);
+        ctx.fillStyle = '#f4c'; ctx.fillRect(hx + 1, hy + 1, 2, 2); ctx.fillRect(hx + 5, hy + 1, 2, 2);
+        ctx.fillStyle = '#ddd'; ctx.fillRect(hx + 2, hy + 4, 4, 2);
+        if (h.attached) { ctx.fillStyle = 'rgba(0,0,0,0.2)'; ctx.fillRect(hx - 2, hy + 8, 12, 3) }
     }
 
     // Player (8-bit sprite) - draw at world coords relative to camera
