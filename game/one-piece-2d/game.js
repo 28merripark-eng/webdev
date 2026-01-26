@@ -45,6 +45,8 @@ applyCharacter('luffy');
 
 let gamePaused = true; // used when player dead / selection menu; start paused until title selection
 let gameStarted = false;
+// detachable hands for Buggy
+let hands = [];
 
 // Draw title screen and selection before game starts
 function drawTitleScreen(ctx) {
@@ -168,6 +170,36 @@ function update() {
     player.x += player.vx;
     player.y += player.vy;
 
+    // Update hands (Buggy's detachable hands)
+    for(let i=hands.length-1;i>=0;i--){
+        const h = hands[i];
+        if(h.attached){
+            // carry attached enemy upward until slam is triggered by reaching a certain height
+            h.y += h.vy; h.vy -= 0.6; // upward deceleration (negative vy)
+            const e = h.target;
+            if(e){ e.x = h.x - 4; e.y = h.y - 12; }
+            // when hand has lifted high enough, trigger slam
+            if(h.y < player.y - 140){
+                if(h.target){
+                    h.target.grabbed = false; h.target.slamming = true; h.target.slamspeed = 18; h.target.origY = h.target.y;
+                }
+                h.returning = true; hands.splice(i,1); continue;
+            }
+            continue;
+        }
+
+        // flying hand
+        h.x += h.vx; h.y += h.vy; h.vy += gravity*0.2;
+        // collision with target enemy
+        const t = h.target;
+        if(t && !t.grabbed && !t.slamming && Math.abs(h.x - t.x) < 18 && Math.abs(h.y - t.y) < 18){
+            h.attached = true; h.vx = 0; h.vy = -6; t.grabbed = true; t.grabbedBy = h; continue;
+        }
+
+        // remove if out of world bounds or returning
+        if(h.x < -100 || h.x > WORLD_W+100 || h.returning) { hands.splice(i,1); }
+    }
+
     // Platform collisions
     player.onGround = false;
     for (let p of platforms) {
@@ -204,7 +236,14 @@ function update() {
         if (e.slamming) {
             e.y += e.slamspeed; e.slamspeed += 2;
             const groundY = platforms[0].y;
-            if (e.y + e.h >= groundY) { e.alive = false; e.slamming = false; score += 220; e.removedTimer = 40; }
+            if (e.y + e.h >= groundY) {
+                // land: apply half-health effect for Buggy slam (enemy loses half HP)
+                e.y = groundY - e.h;
+                e.slamming = false;
+                // if slammed by Buggy's hand, reduce HP by half (leave half remaining)
+                e.hp = Math.max(1, Math.ceil(e.hp / 2));
+                e.removedTimer = 40;
+            }
             continue;
         }
 
@@ -235,7 +274,9 @@ function update() {
                 if (rectsOverlap(hb, e)) {
                     // Buggy: attempt to grab on heavy
                     if (player.charId === 'buggy' && player.attackType === 'heavy' && !e.grabbed && !e.slamming) {
-                        e.grabbed = true; e.origY = e.y; continue;
+                        // spawn a detachable hand that targets this enemy
+                        hands.push({ x: player.x + (player.facing===1?player.w: -8), y: player.y+12, vx: player.facing*12, vy: -2, target: e, attached:false, returning:false });
+                        continue;
                     }
 
                     // Boa: stone-kill
@@ -406,6 +447,12 @@ function draw() {
             // small stone crack mark
             ctx.fillStyle = 'rgba(0,0,0,0.12)'; ctx.fillRect(e.x - camX + 6, e.y + 6, 4, 4);
         }
+    }
+
+    // draw Buggy hands
+    for(const h of hands){
+        ctx.fillStyle = '#f9c'; ctx.fillRect(h.x - camX, h.y, 8, 8);
+        if(h.attached){ ctx.fillStyle='rgba(0,0,0,0.2)'; ctx.fillRect(h.x - camX -2, h.y+8, 12, 3) }
     }
 
     // Player (8-bit sprite) - draw at world coords relative to camera
