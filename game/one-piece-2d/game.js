@@ -360,35 +360,77 @@ function drawPlayer(ctx, p) {
     const pants = '#1b4a7a';
     const shoe = '#321b0f';
 
-    // Head area (pixel coords)
-    r(4, 1, 8, 8, skin);       // face
-    r(2, -2, 12, 4, straw);     // hat brim
-    r(4, -6, 8, 6, straw);      // hat top
-    r(4, -1, 8, 2, band);       // band
+    if(p.charId === 'buggy'){
+        // Buggy 8-bit clown-style model
+        const skinB = '#ffe6d0';
+        const hat = '#9b59b6';
+        const brim = '#f44';
+        const nose = '#e33';
+        const stripeA = '#3aa0d9';
+        const stripeB = '#ffffff';
+        const pantsB = '#9b59b6';
+        const shoeB = '#ff4d4d';
+        const glove = '#ffffff';
 
-    // scar under eye (tiny)
-    r(9, 4, 1, 1, '#a33');
+        // Head/hat
+        r(3, 1, 10, 8, skinB);       // face
+        r(4, -4, 8, 4, hat);         // hat top
+        r(2, -1, 12, 2, brim);       // hat brim
 
-    // Torso and shirt
-    r(2, 9, 12, 10, shirt);
+        // Eyes / makeup
+        r(5, 3, 2, 1, '#000'); r(9, 3, 2, 1, '#000');
+        // Red nose
+        r(8, 4, 2, 2, nose);
 
-    // Shorts
-    r(4, 19, 8, 6, pants);
+        // Torso - striped shirt
+        r(2, 10, 12, 3, stripeA);
+        r(2, 13, 12, 3, stripeB);
+        r(2, 16, 12, 3, stripeA);
+        r(2, 19, 12, 3, stripeB);
 
-    // Legs and shoes (with bob)
-    r(4, 25 + legBob, 3, 3, pants);
-    r(9, 25 - legBob, 3, 3, pants);
-    r(3, 28 + legBob, 3, 2, shoe);
-    r(10, 28 - legBob, 3, 2, shoe);
+        // Big pants / shorts
+        r(4, 22, 8, 6, pantsB);
 
-    // Arm base position
-    const ax = 12; const ay = 12;
-    // Arm extension based on attackExt
-    const ext = p.attackExt ? Math.round((p.attackExt / 8)) : 0;
-    // Upper arm
-    r(ax - 2, ay, 4 + ext, 3, skin);
-    // Hand
-    r(ax + 2 + ext, ay, 3, 3, skin);
+        // Legs and big clown shoes
+        r(3, 30 + legBob, 4, 3, shoeB);
+        r(9, 30 - legBob, 4, 3, shoeB);
+
+        // Arms / gloves
+        r(0, 12, 4, 4, glove); r(14, 12, 4, 4, glove);
+
+    } else {
+        // Luffy-style model (default)
+
+        // Head area (pixel coords)
+        r(4, 1, 8, 8, skin);       // face
+        r(2, -2, 12, 4, straw);     // hat brim
+        r(4, -6, 8, 6, straw);      // hat top
+        r(4, -1, 8, 2, band);       // band
+
+        // scar under eye (tiny)
+        r(9, 4, 1, 1, '#a33');
+
+        // Torso and shirt
+        r(2, 9, 12, 10, shirt);
+
+        // Shorts
+        r(4, 19, 8, 6, pants);
+
+        // Legs and shoes (with bob)
+        r(4, 25 + legBob, 3, 3, pants);
+        r(9, 25 - legBob, 3, 3, pants);
+        r(3, 28 + legBob, 3, 2, shoe);
+        r(10, 28 - legBob, 3, 2, shoe);
+
+        // Arm base position
+        const ax = 12; const ay = 12;
+        // Arm extension based on attackExt
+        const ext = p.attackExt ? Math.round((p.attackExt / 8)) : 0;
+        // Upper arm
+        r(ax - 2, ay, 4 + ext, 3, skin);
+        // Hand
+        r(ax + 2 + ext, ay, 3, 3, skin);
+    }
 
     ctx.restore();
 }
