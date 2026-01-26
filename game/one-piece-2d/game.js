@@ -95,6 +95,7 @@ let fireTick = 0;
 let boatSequence = false;
 let boatTimer = 0;
 let boarded = false;
+let needRestart = false;
 
 let platforms = [];
 function buildLevel() {
@@ -304,15 +305,7 @@ function update() {
                     if (player.charId === 'boa') { e.petrified = true; e.petrifiedByBoa = true; e.removedTimer = 30; e.alive = false; score += 260; continue; }
 
                     // Kizaru: heavy becomes beam (long-range) - apply beam when attack progress sufficient
-                    if (player.charId === 'kizaru' && player.attackType === 'heavy') {
-                        const beamLen = Math.max(120, player.attackExt || 160);
-                        const bx = player.facing === 1 ? player.x + player.w : player.x - beamLen;
-                        const beam = { x: bx, y: player.y + 6, w: beamLen, h: player.h - 8 };
-                        if (rectsOverlap(beam, e)) {
-                            const dmg = 60; e.hp -= dmg; e.x += player.facing * 12; if (e.hp <= 0) { e.alive = false; score += 300 };
-                            continue;
-                        }
-                    }
+                        // Kizaru beam removed: heavy attacks no longer create a long-range beam
 
                     // default damage
                     const dmg = player.attackType === 'heavy' ? 40 : 20;
@@ -373,6 +366,48 @@ function update() {
     // Update UI
     document.getElementById('hp').textContent = Math.max(0, Math.round(player.hp));
     document.getElementById('pts').textContent = score;
+    
+    // spin attack visual: emit yellow radial lines when active (L attack)
+    if (player.attacking && player.attackType === 'spin' && player.attackRadius) {
+        const cx = Math.round(player.x + player.w / 2 - camX);
+        const cy = Math.round(player.y + player.h / 2);
+        const R = player.attackRadius;
+        const rays = 16;
+        for (let i = 0; i < rays; i++) {
+            const a = (i / rays) * Math.PI * 2;
+            const x2 = Math.round(cx + Math.cos(a) * R);
+            const y2 = Math.round(cy + Math.sin(a) * R);
+            ctx.strokeStyle = 'rgba(255,215,0,0.9)'; ctx.lineWidth = 2;
+            ctx.beginPath(); ctx.moveTo(cx, cy); ctx.lineTo(x2, y2); ctx.stroke();
+            // small ember dots along the ray
+            for (let t = 0; t < R; t += 26) {
+                const px = Math.round(cx + Math.cos(a) * t);
+                const py = Math.round(cy + Math.sin(a) * t);
+                ctx.fillStyle = 'rgba(255,240,120,0.9)'; ctx.fillRect(px - 2, py - 2, 4, 4);
+            }
+        }
+    }
+    
+    // spin attack visual: emit yellow radial lines when active (L attack)
+    if (player.attacking && player.attackType === 'spin' && player.attackRadius) {
+        const cx = Math.round(player.x + player.w / 2 - camX);
+        const cy = Math.round(player.y + player.h / 2);
+        const R = player.attackRadius;
+        const rays = 16;
+        for (let i = 0; i < rays; i++) {
+            const a = (i / rays) * Math.PI * 2;
+            const x2 = Math.round(cx + Math.cos(a) * R);
+            const y2 = Math.round(cy + Math.sin(a) * R);
+            ctx.strokeStyle = 'rgba(255,215,0,0.9)'; ctx.lineWidth = 2;
+            ctx.beginPath(); ctx.moveTo(cx, cy); ctx.lineTo(x2, y2); ctx.stroke();
+            // small ember dots along the ray
+            for (let t = 0; t < R; t += 26) {
+                const px = Math.round(cx + Math.cos(a) * t);
+                const py = Math.round(cy + Math.sin(a) * t);
+                ctx.fillStyle = 'rgba(255,240,120,0.9)'; ctx.fillRect(px - 2, py - 2, 4, 4);
+            }
+        }
+    }
 }
 
 // Draw an 8-bit style character and arm-stretch animation
@@ -698,13 +733,12 @@ function draw() {
     ctx.fillStyle = '#e33'; ctx.fillRect(16, 14, (player.hp / player.maxHp) * 216, 10);
     ctx.strokeStyle = '#000'; ctx.strokeRect(14, 12, 220, 14);
 
-    // If player dead
+    // If player dead — require restart
     if (player.hp <= 0) {
-        gamePaused = true;
-        ctx.fillStyle = 'rgba(0,0,0,0.6)'; ctx.fillRect(0, 0, W, H);
+        gamePaused = true; needRestart = true;
+        ctx.fillStyle = 'rgba(0,0,0,0.7)'; ctx.fillRect(0, 0, W, H);
         ctx.fillStyle = '#fff'; ctx.font = '36px sans-serif'; ctx.fillText('You are defeated', W / 2 - 140, H / 2 - 40);
-        ctx.font = '18px sans-serif'; ctx.fillText('Choose a character to revive as:', W / 2 - 150, H / 2 - 10);
-        drawCharacterSelect(ctx);
+        ctx.font = '18px sans-serif'; ctx.fillText('Press R to return to title and restart', W / 2 - 200, H / 2 - 10);
     }
 
     // If player boarded the boat, show a short victory/transition message
@@ -759,7 +793,8 @@ canvas.addEventListener('pointerdown', (ev) => {
         }
         return;
     }
-    // revive selection
+    // revive selection (disabled when a restart is required)
+    if (needRestart) return;
     const choices = Object.keys(characters);
     const w = 220, h = 60;
     const startX = W / 2 - (choices.length * (w + 12)) / 2;
@@ -781,7 +816,18 @@ document.addEventListener('keydown', e => {
         if (id0) { applyCharacter(id0); gameStarted = true; gamePaused = false; return }
     }
 
+    // If restart required after death, allow pressing 'r' to go back to the title/start
+    if (needRestart && e.key.toLowerCase() === 'r') {
+        // reset state to title
+        gameStarted = false; gamePaused = true; needRestart = false;
+        applyCharacter('luffy'); player.x = 80; player.y = 360; player.vx = 0; player.vy = 0; player.hp = player.maxHp;
+        enemies = []; hands = []; score = 0; camX = 0; boatSequence = false; boarded = false; fireTick = 0;
+        buildLevel();
+        return;
+    }
+
     if (!gamePaused) return;
+    if (needRestart) return; // block quick-revive while restart is required
     const map = { '1': 'luffy', '2': 'kizaru', '3': 'buggy', '4': 'boa' };
     const id = map[e.key];
     if (id) { applyCharacter(id); gamePaused = false }
