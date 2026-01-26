@@ -47,22 +47,22 @@ let gamePaused = true; // used when player dead / selection menu; start paused u
 let gameStarted = false;
 
 // Draw title screen and selection before game starts
-function drawTitleScreen(ctx){
-    ctx.fillStyle = 'rgba(0,0,0,0.6)'; ctx.fillRect(0,0,W,H);
-    ctx.fillStyle = '#ffd'; ctx.font = '36px sans-serif'; ctx.fillText('one piece pirate warriors 5', W/2 - 260, H/2 - 80);
-    ctx.font = '16px sans-serif'; ctx.fillStyle='#fff'; ctx.fillText('Choose your character to begin', W/2 - 120, H/2 - 40);
+function drawTitleScreen(ctx) {
+    ctx.fillStyle = 'rgba(0,0,0,0.6)'; ctx.fillRect(0, 0, W, H);
+    ctx.fillStyle = '#ffd'; ctx.font = '36px sans-serif'; ctx.fillText('one piece pirate warriors 5', W / 2 - 260, H / 2 - 80);
+    ctx.font = '16px sans-serif'; ctx.fillStyle = '#fff'; ctx.fillText('Choose your character to begin', W / 2 - 120, H / 2 - 40);
 
-    const choices = ['buggy','boa','kizaru'];
+    const choices = ['buggy', 'boa', 'kizaru'];
     const w = 240, h = 72;
-    for(let i=0;i<choices.length;i++){
-        const x = W/2 - (choices.length*(w+14))/2 + i*(w+14);
-        const y = H/2 - 10;
-        ctx.fillStyle = '#222'; ctx.fillRect(x,y,w,h);
-        ctx.fillStyle = '#fff'; ctx.font='18px sans-serif'; ctx.fillText(characters[choices[i]].name, x+18, y+40);
+    for (let i = 0; i < choices.length; i++) {
+        const x = W / 2 - (choices.length * (w + 14)) / 2 + i * (w + 14);
+        const y = H / 2 - 10;
+        ctx.fillStyle = '#222'; ctx.fillRect(x, y, w, h);
+        ctx.fillStyle = '#fff'; ctx.font = '18px sans-serif'; ctx.fillText(characters[choices[i]].name, x + 18, y + 40);
         // hint
-        ctx.fillStyle='rgba(255,255,255,0.06)'; ctx.fillRect(x+12,y+46,w-24,10);
+        ctx.fillStyle = 'rgba(255,255,255,0.06)'; ctx.fillRect(x + 12, y + 46, w - 24, 10);
     }
-    ctx.fillStyle='#ccc'; ctx.font='12px sans-serif'; ctx.fillText('Click a portrait or press 1-3', W/2 - 90, H/2 + 70);
+    ctx.fillStyle = '#ccc'; ctx.font = '12px sans-serif'; ctx.fillText('Click a portrait or press 1-3', W / 2 - 90, H / 2 + 70);
 }
 
 // World and level platforms (multiple themed horizontal sections)
@@ -356,10 +356,10 @@ function draw() {
     // Background
     ctx.clearRect(0, 0, W, H);
     // If title not shown/selected yet, draw title screen and skip game draw
-    if(!gameStarted){
+    if (!gameStarted) {
         // draw faint background blocks for sections
-        for(let i=0;i<themes.length;i++){
-            const x = i*SECTION_W;
+        for (let i = 0; i < themes.length; i++) {
+            const x = i * SECTION_W;
             ctx.fillStyle = themes[i].bg;
             ctx.fillRect(x - camX, 0, SECTION_W, H);
         }
@@ -483,14 +483,14 @@ canvas.addEventListener('pointerdown', (ev) => {
     // if paused (dead) or title, process selection by click
     const rect = canvas.getBoundingClientRect();
     const mx = ev.clientX - rect.left; const my = ev.clientY - rect.top;
-    if(!gameStarted){
-        const choices = ['buggy','boa','kizaru'];
+    if (!gameStarted) {
+        const choices = ['buggy', 'boa', 'kizaru'];
         const w = 240, h = 72;
-        const startX = W/2 - (choices.length*(w+14))/2;
-        const y = H/2 - 10;
-        for(let i=0;i<choices.length;i++){
-            const x = startX + i*(w+14);
-            if(mx >= x && mx <= x+w && my >= y && my <= y+h){ applyCharacter(choices[i]); gameStarted = true; gamePaused = false; return }
+        const startX = W / 2 - (choices.length * (w + 14)) / 2;
+        const y = H / 2 - 10;
+        for (let i = 0; i < choices.length; i++) {
+            const x = startX + i * (w + 14);
+            if (mx >= x && mx <= x + w && my >= y && my <= y + h) { applyCharacter(choices[i]); gameStarted = true; gamePaused = false; return }
         }
         return;
     }
@@ -510,10 +510,10 @@ canvas.addEventListener('pointerdown', (ev) => {
 // keyboard quick-select when dead (1..4)
 document.addEventListener('keydown', e => {
     // if on title screen, allow 1-3 to pick starting character
-    if(!gameStarted && gamePaused){
-        const map0 = {'1':'buggy','2':'boa','3':'kizaru'};
+    if (!gameStarted && gamePaused) {
+        const map0 = { '1': 'buggy', '2': 'boa', '3': 'kizaru' };
         const id0 = map0[e.key];
-        if(id0){ applyCharacter(id0); gameStarted = true; gamePaused = false; return }
+        if (id0) { applyCharacter(id0); gameStarted = true; gamePaused = false; return }
     }
 
     if (!gamePaused) return;
