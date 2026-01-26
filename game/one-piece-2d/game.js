@@ -171,33 +171,33 @@ function update() {
     player.y += player.vy;
 
     // Update hands (Buggy's detachable hands)
-    for(let i=hands.length-1;i>=0;i--){
+    for (let i = hands.length - 1; i >= 0; i--) {
         const h = hands[i];
-        if(h.attached){
+        if (h.attached) {
             // carry attached enemy upward until slam is triggered by reaching a certain height
             h.y += h.vy; h.vy -= 0.6; // upward deceleration (negative vy)
             const e = h.target;
-            if(e){ e.x = h.x - 4; e.y = h.y - 12; }
+            if (e) { e.x = h.x - 4; e.y = h.y - 12; }
             // when hand has lifted high enough, trigger slam
-            if(h.y < player.y - 140){
-                if(h.target){
+            if (h.y < player.y - 140) {
+                if (h.target) {
                     h.target.grabbed = false; h.target.slamming = true; h.target.slamspeed = 18; h.target.origY = h.target.y;
                 }
-                h.returning = true; hands.splice(i,1); continue;
+                h.returning = true; hands.splice(i, 1); continue;
             }
             continue;
         }
 
         // flying hand
-        h.x += h.vx; h.y += h.vy; h.vy += gravity*0.2;
+        h.x += h.vx; h.y += h.vy; h.vy += gravity * 0.2;
         // collision with target enemy
         const t = h.target;
-        if(t && !t.grabbed && !t.slamming && Math.abs(h.x - t.x) < 18 && Math.abs(h.y - t.y) < 18){
+        if (t && !t.grabbed && !t.slamming && Math.abs(h.x - t.x) < 18 && Math.abs(h.y - t.y) < 18) {
             h.attached = true; h.vx = 0; h.vy = -6; t.grabbed = true; t.grabbedBy = h; continue;
         }
 
         // remove if out of world bounds or returning
-        if(h.x < -100 || h.x > WORLD_W+100 || h.returning) { hands.splice(i,1); }
+        if (h.x < -100 || h.x > WORLD_W + 100 || h.returning) { hands.splice(i, 1); }
     }
 
     // Platform collisions
@@ -275,7 +275,7 @@ function update() {
                     // Buggy: attempt to grab on heavy
                     if (player.charId === 'buggy' && player.attackType === 'heavy' && !e.grabbed && !e.slamming) {
                         // spawn a detachable hand that targets this enemy
-                        hands.push({ x: player.x + (player.facing===1?player.w: -8), y: player.y+12, vx: player.facing*12, vy: -2, target: e, attached:false, returning:false });
+                        hands.push({ x: player.x + (player.facing === 1 ? player.w : -8), y: player.y + 12, vx: player.facing * 12, vy: -2, target: e, attached: false, returning: false });
                         continue;
                     }
 
@@ -450,9 +450,9 @@ function draw() {
     }
 
     // draw Buggy hands
-    for(const h of hands){
+    for (const h of hands) {
         ctx.fillStyle = '#f9c'; ctx.fillRect(h.x - camX, h.y, 8, 8);
-        if(h.attached){ ctx.fillStyle='rgba(0,0,0,0.2)'; ctx.fillRect(h.x - camX -2, h.y+8, 12, 3) }
+        if (h.attached) { ctx.fillStyle = 'rgba(0,0,0,0.2)'; ctx.fillRect(h.x - camX - 2, h.y + 8, 12, 3) }
     }
 
     // Player (8-bit sprite) - draw at world coords relative to camera
