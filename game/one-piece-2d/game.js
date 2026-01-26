@@ -360,7 +360,7 @@ function drawPlayer(ctx, p) {
     const pants = '#1b4a7a';
     const shoe = '#321b0f';
 
-    if(p.charId === 'buggy'){
+    if (p.charId === 'buggy') {
         // Buggy 8-bit clown-style model
         const skinB = '#ffe6d0';
         const hat = '#9b59b6';
