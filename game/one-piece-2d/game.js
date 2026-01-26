@@ -192,7 +192,7 @@ function update() {
         h.x += h.vx; h.y += h.vy; h.vy += gravity * 0.2;
         // collision with target enemy
         const t = h.target;
-        if (t && !t.grabbed && !t.slamming && Math.abs(h.x - t.x) < 18 && Math.abs(h.y - t.y) < 18){
+        if (t && !t.grabbed && !t.slamming && Math.abs(h.x - t.x) < 18 && Math.abs(h.y - t.y) < 18) {
             h.attached = true; h.vx = 0; h.vy = -6; t.grabbed = true; t.grabbedByHand = true; t.grabbedBy = h; continue;
         }
 
