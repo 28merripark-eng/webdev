@@ -24,18 +24,18 @@ const player = {
     // animation state
     animT: 0, walkSpeed: 0,
     // character identity
-    charId: 'luffy', gunImmune:false, swordImmune:false
+    charId: 'luffy', gunImmune: false, swordImmune: false
 };
 
 // Character definitions (fan-inspired, procedural visuals only)
 const characters = {
-    luffy: {name:'Luffy', gunImmune:true, swordImmune:false, hp:100},
-    kizaru: {name:'Kizaru', gunImmune:true, swordImmune:true, hp:120},
-    buggy: {name:'Buggy', gunImmune:false, swordImmune:true, hp:110},
-    boa: {name:'Boa', gunImmune:false, swordImmune:false, hp:100}
+    luffy: { name: 'Luffy', gunImmune: true, swordImmune: false, hp: 100 },
+    kizaru: { name: 'Kizaru', gunImmune: true, swordImmune: true, hp: 120 },
+    buggy: { name: 'Buggy', gunImmune: false, swordImmune: true, hp: 110 },
+    boa: { name: 'Boa', gunImmune: false, swordImmune: false, hp: 100 }
 };
 
-function applyCharacter(id){
+function applyCharacter(id) {
     const c = characters[id] || characters.luffy;
     player.charId = id; player.gunImmune = !!c.gunImmune; player.swordImmune = !!c.swordImmune;
     player.maxHp = c.hp; player.hp = player.maxHp;
@@ -80,10 +80,12 @@ buildLevel();
 let enemies = [];
 function spawnEnemy(x, y) {
     // limit concurrent enemies to avoid runaway
-    if(enemies.length > 60) return;
+    if (enemies.length > 60) return;
     const weapon = Math.random() < 0.5 ? 'gun' : 'sword';
-    enemies.push({ x, y, w: 36, h: 44, vx: 1.2, patrol: [x - 80, x + 80], hp: 30, alive: true, weapon,
-        petrified:false, removedTimer:0, grabbed:false, slamming:false, origY:y });
+    enemies.push({
+        x, y, w: 36, h: 44, vx: 1.2, patrol: [x - 80, x + 80], hp: 30, alive: true, weapon,
+        petrified: false, removedTimer: 0, grabbed: false, slamming: false, origY: y
+    });
 }
 spawnEnemy(520, 256);
 spawnEnemy(700, 320);
@@ -93,7 +95,7 @@ let score = 0;
 let camX = 0;
 
 function update() {
-    if(gamePaused) return;
+    if (gamePaused) return;
     // Input
     let left = keys['arrowleft'] || keys['a'];
     let right = keys['arrowright'] || keys['d'];
@@ -417,17 +419,17 @@ function draw() {
     }
 }
 
-function drawCharacterSelect(ctx){
+function drawCharacterSelect(ctx) {
     const choices = Object.keys(characters);
     const w = 220, h = 60;
-    for(let i=0;i<choices.length;i++){
-        const x = W/2 - (choices.length*(w+12))/2 + i*(w+12);
-        const y = H/2 + 10;
-        ctx.fillStyle = '#222'; ctx.fillRect(x,y,w,h);
-        ctx.fillStyle = '#fff'; ctx.font='16px sans-serif'; ctx.fillText(characters[choices[i]].name, x+12,y+28);
-        ctx.fillStyle = 'rgba(255,255,255,0.08)'; ctx.fillRect(x+8,y+34, w-16, 12);
+    for (let i = 0; i < choices.length; i++) {
+        const x = W / 2 - (choices.length * (w + 12)) / 2 + i * (w + 12);
+        const y = H / 2 + 10;
+        ctx.fillStyle = '#222'; ctx.fillRect(x, y, w, h);
+        ctx.fillStyle = '#fff'; ctx.font = '16px sans-serif'; ctx.fillText(characters[choices[i]].name, x + 12, y + 28);
+        ctx.fillStyle = 'rgba(255,255,255,0.08)'; ctx.fillRect(x + 8, y + 34, w - 16, 12);
     }
-    ctx.fillStyle='#ccc'; ctx.font='12px sans-serif'; ctx.fillText('Click a portrait or press 1-4', W/2 - 90, H/2 + 90);
+    ctx.fillStyle = '#ccc'; ctx.font = '12px sans-serif'; ctx.fillText('Click a portrait or press 1-4', W / 2 - 90, H / 2 + 90);
 }
 
 function loop() { update(); draw(); requestAnimationFrame(loop); }
@@ -436,7 +438,7 @@ loop();
 // Basic spawn wave to keep action going
 setInterval(() => {
     if (Math.random() < 0.7) {
-        if(gamePaused) return;
+        if (gamePaused) return;
         const sx = 80 + Math.random() * (WORLD_W - 240);
         const sy = 200 + Math.random() * 260;
         spawnEnemy(sx, sy);
@@ -446,18 +448,18 @@ setInterval(() => {
 // Simple help for touch devices: clicks make attacks
 canvas.addEventListener('pointerdown', (ev) => {
     // quick tap = attack when alive
-    if (!gamePaused && player.hp>0) { keys['k'] = true; setTimeout(() => keys['k'] = false, 80); return }
+    if (!gamePaused && player.hp > 0) { keys['k'] = true; setTimeout(() => keys['k'] = false, 80); return }
     // if paused (dead), process selection by click
     const rect = canvas.getBoundingClientRect();
     const mx = ev.clientX - rect.left; const my = ev.clientY - rect.top;
     // compute choice boxes (same as drawCharacterSelect)
     const choices = Object.keys(characters);
     const w = 220, h = 60;
-    const startX = W/2 - (choices.length*(w+12))/2;
-    const y = H/2 + 10;
-    for(let i=0;i<choices.length;i++){
-        const x = startX + i*(w+12);
-        if(mx >= x && mx <= x+w && my >= y && my <= y+h){
+    const startX = W / 2 - (choices.length * (w + 12)) / 2;
+    const y = H / 2 + 10;
+    for (let i = 0; i < choices.length; i++) {
+        const x = startX + i * (w + 12);
+        if (mx >= x && mx <= x + w && my >= y && my <= y + h) {
             // choose
             applyCharacter(choices[i]); gamePaused = false; break;
         }
@@ -465,9 +467,9 @@ canvas.addEventListener('pointerdown', (ev) => {
 });
 
 // keyboard quick-select when dead (1..4)
-document.addEventListener('keydown', e=>{
+document.addEventListener('keydown', e => {
     if (!gamePaused) return;
-    const map = {'1':'luffy','2':'kizaru','3':'buggy','4':'boa'};
+    const map = { '1': 'luffy', '2': 'kizaru', '3': 'buggy', '4': 'boa' };
     const id = map[e.key];
-    if(id){ applyCharacter(id); gamePaused = false }
+    if (id) { applyCharacter(id); gamePaused = false }
 });
