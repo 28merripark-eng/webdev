@@ -200,7 +200,7 @@ function update() {
                 let ptarget = null;
                 for (const p of platforms) {
                     if (p.x - 40 < player.x && player.x < p.x + p.w + 40) continue; // not a grab if directly overlapping
-                    const dx = Math.abs((p.x + p.w/2) - player.x);
+                    const dx = Math.abs((p.x + p.w / 2) - player.x);
                     const dy = (player.y - p.y);
                     if (dx < 200 && dy > 20 && dy < 260) { ptarget = p; break; }
                 }
@@ -213,7 +213,7 @@ function update() {
             player.flyMode = 'buggy_pieces';
             // spawn pieces array attached to player
             player._pieces = [];
-            for (let i=0;i<6;i++) player._pieces.push({ox: -12 + i*6, oy: -28 - (i%2)*6, vy: -1 - i*0.4});
+            for (let i = 0; i < 6; i++) player._pieces.push({ ox: -12 + i * 6, oy: -28 - (i % 2) * 6, vy: -1 - i * 0.4 });
         } else {
             player.flyMode = 'generic_fly';
             player.vx = player.facing * 6;
@@ -792,7 +792,7 @@ function draw() {
         }
         if (player.flyMode === 'luffy_stretch') {
             // draw a stretched arm line forward/up showing grab effect briefly
-            const cx = Math.round(player.x + player.w/2 - camX);
+            const cx = Math.round(player.x + player.w / 2 - camX);
             const cy = Math.round(player.y + 12);
             ctx.strokeStyle = 'rgba(200,120,40,0.9)'; ctx.lineWidth = 3;
             ctx.beginPath(); ctx.moveTo(cx, cy);
