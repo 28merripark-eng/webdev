@@ -68,8 +68,9 @@ function drawTitleScreen(ctx) {
 }
 
 // World and level platforms (multiple themed horizontal sections)
-const WORLD_W = 6500;
-const SECTION_W = 1000; // each themed area width
+// Increased section width and gaps so each theme feels like a separate, longer level
+const SECTION_W = 1600; // wider per-theme section
+const GAP = 220; // gap between sections to feel separated
 const themes = [
     { name: 'Louge Town', bg: '#dbeefc' },
     { name: 'Alabasta', bg: '#f6e1c4' },
@@ -80,6 +81,21 @@ const themes = [
     { name: 'Egghead', bg: '#eef2ff' }
 ];
 
+// world width computed from sections + gaps
+const WORLD_W = themes.length * SECTION_W + (themes.length - 1) * GAP;
+
+// Egghead special region (fire starts halfway through Egghead)
+const eggIndex = themes.findIndex(t => t.name === 'Egghead');
+let eggStart = eggIndex * (SECTION_W + GAP);
+let eggEnd = eggStart + SECTION_W;
+let fireStart = eggStart + Math.floor(SECTION_W / 2);
+
+// fire and boat state
+let fireTick = 0;
+let boatSequence = false;
+let boatTimer = 0;
+let boarded = false;
+
 let platforms = [];
 function buildLevel() {
     platforms = [];
@@ -88,7 +104,7 @@ function buildLevel() {
 
     // add themed platform clusters
     for (let i = 0; i < themes.length; i++) {
-        const baseX = i * SECTION_W + 80;
+        const baseX = i * (SECTION_W + GAP) + 80;
         // a few platforms per section
         platforms.push({ x: baseX + 120, y: 380 - (i % 3) * 10, w: 160, h: 16 });
         platforms.push({ x: baseX + 340, y: 300 - (i % 2) * 8, w: 150, h: 16 });
@@ -328,6 +344,32 @@ function update() {
     camX = Math.round(player.x - W / 2 + player.w / 2);
     camX = Math.max(0, Math.min(camX, WORLD_W - W));
 
+    // Fire damage when inside Egghead's burning half
+    if (!boatSequence && player.x > fireStart && player.x < eggEnd) {
+        fireTick++;
+        if (fireTick % 30 === 0) {
+            player.hp -= 6;
+            // small knockback
+            player.vx = player.facing === 1 ? -1.5 : 1.5;
+        }
+    }
+
+    // Boat boarding trigger: when player reaches the very end of Egghead, start boarding sequence
+    if (!boatSequence && player.x >= eggEnd - 48) {
+        boatSequence = true; boatTimer = 0;
+    }
+
+    // Handle boat sequence: player moves toward the boat and jumps in, then mark boarded
+    if (boatSequence && !boarded) {
+        boatTimer++;
+        const targetX = eggEnd - 40;
+        // nudge player toward boat, disable normal controls
+        player.vx = 0; player.vy = 0; player.onGround = false;
+        player.x += (targetX - player.x) * 0.18;
+        if (boatTimer < 20) player.y -= 6; else if (boatTimer < 40) player.y -= 2;
+        if (boatTimer > 60) { boarded = true; gamePaused = true; }
+    }
+
     // Update UI
     document.getElementById('hp').textContent = Math.max(0, Math.round(player.hp));
     document.getElementById('pts').textContent = score;
@@ -489,9 +531,9 @@ function draw() {
         drawTitleScreen(ctx);
         return;
     }
-    // Draw themed background sections
+    // Draw themed background sections (with gaps between them so levels feel separated)
     for (let i = 0; i < themes.length; i++) {
-        const x = i * SECTION_W;
+        const x = i * (SECTION_W + GAP);
         ctx.fillStyle = themes[i].bg;
         ctx.fillRect(x - camX, 0, SECTION_W, H);
         // theme label
@@ -500,6 +542,26 @@ function draw() {
         // small decorative skyline/land for each theme
         ctx.fillStyle = 'rgba(0,0,0,0.06)';
         for (let s = 0; s < 6; s++) ctx.fillRect(x - camX + 40 + s * 140, 120 + (i % 3) * 6, 80, 24 + (s % 2) * 8);
+
+        // draw gap separator after the section (except after last)
+        if (i < themes.length - 1) {
+            const gapX = x + SECTION_W;
+            ctx.fillStyle = '#cfdadf';
+            ctx.fillRect(gapX - camX, 0, GAP, H);
+        }
+    }
+
+    // Egghead fire: when player has progressed past halfway through Egghead, light the remainder on fire
+    if (!boatSequence && player.x > fireStart) {
+        const fx = Math.round(fireStart - camX);
+        const fw = Math.round(eggEnd - fireStart);
+        // animated flame bands
+        for (let fxpos = 0; fxpos < fw; fxpos += 14) {
+            const h = 8 + Math.floor(Math.abs(Math.sin((player.animT + fxpos * 0.05) * 4)) * 18);
+            const xdraw = fx + fxpos;
+            ctx.fillStyle = '#ff8a00'; ctx.fillRect(xdraw, platforms[0].y - h, 10, h);
+            ctx.fillStyle = '#ffcf33'; ctx.fillRect(xdraw + 2, platforms[0].y - Math.floor(h * 0.6), 6, Math.floor(h * 0.6));
+        }
     }
 
     // Ground tiles / platforms
@@ -561,6 +623,16 @@ function draw() {
         if (h.attached) { ctx.fillStyle = 'rgba(0,0,0,0.2)'; ctx.fillRect(hx - 2, hy + 8, 12, 3) }
     }
 
+    // draw boat at the end of Egghead
+    const boatX = Math.round(eggEnd - 60 - camX);
+    const boatY = platforms[0].y - 18;
+    // simple boat hull
+    ctx.fillStyle = '#5b3a2b'; ctx.fillRect(boatX, boatY, 80, 18);
+    ctx.fillStyle = '#8b5d3b'; ctx.fillRect(boatX + 8, boatY - 6, 64, 6);
+    // small flag/mast
+    ctx.fillStyle = '#222'; ctx.fillRect(boatX + 12, boatY - 20, 2, 14);
+    ctx.fillStyle = '#d22'; ctx.fillRect(boatX + 14, boatY - 20, 12, 6);
+
     // Player (8-bit sprite) - draw at world coords relative to camera
     player.animT += 0.12;
     // walking speed used for leg animation
@@ -600,6 +672,13 @@ function draw() {
         ctx.fillStyle = '#fff'; ctx.font = '36px sans-serif'; ctx.fillText('You are defeated', W / 2 - 140, H / 2 - 40);
         ctx.font = '18px sans-serif'; ctx.fillText('Choose a character to revive as:', W / 2 - 150, H / 2 - 10);
         drawCharacterSelect(ctx);
+    }
+
+    // If player boarded the boat, show a short victory/transition message
+    if (boarded) {
+        ctx.fillStyle = 'rgba(0,0,0,0.6)'; ctx.fillRect(0, 0, W, H);
+        ctx.fillStyle = '#fff'; ctx.font = '30px sans-serif'; ctx.fillText('You boarded the boat!', W / 2 - 140, H / 2 - 20);
+        ctx.font = '14px sans-serif'; ctx.fillText('Thanks for playing this slice — restart to play again.', W / 2 - 200, H / 2 + 10);
     }
 }
 
