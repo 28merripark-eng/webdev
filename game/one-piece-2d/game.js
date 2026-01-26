@@ -287,6 +287,19 @@ function update() {
                     continue;
                 }
             } else {
+                // Kizaru heavy-beam: if Kizaru is using the heavy attack and the attack is in the firing window,
+                // hit every enemy across the map vertically aligned with the player's attack zone.
+                if (player.charId === 'kizaru' && player.attackType === 'heavy') {
+                    const tot = 18; const t = (tot - Math.max(0, player.attackFrame)) / tot;
+                    if (t > 0.45) {
+                        const beam = { x: 0, y: player.y + 6, w: WORLD_W, h: player.h - 8 };
+                        if (rectsOverlap(beam, e)) {
+                            const dmg = 120; e.hp -= dmg; e.x += player.facing * 12;
+                            if (e.hp <= 0) { e.alive = false; score += 600 }
+                        }
+                        continue;
+                    }
+                }
                 const ext = player.attackExt || 0;
                 const hw = 32 + ext;
                 const hx = player.facing === 1 ? player.x + player.w : player.x - hw;
@@ -715,15 +728,20 @@ function draw() {
         ctx.beginPath(); ctx.arc(cx, cy, R, 0, Math.PI * 2); ctx.fill();
         ctx.strokeStyle = 'rgba(255,255,255,0.25)'; ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(cx, cy, R + 6, 0, Math.PI * 2); ctx.stroke();
     }
-    // Kizaru beam visual for heavy attack
+    // Kizaru heavy-beam visual (covers the whole map while firing)
     if (player.attacking && player.charId === 'kizaru' && player.attackType === 'heavy') {
         const tot = 18; const t = (tot - Math.max(0, player.attackFrame)) / tot;
         if (t > 0.45) {
-            const beamLen = Math.max(120, player.attackExt || 200);
-            const bx = player.facing === 1 ? player.x + player.w : player.x - beamLen;
-            ctx.fillStyle = 'rgba(255,215,0,0.28)';
-            ctx.fillRect(bx - camX, player.y + 6, beamLen, player.h - 8);
-            ctx.strokeStyle = 'rgba(255,215,0,0.9)'; ctx.lineWidth = 2; ctx.strokeRect(bx - camX, player.y + 6, beamLen, player.h - 8);
+            const bx = 0;
+            const beamW = WORLD_W;
+            ctx.fillStyle = 'rgba(255,230,120,0.22)';
+            ctx.fillRect(bx - camX, player.y + 6, beamW, player.h - 8);
+            ctx.strokeStyle = 'rgba(255,215,0,0.95)'; ctx.lineWidth = 2; ctx.strokeRect(bx - camX, player.y + 6, beamW, player.h - 8);
+            // small shimmer lines to emphasize reach
+            ctx.strokeStyle = 'rgba(255,240,160,0.45)'; ctx.lineWidth = 1;
+            for (let sx = bx; sx < bx + beamW; sx += 160) {
+                ctx.beginPath(); ctx.moveTo(sx - camX, player.y + 6); ctx.lineTo(sx + 30 - camX, player.y + player.h - 8); ctx.stroke();
+            }
         }
     }
     ctx.restore();
