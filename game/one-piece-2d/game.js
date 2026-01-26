@@ -22,8 +22,28 @@ const player = {
     // attack state
     attacking: false, attackFrame: 0, attackCooldown: 0, attackType: null, attackExt: 0,
     // animation state
-    animT: 0, walkSpeed: 0
+    animT: 0, walkSpeed: 0,
+    // character identity
+    charId: 'luffy', gunImmune:false, swordImmune:false
 };
+
+// Character definitions (fan-inspired, procedural visuals only)
+const characters = {
+    luffy: {name:'Luffy', gunImmune:true, swordImmune:false, hp:100},
+    kizaru: {name:'Kizaru', gunImmune:true, swordImmune:true, hp:120},
+    buggy: {name:'Buggy', gunImmune:false, swordImmune:true, hp:110},
+    boa: {name:'Boa', gunImmune:false, swordImmune:false, hp:100}
+};
+
+function applyCharacter(id){
+    const c = characters[id] || characters.luffy;
+    player.charId = id; player.gunImmune = !!c.gunImmune; player.swordImmune = !!c.swordImmune;
+    player.maxHp = c.hp; player.hp = player.maxHp;
+    player.attacking = false; player.attackType = null; player.attackCooldown = 0; player.attackExt = 0; player._inv = 0;
+}
+applyCharacter('luffy');
+
+let gamePaused = false; // used when player dead / selection menu
 
 // World and level platforms (multiple themed horizontal sections)
 const WORLD_W = 6500;
@@ -59,7 +79,11 @@ buildLevel();
 // Enemies
 let enemies = [];
 function spawnEnemy(x, y) {
-    enemies.push({ x, y, w: 36, h: 44, vx: 1.2, patrol: [x - 80, x + 80], hp: 30, alive: true });
+    // limit concurrent enemies to avoid runaway
+    if(enemies.length > 60) return;
+    const weapon = Math.random() < 0.5 ? 'gun' : 'sword';
+    enemies.push({ x, y, w: 36, h: 44, vx: 1.2, patrol: [x - 80, x + 80], hp: 30, alive: true, weapon,
+        petrified:false, removedTimer:0, grabbed:false, slamming:false, origY:y });
 }
 spawnEnemy(520, 256);
 spawnEnemy(700, 320);
@@ -69,6 +93,7 @@ let score = 0;
 let camX = 0;
 
 function update() {
+    if(gamePaused) return;
     // Input
     let left = keys['arrowleft'] || keys['a'];
     let right = keys['arrowright'] || keys['d'];
@@ -112,6 +137,10 @@ function update() {
         }
     } else { player.attackExt = 0; player.attackRadius = 0 }
 
+    // prevent negative or extremely large values
+    player.attackExt = Math.max(0, Math.min(player.attackExt, 220));
+    player.attackRadius = Math.max(0, Math.min(player.attackRadius, 380));
+
     // Physics
     player.vy += gravity * 0.6;
     player.x += player.vx;
@@ -132,18 +161,44 @@ function update() {
     if (player.x + player.w > WORLD_W) player.x = WORLD_W - player.w;
     if (player.y > H) { player.hp = 0 }
 
-    // Enemies update
+    // Enemies update (handle grabbed/petrified/slamming states and special attacks)
     for (let e of enemies) {
-        if (!e.alive) continue;
+        // petrified corpses: countdown then expire
+        if (e.petrified) {
+            e.removedTimer = (e.removedTimer || 60) - 1;
+            if (e.removedTimer <= 0) e.petrified = false;
+            continue;
+        }
+
+        // If enemy is grabbed, attach to player until slam
+        if (e.grabbed) {
+            e.x = player.x + (player.facing === 1 ? player.w + 8 : -12);
+            e.y = player.y + 12;
+            if (player.attackFrame <= 2 && !e.slamming) { e.grabbed = false; e.slamming = true; e.slamspeed = 14; }
+            continue;
+        }
+
+        // slamming enemy fall to ground
+        if (e.slamming) {
+            e.y += e.slamspeed; e.slamspeed += 2;
+            const groundY = platforms[0].y;
+            if (e.y + e.h >= groundY) { e.alive = false; e.slamming = false; score += 220; e.removedTimer = 40; }
+            continue;
+        }
+
+        // normal movement
         e.x += e.vx;
         if (e.x < e.patrol[0] || e.x > e.patrol[1]) e.vx *= -1;
 
         // Attack hit detection (allow hits even if not touching player)
         if (player.attacking && player.attackType) {
+            // SPIN attack (area)
             if (player.attackType === 'spin') {
                 const R = player.attackRadius || 0;
                 const hb = { x: player.x - R, y: player.y - R, w: player.w + R * 2, h: player.h + R * 2 };
                 if (rectsOverlap(hb, e)) {
+                    // Boa turns to stone and instantly kill
+                    if (player.charId === 'boa') { e.petrified = true; e.removedTimer = 40; e.alive = false; score += 260; continue; }
                     const dmg = 30;
                     e.hp -= dmg; e.x += (e.x < player.x ? -1 : 1) * 8;
                     if (e.hp <= 0) { e.alive = false; score += 120 }
@@ -154,9 +209,33 @@ function update() {
                 const hw = 32 + ext;
                 const hx = player.facing === 1 ? player.x + player.w : player.x - hw;
                 const hb = { x: hx, y: player.y + 8, w: hw, h: player.h - 16 };
+
                 if (rectsOverlap(hb, e)) {
+                    // Buggy: attempt to grab on heavy
+                    if (player.charId === 'buggy' && player.attackType === 'heavy' && !e.grabbed && !e.slamming) {
+                        e.grabbed = true; e.origY = e.y; continue;
+                    }
+
+                    // Boa: stone-kill
+                    if (player.charId === 'boa') { e.petrified = true; e.removedTimer = 40; e.alive = false; score += 260; continue; }
+
+                    // Kizaru: heavy becomes beam (long-range) - apply beam when attack progress sufficient
+                    if (player.charId === 'kizaru' && player.attackType === 'heavy') {
+                        const beamLen = Math.max(120, player.attackExt || 160);
+                        const bx = player.facing === 1 ? player.x + player.w : player.x - beamLen;
+                        const beam = { x: bx, y: player.y + 6, w: beamLen, h: player.h - 8 };
+                        if (rectsOverlap(beam, e)) {
+                            const dmg = 60; e.hp -= dmg; e.x += player.facing * 12; if (e.hp <= 0) { e.alive = false; score += 300 };
+                            continue;
+                        }
+                    }
+
+                    // default damage (respect immunities)
                     const dmg = player.attackType === 'heavy' ? 40 : 20;
-                    e.hp -= dmg; e.x += player.facing * 10;
+                    let effective = dmg;
+                    if (e.weapon === 'gun' && player.gunImmune) effective = 0;
+                    if (e.weapon === 'sword' && player.swordImmune) effective = 0;
+                    e.hp -= effective; e.x += player.facing * 10;
                     if (e.hp <= 0) { e.alive = false; score += (player.attackType === 'heavy' ? 180 : 100) }
                     continue;
                 }
@@ -165,14 +244,20 @@ function update() {
 
         // Simple collision with player (damage to player)
         if (rectsOverlap(player, e)) {
-            if (!player._inv) { player.hp -= 8; player._inv = 40 }
+            if (!player._inv) {
+                // enemy weapon may be ineffective against certain chars
+                let edmg = 8;
+                if (e.weapon === 'gun' && player.gunImmune) edmg = 0;
+                if (e.weapon === 'sword' && player.swordImmune) edmg = 0;
+                player.hp -= edmg; player._inv = 40
+            }
         }
     }
 
     if (player._inv > 0) player._inv--;
 
-    // Remove dead enemies periodically
-    enemies = enemies.filter(e => e.alive || Math.random() < 0.01);
+    // Remove dead enemies periodically but keep special-state visuals briefly
+    enemies = enemies.filter(e => e.alive || e.petrified || e.grabbed || e.slamming || Math.random() < 0.01);
 
     // Camera follow player, clamp
     camX = Math.round(player.x - W / 2 + player.w / 2);
@@ -188,14 +273,13 @@ function drawPlayer(ctx, p) {
     ctx.save();
     // draw at top-left world coords (so feet align with platform y)
     ctx.translate(Math.round(p.x), Math.round(p.y));
+    const S = 2; // pixel scale: sprite grid is 16x28 -> 32x56
+    const pxw = 16, pxh = 28;
     if (p.facing < 0) {
         ctx.scale(-1, 1);
         // when mirrored, translate so drawing still uses positive coordinates
         ctx.translate(-(pxw * S), 0);
     }
-
-    const S = 2; // pixel scale: sprite grid is 16x28 -> 32x56
-    const pxw = 16, pxh = 28;
 
     function r(x, y, wpx, hpx, color) {
         ctx.fillStyle = color;
@@ -273,12 +357,22 @@ function draw() {
 
     // Enemies (world coords -> draw relative to camera)
     for (let e of enemies) {
-        if (!e.alive) continue;
-        ctx.fillStyle = '#a22';
+        if (!(e.alive || e.petrified || e.grabbed || e.slamming)) continue;
+        // visual states
+        if (e.petrified) ctx.fillStyle = '#999';
+        else if (e.grabbed) ctx.fillStyle = '#a0a';
+        else if (e.slamming) ctx.fillStyle = '#600';
+        else ctx.fillStyle = '#a22';
+
         ctx.fillRect(e.x - camX, e.y, e.w, e.h);
-        // HP bar
-        ctx.fillStyle = '#000'; ctx.fillRect(e.x - camX, e.y - 8, e.w, 4);
-        ctx.fillStyle = '#0f0'; ctx.fillRect(e.x - camX, e.y - 8, e.w * Math.max(0, e.hp / 30), 4);
+        // HP bar (only for alive enemies)
+        if (e.alive) {
+            ctx.fillStyle = '#000'; ctx.fillRect(e.x - camX, e.y - 8, e.w, 4);
+            ctx.fillStyle = '#0f0'; ctx.fillRect(e.x - camX, e.y - 8, e.w * Math.max(0, e.hp / 30), 4);
+        } else if (e.petrified) {
+            // small stone crack mark
+            ctx.fillStyle = 'rgba(0,0,0,0.12)'; ctx.fillRect(e.x - camX + 6, e.y + 6, 4, 4);
+        }
     }
 
     // Player (8-bit sprite) - draw at world coords relative to camera
@@ -295,6 +389,17 @@ function draw() {
         ctx.beginPath(); ctx.arc(cx, cy, R, 0, Math.PI * 2); ctx.fill();
         ctx.strokeStyle = 'rgba(255,255,255,0.25)'; ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(cx, cy, R + 6, 0, Math.PI * 2); ctx.stroke();
     }
+    // Kizaru beam visual for heavy attack
+    if (player.attacking && player.charId === 'kizaru' && player.attackType === 'heavy') {
+        const tot = 18; const t = (tot - Math.max(0, player.attackFrame)) / tot;
+        if (t > 0.45) {
+            const beamLen = Math.max(120, player.attackExt || 200);
+            const bx = player.facing === 1 ? player.x + player.w : player.x - beamLen;
+            ctx.fillStyle = 'rgba(255,240,200,0.18)';
+            ctx.fillRect(bx - camX, player.y + 6, beamLen, player.h - 8);
+            ctx.strokeStyle = 'rgba(255,240,200,0.5)'; ctx.lineWidth = 2; ctx.strokeRect(bx - camX, player.y + 6, beamLen, player.h - 8);
+        }
+    }
     ctx.restore();
 
     // Player HP bar
@@ -304,10 +409,25 @@ function draw() {
 
     // If player dead
     if (player.hp <= 0) {
-        ctx.fillStyle = 'rgba(0,0,0,0.5)'; ctx.fillRect(0, 0, W, H);
-        ctx.fillStyle = '#fff'; ctx.font = '44px sans-serif'; ctx.fillText('You are defeated', W / 2 - 160, H / 2 - 10);
-        ctx.font = '18px sans-serif'; ctx.fillText('Refresh page to try again', W / 2 - 110, H / 2 + 30);
+        gamePaused = true;
+        ctx.fillStyle = 'rgba(0,0,0,0.6)'; ctx.fillRect(0, 0, W, H);
+        ctx.fillStyle = '#fff'; ctx.font = '36px sans-serif'; ctx.fillText('You are defeated', W / 2 - 140, H / 2 - 40);
+        ctx.font = '18px sans-serif'; ctx.fillText('Choose a character to revive as:', W / 2 - 150, H / 2 - 10);
+        drawCharacterSelect(ctx);
     }
+}
+
+function drawCharacterSelect(ctx){
+    const choices = Object.keys(characters);
+    const w = 220, h = 60;
+    for(let i=0;i<choices.length;i++){
+        const x = W/2 - (choices.length*(w+12))/2 + i*(w+12);
+        const y = H/2 + 10;
+        ctx.fillStyle = '#222'; ctx.fillRect(x,y,w,h);
+        ctx.fillStyle = '#fff'; ctx.font='16px sans-serif'; ctx.fillText(characters[choices[i]].name, x+12,y+28);
+        ctx.fillStyle = 'rgba(255,255,255,0.08)'; ctx.fillRect(x+8,y+34, w-16, 12);
+    }
+    ctx.fillStyle='#ccc'; ctx.font='12px sans-serif'; ctx.fillText('Click a portrait or press 1-4', W/2 - 90, H/2 + 90);
 }
 
 function loop() { update(); draw(); requestAnimationFrame(loop); }
@@ -316,6 +436,7 @@ loop();
 // Basic spawn wave to keep action going
 setInterval(() => {
     if (Math.random() < 0.7) {
+        if(gamePaused) return;
         const sx = 80 + Math.random() * (WORLD_W - 240);
         const sy = 200 + Math.random() * 260;
         spawnEnemy(sx, sy);
@@ -323,4 +444,30 @@ setInterval(() => {
 }, 3000);
 
 // Simple help for touch devices: clicks make attacks
-canvas.addEventListener('pointerdown', () => { keys['k'] = true; setTimeout(() => keys['k'] = false, 80) });
+canvas.addEventListener('pointerdown', (ev) => {
+    // quick tap = attack when alive
+    if (!gamePaused && player.hp>0) { keys['k'] = true; setTimeout(() => keys['k'] = false, 80); return }
+    // if paused (dead), process selection by click
+    const rect = canvas.getBoundingClientRect();
+    const mx = ev.clientX - rect.left; const my = ev.clientY - rect.top;
+    // compute choice boxes (same as drawCharacterSelect)
+    const choices = Object.keys(characters);
+    const w = 220, h = 60;
+    const startX = W/2 - (choices.length*(w+12))/2;
+    const y = H/2 + 10;
+    for(let i=0;i<choices.length;i++){
+        const x = startX + i*(w+12);
+        if(mx >= x && mx <= x+w && my >= y && my <= y+h){
+            // choose
+            applyCharacter(choices[i]); gamePaused = false; break;
+        }
+    }
+});
+
+// keyboard quick-select when dead (1..4)
+document.addEventListener('keydown', e=>{
+    if (!gamePaused) return;
+    const map = {'1':'luffy','2':'kizaru','3':'buggy','4':'boa'};
+    const id = map[e.key];
+    if(id){ applyCharacter(id); gamePaused = false }
+});
