@@ -104,8 +104,9 @@ function spawnEnemy(x, y) {
     // limit concurrent enemies to avoid runaway
     if (enemies.length > 60) return;
     const weapon = Math.random() < 0.5 ? 'gun' : 'sword';
+    // larger full-body bandit size
     enemies.push({
-        x, y, w: 36, h: 44, vx: 1.2, patrol: [x - 80, x + 80], hp: 30, alive: true, weapon,
+        x, y, w: 48, h: 64, vx: 1.0, patrol: [x - 120, x + 120], hp: 60, alive: true, weapon,
         petrified: false, removedTimer: 0, grabbed: false, slamming: false, origY: y
     });
 }
@@ -404,6 +405,38 @@ function drawPlayer(ctx, p) {
             r(1, 12, 2, 3, '#ddd'); r(14, 12, 2, 3, '#ddd');
         }
 
+    } else if (p.charId === 'boa') {
+        // Boa Hancock 8-bit inspired model (distinct from Luffy)
+        const skinB = '#fde0d6';
+        const hair = '#2b1b3a';
+        const dress = '#c8376b';
+        const gold = '#ffd86b';
+        const shoeB = '#3b1f2b';
+
+        // Hair (long flowing)
+        r(1, -6, 14, 6, hair);
+        r(2, -2, 12, 4, hair);
+
+        // Face
+        r(4, 1, 8, 8, skinB);
+
+        // Eyes
+        r(6, 3, 1, 1, '#000'); r(10, 3, 1, 1, '#000');
+
+        // Dress top with gold accents
+        r(2, 11, 12, 10, dress);
+        r(4, 9, 8, 2, gold);
+
+        // Long skirt
+        r(3, 21, 10, 12, dress);
+
+        // Legs / shoes
+        r(5, 33 + legBob, 3, 3, shoeB);
+        r(9, 33 - legBob, 3, 3, shoeB);
+
+        // Arms + shoulders
+        r(0, 12, 3, 4, skinB); r(15, 12, 3, 4, skinB);
+
     } else {
         // Luffy-style model (default)
 
@@ -477,34 +510,41 @@ function draw() {
         ctx.fillRect(p.x - camX, p.y - 6, p.w, 6);
     }
 
-    // Enemies (world coords -> draw relative to camera) - bandit sprites with weapon icons
+    // Enemies (world coords -> draw relative to camera) - larger full-body bandits
     for (let e of enemies) {
         if (!(e.alive || e.petrified || e.grabbed || e.slamming)) continue;
         const dx = Math.round(e.x - camX);
         const dy = Math.round(e.y);
 
-        // body color depending on state
-        let bodyCol = '#6b3';
-        if (e.petrified) bodyCol = '#999'; else if (e.grabbedByHand) bodyCol = '#a0a'; else if (e.slamming) bodyCol = '#600'; else bodyCol = '#5b3a2b';
+        // choose body color by state
+        let bodyCol = '#5b3a2b';
+        if (e.petrified) bodyCol = '#999'; else if (e.grabbedByHand) bodyCol = '#a0a'; else if (e.slamming) bodyCol = '#600';
 
-        // head
-        ctx.fillStyle = bodyCol; ctx.fillRect(dx + 6, dy + 2, 12, 10);
-        // bandana/hat
-        ctx.fillStyle = '#222'; ctx.fillRect(dx + 6, dy - 2, 12, 3);
+        // head (bigger)
+        ctx.fillStyle = bodyCol; ctx.fillRect(dx + 8, dy + 2, 16, 12);
+        // hat/bandana
+        ctx.fillStyle = '#222'; ctx.fillRect(dx + 8, dy - 2, 16, 4);
+
         // torso
-        ctx.fillStyle = '#7b5'; ctx.fillRect(dx + 4, dy + 12, 16, 12);
+        ctx.fillStyle = '#6b7'; ctx.fillRect(dx + 6, dy + 16, 20, 20);
 
-        // weapon icon
+        // arms
+        ctx.fillStyle = '#d6b'; ctx.fillRect(dx + 2, dy + 16, 6, 14);
+        ctx.fillRect(dx + 34, dy + 16, 6, 14);
+
+        // legs/shoes
+        ctx.fillStyle = '#3b2d20'; ctx.fillRect(dx + 8, dy + 36, 6, 10); ctx.fillRect(dx + 22, dy + 36, 6, 10);
+
+        // weapon icon: small readable glyph next to head
         if (e.weapon === 'gun') {
-            ctx.fillStyle = '#111'; ctx.fillRect(dx + 18, dy + 8, 8, 4); ctx.fillRect(dx + 22, dy + 6, 2, 2);
+            ctx.fillStyle = '#111'; ctx.fillRect(dx + 22, dy + 6, 12, 6); ctx.fillRect(dx + 30, dy + 4, 2, 2);
         } else {
-            // sword
-            ctx.fillStyle = '#bbb'; ctx.fillRect(dx + 18, dy + 6, 2, 14); ctx.fillStyle = '#aa3333'; ctx.fillRect(dx + 17, dy + 4, 4, 2);
+            ctx.fillStyle = '#bbb'; ctx.fillRect(dx + 22, dy + 6, 3, 18); ctx.fillStyle = '#aa3333'; ctx.fillRect(dx + 20, dy + 4, 6, 3);
         }
 
-        // HP bar only when alive
-        if (e.alive) { ctx.fillStyle = '#000'; ctx.fillRect(dx, dy - 8, e.w, 4); ctx.fillStyle = '#0f0'; ctx.fillRect(dx, dy - 8, e.w * Math.max(0, e.hp / 30), 4); }
-        if (e.petrified) { ctx.fillStyle = 'rgba(0,0,0,0.12)'; ctx.fillRect(dx + 10, dy + 6, 4, 4); }
+        // HP bar (based on larger HP)
+        if (e.alive) { ctx.fillStyle = '#000'; ctx.fillRect(dx, dy - 10, e.w, 5); ctx.fillStyle = '#0f0'; ctx.fillRect(dx, dy - 10, Math.round(e.w * Math.max(0, e.hp / 60)), 5); }
+        if (e.petrified) { ctx.fillStyle = 'rgba(0,0,0,0.12)'; ctx.fillRect(dx + 12, dy + 8, 6, 6); }
     }
 
     // draw Buggy hands
