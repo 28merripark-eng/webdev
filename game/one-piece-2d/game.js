@@ -9,6 +9,57 @@ let keys = {};
 document.addEventListener('keydown', e => { keys[e.key.toLowerCase()] = true; });
 document.addEventListener('keyup', e => { keys[e.key.toLowerCase()] = false; });
 
+// Special key handler for paused choice menus (e.g., Luffy heavy-attack choices)
+document.addEventListener('keydown', e => {
+    if (player._chooseHeavy && player.charId === 'luffy') {
+        if (e.key === '1') {
+            // start gum-gum bazooka animation sequence while paused
+            startBazookaAnim();
+            e.preventDefault();
+            return;
+        }
+        if (e.key === '2') {
+            // regular heavy attack: close menu and perform heavy
+            player.attacking = true; player.attackType = 'heavy'; player.attackFrame = 18; player.attackCooldown = 48;
+            player._chooseHeavy = false; gamePaused = false;
+            e.preventDefault(); return;
+        }
+    }
+});
+
+// Helper to begin the bazooka animation: find target and initialize animation state
+function startBazookaAnim() {
+    if (!player._chooseHeavy || player.charId !== 'luffy') return;
+    // find nearest enemy in front
+    let target = null; let bestD = 999999; let idx = -1;
+    for (let i = 0; i < enemies.length; i++) {
+        const e = enemies[i];
+        if (!e.alive || e.petrified || e.grabbed || e.slamming) continue;
+        const dx = (e.x - player.x) * player.facing;
+        if (dx < 40) continue;
+        if (dx < 1200) {
+            const d = Math.abs(dx) + Math.abs(e.y - player.y);
+            if (d < bestD) { bestD = d; target = e; idx = i; }
+        }
+    }
+    if (!target) { player._chooseHeavy = false; gamePaused = false; return; }
+
+    // compute arm back position (to near the far edge of the current section behind the player)
+    const sectionIndex = Math.floor(player.x / (SECTION_W + GAP));
+    const sectionStart = sectionIndex * (SECTION_W + GAP);
+    const sectionEnd = sectionStart + SECTION_W;
+    const armBackX = player.facing === 1 ? Math.max(player.x - SECTION_W, sectionStart) : Math.min(player.x + SECTION_W, sectionEnd);
+
+    const shift = 2 * (SECTION_W + GAP);
+    const enemyTargetX = Math.min(WORLD_W - target.w - 8, target.x + shift);
+
+    player._bazookaAnim = {
+        phase: 'stretch', t: 0, durStretch: 30, durHold: 8, durSnap: 18, durEnemyFly: 36,
+        armBackX: armBackX, snapTo: player.x + player.facing * (SECTION_W - 8),
+        targetIndex: idx, enemyTargetX: enemyTargetX
+    };
+}
+
 function rectsOverlap(a, b) {
     return a.x < b.x + b.w && a.x + a.w > b.x && a.y < b.y + b.h && a.y + a.h > b.y;
 }
@@ -168,8 +219,8 @@ function update() {
     }
     if (heavyKey && player.attackCooldown <= 0 && !player.attacking) {
         if (player.charId === 'luffy') {
-            // open heavy-attack choice menu for Luffy
-            player._chooseHeavy = true;
+            // open heavy-attack choice menu for Luffy and pause the game to select
+            player._chooseHeavy = true; gamePaused = true;
         } else {
             player.attacking = true; player.attackType = 'heavy'; player.attackFrame = 18; player.attackCooldown = 48;
         }
@@ -178,40 +229,7 @@ function update() {
         player.attacking = true; player.attackType = 'spin'; player.attackFrame = 20; player.attackCooldown = 80;
     }
 
-    // If Luffy's heavy-choice UI is open, check numeric selection keys
-    if (player._chooseHeavy) {
-        // choice 1 = Gum Gum Bazooka (launch enemy)
-        if (keys['1']) {
-            // perform bazooka selection
-            // find nearest enemy in facing direction within range
-            let target = null; let bestD = 9999;
-            for (const e of enemies) {
-                if (!e.alive || e.petrified || e.grabbed || e.slamming) continue;
-                const dx = (e.x - player.x) * player.facing; // positive if in front
-                if (dx < 40) continue;
-                if (dx < 420) {
-                    const d = Math.abs(dx) + Math.abs(e.y - player.y);
-                    if (d < bestD) { bestD = d; target = e; }
-                }
-            }
-            if (target) {
-                // launch enemy forward two sections, arc through air, then die
-                const shift = 2 * (SECTION_W + GAP);
-                target.launched = true; target.launchedBy = 'luffy';
-                target.launchVx = player.facing * 14; target.launchVy = -12;
-                target.launchTargetX = Math.min(WORLD_W - target.w - 8, target.x + shift);
-                target.alive = true; // ensure alive while flying
-                // give player a momentary attack animation
-                player.attacking = true; player.attackType = 'heavy'; player.attackFrame = 18; player.attackCooldown = 60;
-            }
-            player._chooseHeavy = false; keys['1'] = false;
-        }
-        // choice 2 = fallback heavy (regular heavy)
-        if (keys['2']) {
-            player.attacking = true; player.attackType = 'heavy'; player.attackFrame = 18; player.attackCooldown = 48;
-            player._chooseHeavy = false; keys['2'] = false;
-        }
-    }
+    // heavy-choice selection handled via keydown listener while paused
 
     if (player.attacking) {
         player.attackFrame--; if (player.attackFrame <= 0) { player.attacking = false; player.attackType = null }
@@ -959,6 +977,57 @@ function draw() {
         const eyeX = boaSnake.dir === 1 ? bx + 2 : bx - 6;
         ctx.fillRect(Math.round(eyeX), Math.round(by + 4), 2, 2);
     }
+    // Bazooka animation sequence for Luffy (plays while gamePaused)
+    if (player._bazookaAnim) {
+        const a = player._bazookaAnim;
+        a.t = (a.t || 0) + 1;
+        function lerp(a0, a1, p) { return a0 + (a1 - a0) * p; }
+        // player's center world coordinate
+        const px = player.x + player.w / 2; const py = player.y + player.h / 2;
+        // phase: stretch -> hold -> snap -> enemyFlight
+        if (a.phase === 'stretch') {
+            const p = Math.min(1, a.t / a.durStretch);
+            a.armX = lerp(px, a.armBackX, p);
+            // draw stretched arm as a thin rectangle
+            ctx.fillStyle = '#f1c27d';
+            const x0 = Math.min(px, a.armX), w = Math.abs(a.armX - px) || 4;
+            ctx.fillRect(Math.round(x0), Math.round(py - 6), Math.round(w), 6);
+            if (p >= 1) { a.phase = 'hold'; a.t = 0; }
+        } else if (a.phase === 'hold') {
+            // keep arm extended briefly
+            const x0 = Math.min(px, a.armBackX), w = Math.abs(a.armBackX - px) || 4;
+            ctx.fillStyle = '#f1c27d'; ctx.fillRect(Math.round(x0), Math.round(py - 6), Math.round(w), 6);
+            if (a.t > a.durHold) { a.phase = 'snap'; a.t = 0; }
+        } else if (a.phase === 'snap') {
+            const p = Math.min(1, a.t / a.durSnap);
+            a.armX = lerp(a.armBackX, a.snapTo, p);
+            const x0 = Math.min(px, a.armX), w = Math.abs(a.armX - px) || 4;
+            ctx.fillStyle = '#f1c27d'; ctx.fillRect(Math.round(x0), Math.round(py - 6), Math.round(w), 6);
+            // move enemy along with snap when present
+            const e = enemies[a.targetIndex];
+            if (e && !a.enemyStarted && p > 0.4) {
+                a.enemyStarted = true; a.enemyT = 0;
+                a.enemyOrigX = e.x; a.enemyOrigY = e.y;
+            }
+            if (e && a.enemyStarted) {
+                a.enemyT++;
+                const ep = Math.min(1, a.enemyT / a.durEnemyFly);
+                const targetX = a.enemyTargetX;
+                e.x = lerp(a.enemyOrigX, targetX, ep);
+                const peak = Math.max(80, Math.abs(targetX - a.enemyOrigX) * 0.08);
+                e.y = a.enemyOrigY + Math.sin(ep * Math.PI) * -peak;
+                if (ep >= 1) { e.alive = false; e.removedTimer = 30; }
+            }
+            if (p >= 1) { a.phase = 'enemyFlight'; a.t = 0; }
+        } else if (a.phase === 'enemyFlight') {
+            // ensure enemy completes flight (redundant safety)
+            const e = enemies[a.targetIndex];
+            if (e) { e.alive = false; e.removedTimer = 30; }
+            // animation complete: cleanup and unpause
+            delete player._bazookaAnim; player._bazookaAnim = null; player._chooseHeavy = false; gamePaused = false;
+        }
+    }
+
     // For Kizaru in light-flight, render him as a yellow ball only (player sprite hidden)
     if (!(player.charId === 'kizaru' && player.flyMode === 'kizaru_light')) {
         drawPlayer(ctx, player);
