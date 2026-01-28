@@ -181,36 +181,15 @@ function update() {
             // become light: increase speed and slim hitbox for duration
             player.vx = player.facing * 8; player.vy = 0;
         } else if (player.charId === 'luffy') {
+            // Luffy: sling upward briefly then launch forward two sections
             player.flyMode = 'luffy_stretch';
-            // try to grab an enemy or platform in range immediately
-            // find enemy within 160 px
-            let grabbed = null;
-            for (const e of enemies) {
-                if (!e.alive) continue;
-                const dx = Math.abs(e.x - player.x);
-                const dy = Math.abs((e.y) - player.y);
-                if (dx < 160 && dy < 80) { grabbed = e; break; }
-            }
-            if (grabbed) {
-                // launch enemy two levels ahead
-                const shift = 2 * (SECTION_W + GAP);
-                grabbed.x = Math.min(WORLD_W - grabbed.w - 8, grabbed.x + shift);
-                grabbed.hp = Math.max(0, grabbed.hp - 50);
-                grabbed.petrified = false; grabbed.grabbed = false; grabbed.slamming = false;
-            } else {
-                // check for a platform above within reach - pull player forward two sections
-                let ptarget = null;
-                for (const p of platforms) {
-                    if (p.x - 40 < player.x && player.x < p.x + p.w + 40) continue; // not a grab if directly overlapping
-                    const dx = Math.abs((p.x + p.w / 2) - player.x);
-                    const dy = (player.y - p.y);
-                    if (dx < 200 && dy > 20 && dy < 260) { ptarget = p; break; }
-                }
-                if (ptarget) {
-                    const shift = 2 * (SECTION_W + GAP);
-                    player.x = Math.min(WORLD_W - player.w - 8, player.x + shift);
-                }
-            }
+            // prepare sling state: delay while slinging up, then propel forward over frames
+            const shift = 2 * (SECTION_W + GAP);
+            const forwardFrames = 10;
+            player._sling = { phase: 0, delay: 10, forwardFrames, shiftTotal: shift, shiftDone: 0, perFrame: Math.ceil(shift / forwardFrames) };
+            // give an initial upward velocity to sling him into the air
+            player.vy = -player.jump * 1.5;
+            player.vx = 0;
         } else if (player.charId === 'buggy') {
             player.flyMode = 'buggy_pieces';
             // spawn pieces array attached to player
@@ -252,6 +231,23 @@ function update() {
             player.x = boaSnake.x - player.w / 2;
             player.y = boaSnake.y - player.h + 2;
             player.vx = 0; player.vy = 0; player.onGround = false;
+        }
+        // Luffy sling behavior while in luffy_stretch
+        if (player.flyMode === 'luffy_stretch' && player._sling) {
+            const s = player._sling;
+            s.phase++;
+            // during delay phase, let physics (vy) carry Luffy upward (we already set initial vy)
+            if (s.phase > s.delay && s.forwardFrames > 0) {
+                // move forward gradually over forwardFrames
+                const move = Math.min(s.perFrame, s.shiftTotal - s.shiftDone);
+                player.x = Math.min(WORLD_W - player.w - 8, player.x + move * (player.facing || 1));
+                s.shiftDone += move;
+                s.forwardFrames--;
+            }
+            // once shift complete, clear sling state so normal flight end handles cleanup
+            if (s.shiftDone >= s.shiftTotal) {
+                delete player._sling;
+            }
         }
         if (player.flyTimer > dur) {
             // clear state
