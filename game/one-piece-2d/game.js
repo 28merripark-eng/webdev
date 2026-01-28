@@ -125,10 +125,17 @@ function spawnEnemy(x, y) {
     // limit concurrent enemies to avoid runaway
     if (enemies.length > 60) return;
     const weapon = Math.random() < 0.5 ? 'gun' : 'sword';
+    // ensure enemies don't spawn embedded in the ground/platforms
+    const h = 64; const w = 48;
+    let yy = y;
+    if (platforms && platforms.length) {
+        const groundY = platforms[0].y; // main ground
+        if (yy + h > groundY) yy = groundY - h;
+    }
     // larger full-body bandit size
     enemies.push({
-        x, y, w: 48, h: 64, vx: 1.0, patrol: [x - 120, x + 120], hp: 60, alive: true, weapon,
-        petrified: false, removedTimer: 0, grabbed: false, slamming: false, origY: y
+        x: Math.max(0, Math.min(WORLD_W - w, x)), y: yy, w: w, h: h, vx: 1.0, patrol: [x - 120, x + 120], hp: 60, alive: true, weapon,
+        petrified: false, removedTimer: 0, grabbed: false, slamming: false, origY: yy
     });
 }
 spawnEnemy(520, 256);
@@ -144,6 +151,7 @@ function update() {
     let left = keys['arrowleft'] || keys['a'];
     let right = keys['arrowright'] || keys['d'];
     let up = keys['arrowup'] || keys['w'];
+    let down = keys['arrowdown'] || keys['s'];
     let attackKey = keys['k'];
 
     if (left) { player.vx = -player.speed; player.facing = -1 } else if (right) { player.vx = player.speed; player.facing = 1 } else { player.vx = 0 }
@@ -274,10 +282,29 @@ function update() {
     player.attackExt = Math.max(0, Math.min(player.attackExt, 220));
     player.attackRadius = Math.max(0, Math.min(player.attackRadius, 380));
 
-    // Physics
-    player.vy += gravity * 0.6;
-    player.x += player.vx;
-    player.y += player.vy;
+    // directional flight control for applicable flight modes
+    if (player.flyMode === 'kizaru_light' || player.flyMode === 'generic_fly') {
+        const dx = (right ? 1 : 0) - (left ? 1 : 0);
+        const dy = (down ? 1 : 0) - (up ? 1 : 0);
+        const sp = player.charId === 'kizaru' ? 8 : 6;
+        if (dx !== 0 || dy !== 0) {
+            const len = Math.hypot(dx, dy) || 1;
+            player.vx = (dx / len) * sp;
+            player.vy = (dy / len) * sp;
+        } else {
+            player.vx = player.facing * sp; player.vy = 0;
+        }
+    }
+
+    // Physics: flying modes that allow directional movement should not be affected by gravity
+    if (player.flyMode === 'kizaru_light' || player.flyMode === 'generic_fly') {
+        player.x += player.vx;
+        player.y += player.vy;
+    } else {
+        player.vy += gravity * 0.6;
+        player.x += player.vx;
+        player.y += player.vy;
+    }
 
     // Update hands (Buggy's detachable hands)
     for (let i = hands.length - 1; i >= 0; i--) {
@@ -798,10 +825,20 @@ function draw() {
     // Draw flying / special visuals
     if (player.flyMode) {
         if (player.flyMode === 'kizaru_light') {
-            // draw bright yellow square at player's position
+            // draw Kizaru as a yellow ball, but keep the flashing square overlay
+            const cx = Math.round(player.x + player.w / 2 - camX);
+            const cy = Math.round(player.y + player.h / 2);
+            const r = Math.max(player.w, player.h) / 2;
+            // yellow ball body
+            ctx.fillStyle = 'rgba(255,220,90,0.98)';
+            ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI * 2); ctx.fill();
+            // small highlight
+            ctx.fillStyle = 'rgba(255,255,255,0.25)'; ctx.beginPath(); ctx.arc(cx - r * 0.25, cy - r * 0.25, Math.max(2, r * 0.25), 0, Math.PI * 2); ctx.fill();
+            // flashing square overlay (preserve existing visual)
             const sx = Math.round(player.x - camX);
             const sy = Math.round(player.y);
-            ctx.fillStyle = 'rgba(255,230,120,0.98)'; ctx.fillRect(sx, sy - 2, player.w, player.h);
+            ctx.fillStyle = 'rgba(255,230,120,0.22)'; ctx.fillRect(sx, sy - 2, player.w, player.h);
+            ctx.strokeStyle = 'rgba(255,215,0,0.95)'; ctx.lineWidth = 2; ctx.strokeRect(sx, sy - 2, player.w, player.h);
         }
         if (player.flyMode === 'buggy_pieces' && player._pieces) {
             const baseX = Math.round(player.x - camX);
