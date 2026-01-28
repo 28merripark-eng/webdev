@@ -1109,9 +1109,9 @@ function draw() {
         ctx.fillStyle = 'rgba(0,0,0,0.7)'; ctx.fillRect(ox, oy, 320, 120);
         ctx.fillStyle = '#000'; ctx.font = '16px sans-serif'; ctx.fillText('Choose Heavy Attack for Luffy', ox + 12, oy + 28);
         ctx.fillStyle = '#ffd'; ctx.fillRect(ox + 12, oy + 40, 140, 48);
-            ctx.fillStyle = '#000'; ctx.fillText('1: Gum Gum Bazooka', ox + 18, oy + 68);
-            ctx.fillStyle = '#ffd'; ctx.fillRect(ox + 164, oy + 40, 140, 48);
-            ctx.fillStyle = '#000'; ctx.fillText('2: Gear 2', ox + 170, oy + 68);
+        ctx.fillStyle = '#000'; ctx.fillText('1: Gum Gum Bazooka', ox + 18, oy + 68);
+        ctx.fillStyle = '#ffd'; ctx.fillRect(ox + 164, oy + 40, 140, 48);
+        ctx.fillStyle = '#000'; ctx.fillText('2: Gear 2', ox + 170, oy + 68);
     }
 
     // If player dead — require restart
