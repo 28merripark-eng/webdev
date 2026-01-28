@@ -44,6 +44,17 @@ document.addEventListener('keydown', e => {
             keys[e.key.toLowerCase()] = false; e.preventDefault(); e.stopImmediatePropagation();
             return;
         }
+        if (e.key === '3') {
+            // Gear 3 selection: toggle Gear3 (hand growth)
+            player._gear3 = !player._gear3;
+            // ensure still Luffy
+            player.charId = 'luffy';
+            const lc3 = characters.luffy || {};
+            player.gunImmune = !!lc3.gunImmune; player.swordImmune = !!lc3.swordImmune;
+            player._chooseHeavy = false; gamePaused = false;
+            keys[e.key.toLowerCase()] = false; e.preventDefault(); e.stopImmediatePropagation();
+            return;
+        }
     }
 });
 
@@ -839,8 +850,9 @@ function drawPlayer(ctx, p) {
         const ext = p.attackExt ? Math.round((p.attackExt / 8)) : 0;
         // Upper arm
         r(ax - 2, ay, 4 + ext, 3, skin);
-        // Hand
-        r(ax + 2 + ext, ay, 3, 3, skin);
+        // Hand (grow if Gear 3 active while attacking)
+        const handW = (p._gear3 && p.attacking) ? 9 : 3;
+        r(ax + 2 + ext, ay, handW, 3, skin);
     }
 
     ctx.restore();
@@ -1124,8 +1136,10 @@ function draw() {
         ctx.fillStyle = '#000'; ctx.font = '16px sans-serif'; ctx.fillText('Choose Heavy Attack for Luffy', ox + 12, oy + 28);
         ctx.fillStyle = '#ffd'; ctx.fillRect(ox + 12, oy + 40, 140, 48);
         ctx.fillStyle = '#000'; ctx.fillText('1: Gum Gum Bazooka', ox + 18, oy + 68);
-        ctx.fillStyle = '#ffd'; ctx.fillRect(ox + 164, oy + 40, 140, 48);
+        ctx.fillStyle = '#ffd'; ctx.fillRect(ox + 164, oy + 40, 100, 48);
         ctx.fillStyle = '#000'; ctx.fillText('2: Gear 2', ox + 170, oy + 68);
+        ctx.fillStyle = '#ffd'; ctx.fillRect(ox + 268, oy + 40, 100, 48);
+        ctx.fillStyle = '#000'; ctx.fillText('3: Gear 3', ox + 274, oy + 68);
     }
 
     // If player dead — require restart
