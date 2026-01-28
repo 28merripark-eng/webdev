@@ -897,7 +897,10 @@ function draw() {
         const eyeX = boaSnake.dir === 1 ? bx + 2 : bx - 6;
         ctx.fillRect(Math.round(eyeX), Math.round(by + 4), 2, 2);
     }
-    drawPlayer(ctx, player);
+    // For Kizaru in light-flight, render him as a yellow ball only (player sprite hidden)
+    if (!(player.charId === 'kizaru' && player.flyMode === 'kizaru_light')) {
+        drawPlayer(ctx, player);
+    }
     // draw spin attack visual if active
     if (player.attacking && player.attackType === 'spin' && player.attackRadius) {
         ctx.fillStyle = 'rgba(255,255,255,0.12)';
