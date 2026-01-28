@@ -44,19 +44,37 @@ function startBazookaAnim() {
     }
     if (!target) { player._chooseHeavy = false; gamePaused = false; return; }
 
-    // compute arm back position (to near the far edge of the current section behind the player)
+    // compute arm back position (stretch to the edge of the current section behind the player)
     const sectionIndex = Math.floor(player.x / (SECTION_W + GAP));
     const sectionStart = sectionIndex * (SECTION_W + GAP);
     const sectionEnd = sectionStart + SECTION_W;
-    const armBackX = player.facing === 1 ? Math.max(player.x - SECTION_W, sectionStart) : Math.min(player.x + SECTION_W, sectionEnd);
+    const armBackX = player.facing === 1 ? sectionStart : sectionEnd;
 
+    const snapTo = player.facing === 1 ? sectionEnd : sectionStart;
     const shift = 2 * (SECTION_W + GAP);
-    const enemyTargetX = Math.min(WORLD_W - target.w - 8, target.x + shift);
+
+    // collect targets across the sweep from armBackX -> snapTo (enemies in the path)
+    const sweepStart = Math.min(armBackX, snapTo);
+    const sweepEnd = Math.max(armBackX, snapTo);
+    const targets = [];
+    for (let i = 0; i < enemies.length; i++) {
+        const e = enemies[i];
+        if (!e.alive || e.petrified || e.grabbed || e.slamming) continue;
+        // enemy center
+        const cx = e.x + e.w / 2;
+        if (cx >= sweepStart && cx <= sweepEnd) targets.push(i);
+    }
+
+    // prepare per-target state for the animation (enemy target X after launch)
+    const targetsState = targets.map(i => {
+        const e = enemies[i];
+        return { origX: e.x, origY: e.y, t: 0, started: false, targetX: Math.min(WORLD_W - e.w - 8, e.x + shift) };
+    });
 
     player._bazookaAnim = {
         phase: 'stretch', t: 0, durStretch: 30, durHold: 8, durSnap: 18, durEnemyFly: 36,
-        armBackX: armBackX, snapTo: player.x + player.facing * (SECTION_W - 8),
-        targetIndex: idx, enemyTargetX: enemyTargetX
+        armBackX: armBackX, snapTo: snapTo,
+        targets: targets, targetsState: targetsState
     };
     // set Luffy into an attacking/animation state so his sprite reflects action
     player.attacking = true; player.attackType = 'heavy'; player.attackFrame = 60; player.attackCooldown = 80;
@@ -1005,26 +1023,28 @@ function draw() {
             a.armX = lerp(a.armBackX, a.snapTo, p);
             const x0 = Math.min(px, a.armX), w = Math.abs(a.armX - px) || 4;
             ctx.fillStyle = '#f1c27d'; ctx.fillRect(Math.round(x0), Math.round(py - 6), Math.round(w), 6);
-            // move enemy along with snap when present
-            const e = enemies[a.targetIndex];
-            if (e && !a.enemyStarted && p > 0.4) {
-                a.enemyStarted = true; a.enemyT = 0;
-                a.enemyOrigX = e.x; a.enemyOrigY = e.y;
-            }
-            if (e && a.enemyStarted) {
-                a.enemyT++;
-                const ep = Math.min(1, a.enemyT / a.durEnemyFly);
-                const targetX = a.enemyTargetX;
-                e.x = lerp(a.enemyOrigX, targetX, ep);
-                const peak = Math.max(80, Math.abs(targetX - a.enemyOrigX) * 0.08);
-                e.y = a.enemyOrigY + Math.sin(ep * Math.PI) * -peak;
-                if (ep >= 1) { e.alive = false; e.removedTimer = 30; }
+            // animate all targets through the snap
+            for (let ti = 0; ti < (a.targets || []).length; ti++) {
+                const idx = a.targets[ti]; const st = a.targetsState[ti];
+                const e = enemies[idx];
+                if (!e) continue;
+                if (!st.started && p > 0.35) { st.started = true; st.t = 0; }
+                if (st.started) {
+                    st.t++;
+                    const ep = Math.min(1, st.t / a.durEnemyFly);
+                    const targetX = st.targetX;
+                    e.x = lerp(st.origX, targetX, ep);
+                    const peak = Math.max(80, Math.abs(targetX - st.origX) * 0.08);
+                    e.y = st.origY + Math.sin(ep * Math.PI) * -peak;
+                    if (ep >= 1) { e.alive = false; e.removedTimer = 30; }
+                }
             }
             if (p >= 1) { a.phase = 'enemyFlight'; a.t = 0; }
         } else if (a.phase === 'enemyFlight') {
-            // ensure enemy completes flight (redundant safety)
-            const e = enemies[a.targetIndex];
-            if (e) { e.alive = false; e.removedTimer = 30; }
+            // ensure all enemies complete flight (redundant safety)
+            for (let ti = 0; ti < (a.targets || []).length; ti++) {
+                const idx = a.targets[ti]; const e = enemies[idx]; if (e) { e.alive = false; e.removedTimer = 30; }
+            }
             // animation complete: cleanup and unpause
             delete player._bazookaAnim; player._bazookaAnim = null; player._chooseHeavy = false; player.attacking = false; gamePaused = false;
         }
@@ -1153,6 +1173,7 @@ canvas.addEventListener('pointerdown', (ev) => {
 // keyboard quick-select when dead (1..4)
 document.addEventListener('keydown', e => {
     // if on title screen, allow 1-3 to pick starting character
+    if (player._chooseHeavy) return; // ignore global quick-select while in Luffy's choice menu
     if (!gameStarted && gamePaused) {
         const map0 = { '1': 'luffy', '2': 'kizaru', '3': 'buggy', '4': 'boa' };
         const id0 = map0[e.key];
