@@ -259,7 +259,7 @@ function update() {
         }
         // Flight no longer auto-ends by timer — it ends when the player releases the F key below.
         // (keep player.flyTimer available for visuals or effects while flying)
-        
+
         // End flight when F released: cleanup and apply a short cooldown
         if (player.flyMode && !keys['f']) {
             // cleanup per-mode
