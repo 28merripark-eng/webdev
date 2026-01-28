@@ -35,6 +35,15 @@ document.addEventListener('keydown', e => {
     }
 });
 
+// Toggle Gear 2 quickly by pressing '2' while playing as Luffy and not paused
+document.addEventListener('keydown', e => {
+    if (e.key === '2' && !gamePaused && player.charId === 'luffy' && !player._chooseHeavy) {
+        player._gear2 = !player._gear2;
+        // clear key state so it doesn't interact with other handlers
+        keys[e.key.toLowerCase()] = false; e.preventDefault(); e.stopImmediatePropagation();
+    }
+});
+
 // Helper to begin the bazooka animation: find target and initialize animation state
 function startBazookaAnim() {
     if (!player._chooseHeavy || player.charId !== 'luffy') return;
@@ -243,42 +252,32 @@ function update() {
     let spinKey = keys['l'];
 
     if (lightKey && player.attackCooldown <= 0 && !player.attacking) {
-        // Luffy Gear2: make light attacks extremely fast
-        if (player.charId === 'luffy' && player._gear2) {
-            player.attacking = true; player.attackType = 'light'; player.attackFrame = 2; player.attackCooldown = 6;
-        } else {
-            player.attacking = true; player.attackType = 'light'; player.attackFrame = 8; player.attackCooldown = 22;
-        }
+        let baseFrame = 8, baseCd = 22;
+        if (player.charId === 'luffy' && player._gear2) { baseFrame = Math.max(1, Math.floor(baseFrame / 10)); baseCd = Math.max(1, Math.floor(baseCd / 10)); }
+        player.attacking = true; player.attackType = 'light'; player.attackFrame = baseFrame; player.attackCooldown = baseCd;
     }
     if (heavyKey && player.attackCooldown <= 0 && !player.attacking) {
         if (player.charId === 'luffy') {
             // open heavy-attack choice menu for Luffy and pause the game to select
             player._chooseHeavy = true; gamePaused = true;
         } else {
-            player.attacking = true; player.attackType = 'heavy'; player.attackFrame = 18; player.attackCooldown = 48;
+            // apply Gear2 speedup for heavy attacks (except bazooka which sets its own frame elsewhere)
+            let hf = 18, hcd = 48;
+            if (player.charId === 'luffy' && player._gear2) { hf = Math.max(1, Math.floor(hf / 10)); hcd = Math.max(1, Math.floor(hcd / 10)); }
+            player.attacking = true; player.attackType = 'heavy'; player.attackFrame = hf; player.attackCooldown = hcd;
         }
     }
     if (spinKey && player.attackCooldown <= 0 && !player.attacking) {
-        // spin (area) - much faster under Gear2
-        if (player.charId === 'luffy' && player._gear2) {
-            player.attacking = true; player.attackType = 'spin'; player.attackFrame = 6; player.attackCooldown = 18;
-        } else {
-            player.attacking = true; player.attackType = 'spin'; player.attackFrame = 20; player.attackCooldown = 80;
-        }
+        let baseFrame = 20, baseCd = 80;
+        if (player.charId === 'luffy' && player._gear2) { baseFrame = Math.max(1, Math.floor(baseFrame / 10)); baseCd = Math.max(1, Math.floor(baseCd / 10)); }
+        player.attacking = true; player.attackType = 'spin'; player.attackFrame = baseFrame; player.attackCooldown = baseCd;
     }
 
     // heavy-choice selection handled via keydown listener while paused
 
     if (player.attacking) {
         player.attackFrame--;
-        if (player.attackFrame <= 0) {
-            player.attacking = false; player.attackType = null;
-            // consume Gear2 charge on each completed attack for Luffy
-            if (player.charId === 'luffy' && player._gear2) {
-                player._gear2Count = (player._gear2Count || 1) - 1;
-                if (player._gear2Count <= 0) { player._gear2 = false; player._gear2Count = 0 }
-            }
-        }
+        if (player.attackFrame <= 0) { player.attacking = false; player.attackType = null }
     }
     if (player.attackCooldown > 0) player.attackCooldown--
 
