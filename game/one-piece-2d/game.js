@@ -15,14 +15,21 @@ document.addEventListener('keydown', e => {
         if (e.key === '1') {
             // start gum-gum bazooka animation sequence while paused
             startBazookaAnim();
-            e.preventDefault(); e.stopImmediatePropagation();
+            // clear lingering key state and stop other handlers
+            keys[e.key.toLowerCase()] = false; e.preventDefault(); e.stopImmediatePropagation();
             return;
         }
         if (e.key === '2') {
             // Gear 2 selection: tint Luffy and speed up his attacks
             player._gear2 = true;
+            // make absolutely sure the character id stays Luffy and restore immunities
+            player.charId = 'luffy';
+            const lc = characters.luffy || {};
+            player.gunImmune = !!lc.gunImmune; player.swordImmune = !!lc.swordImmune;
+            // clear states and unpause
             player._chooseHeavy = false; gamePaused = false;
-            e.preventDefault(); e.stopImmediatePropagation();
+            // clear lingering key state and stop other handlers
+            keys[e.key.toLowerCase()] = false; e.preventDefault(); e.stopImmediatePropagation();
             return;
         }
     }
