@@ -83,8 +83,10 @@ function startBazookaAnim() {
     const sectionEnd = sectionStart + SECTION_W;
     const armBackX = player.facing === 1 ? sectionStart : sectionEnd;
 
-    const snapTo = player.facing === 1 ? sectionEnd : sectionStart;
-    const shift = 2 * (SECTION_W + GAP);
+    // when Gear 3 is active, extend the snap/sweep range so the Bazooka is larger and reaches farther
+    const extra = player._gear3 ? 2 * (SECTION_W + GAP) : 0;
+    const snapTo = player.facing === 1 ? sectionEnd + extra : sectionStart - extra;
+    const shift = (player._gear3 ? 3 : 2) * (SECTION_W + GAP);
 
     // collect targets across the sweep from armBackX -> snapTo (enemies in the path)
     const sweepStart = Math.min(armBackX, snapTo);
@@ -1045,6 +1047,8 @@ function draw() {
     if (player._bazookaAnim) {
         const a = player._bazookaAnim;
         a.t = (a.t || 0) + 1;
+        // ensure attack cooldown ticks down while the bazooka animation runs (game is paused)
+        if (player.attackCooldown > 0) player.attackCooldown--;
         function lerp(a0, a1, p) { return a0 + (a1 - a0) * p; }
         // player's center world coordinate
         const px = player.x + player.w / 2; const py = player.y + player.h / 2;
