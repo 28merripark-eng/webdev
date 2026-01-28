@@ -21,7 +21,7 @@ document.addEventListener('keydown', e => {
         }
         if (e.key === '2') {
             // Gear 2 selection: tint Luffy and speed up his attacks
-            player._gear2 = true;
+            player._gear2 = true; player._gear2Count = 3; // lasts for 3 attacks
             // make absolutely sure the character id stays Luffy and restore immunities
             player.charId = 'luffy';
             const lc = characters.luffy || {};
@@ -270,7 +270,15 @@ function update() {
     // heavy-choice selection handled via keydown listener while paused
 
     if (player.attacking) {
-        player.attackFrame--; if (player.attackFrame <= 0) { player.attacking = false; player.attackType = null }
+        player.attackFrame--;
+        if (player.attackFrame <= 0) {
+            player.attacking = false; player.attackType = null;
+            // consume Gear2 charge on each completed attack for Luffy
+            if (player.charId === 'luffy' && player._gear2) {
+                player._gear2Count = (player._gear2Count || 1) - 1;
+                if (player._gear2Count <= 0) { player._gear2 = false; player._gear2Count = 0 }
+            }
+        }
     }
     if (player.attackCooldown > 0) player.attackCooldown--
 
