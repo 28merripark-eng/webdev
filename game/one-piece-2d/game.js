@@ -49,6 +49,8 @@ let gamePaused = true; // used when player dead / selection menu; start paused u
 let gameStarted = false;
 // detachable hands for Buggy
 let hands = [];
+// Boa's rideable snake when using her flight special
+let boaSnake = null;
 
 // Draw title screen and selection before game starts
 function drawTitleScreen(ctx) {
@@ -168,9 +170,9 @@ function update() {
     }
     if (player.attackCooldown > 0) player.attackCooldown--
 
-    // Flight / special move (F) - per-character, Boa cannot use
+    // Flight / special move (F)
     if (player.flyCooldown > 0) player.flyCooldown--;
-    if (keys['f'] && player.flyCooldown <= 0 && player.charId !== 'boa') {
+    if (keys['f'] && player.flyCooldown <= 0) {
         // start special flight
         player.flyCooldown = 240; // cooldown frames
         player.flyTimer = 0;
@@ -214,6 +216,18 @@ function update() {
             // spawn pieces array attached to player
             player._pieces = [];
             for (let i = 0; i < 6; i++) player._pieces.push({ ox: -12 + i * 6, oy: -28 - (i % 2) * 6, vy: -1 - i * 0.4 });
+        } else if (player.charId === 'boa') {
+            // Boa Hancock: summon a blue-and-white rideable snake and stand on its head
+            player.flyMode = 'boa_snake';
+            // place snake's head near the player's feet and let it carry her forward
+            boaSnake = {
+                x: player.x + player.w / 2, // head x world coord
+                y: player.y + player.h - 6, // head y world coord (slightly below player's feet)
+                vx: player.facing * 6, dir: player.facing,
+                wobble: 0, segs: 12, segW: 14, h: 16,
+                color1: '#4da6ff', color2: '#ffffff'
+            };
+            player.vx = 0; player.vy = 0; player.onGround = false;
         } else {
             player.flyMode = 'generic_fly';
             player.vx = player.facing * 6;
@@ -223,13 +237,27 @@ function update() {
     // advance flying timer / handle end
     if (player.flyMode) {
         player.flyTimer++;
-        // durations
-        const dur = player.charId === 'kizaru' ? 80 : player.charId === 'luffy' ? 28 : player.charId === 'buggy' ? 60 : 40;
+        // durations (custom for Boa)
+        const dur = player.charId === 'kizaru' ? 80 : player.charId === 'luffy' ? 28 : player.charId === 'buggy' ? 60 : player.charId === 'boa' ? 80 : 40;
+        // update Boa's snake while active
+        if (player.flyMode === 'boa_snake' && boaSnake) {
+            boaSnake.x += boaSnake.vx;
+            boaSnake.wobble += 0.14;
+            // gentle vertical bob
+            boaSnake.y += Math.sin(boaSnake.wobble) * 0.6;
+            // clamp head in world bounds
+            if (boaSnake.x < 8) boaSnake.x = 8;
+            if (boaSnake.x > WORLD_W - 8) boaSnake.x = WORLD_W - 8;
+            // keep player standing on the snake's head
+            player.x = boaSnake.x - player.w / 2;
+            player.y = boaSnake.y - player.h + 2;
+            player.vx = 0; player.vy = 0; player.onGround = false;
+        }
         if (player.flyTimer > dur) {
             // clear state
             player.flyMode = null; player.flyTimer = 0; player._pieces = null;
-            // restore normal speed
-            player.vx = 0;
+            // restore normal speed and remove snake
+            player.vx = 0; boaSnake = null; player.riding = false;
         }
     }
 
@@ -817,6 +845,25 @@ function draw() {
     // walking speed used for leg animation
     player.walkSpeed = Math.abs(player.vx);
     ctx.save(); ctx.translate(-camX, 0);
+    // draw Boa's snake first so the player stands on its head
+    if (boaSnake) {
+        const bx = Math.round(boaSnake.x);
+        const by = Math.round(boaSnake.y);
+        const segW = boaSnake.segW || 14;
+        const segs = boaSnake.segs || 10;
+        for (let s = 0; s < segs; s++) {
+            const sx = boaSnake.dir === 1 ? bx - s * segW : bx + s * segW;
+            ctx.fillStyle = (s % 2) ? boaSnake.color1 : boaSnake.color2;
+            ctx.fillRect(Math.round(sx), Math.round(by), segW, boaSnake.h);
+        }
+        // head (slightly larger and with an eye)
+        ctx.fillStyle = boaSnake.color1;
+        const headX = boaSnake.dir === 1 ? bx - Math.floor(segW / 2) : bx - Math.floor(segW / 2);
+        ctx.fillRect(Math.round(headX), Math.round(by - 2), segW + 6, boaSnake.h + 4);
+        ctx.fillStyle = '#000';
+        const eyeX = boaSnake.dir === 1 ? bx + 2 : bx - 6;
+        ctx.fillRect(Math.round(eyeX), Math.round(by + 4), 2, 2);
+    }
     drawPlayer(ctx, player);
     // draw spin attack visual if active
     if (player.attacking && player.attackType === 'spin' && player.attackRadius) {
