@@ -167,10 +167,50 @@ function update() {
         player.attacking = true; player.attackType = 'light'; player.attackFrame = 8; player.attackCooldown = 22;
     }
     if (heavyKey && player.attackCooldown <= 0 && !player.attacking) {
-        player.attacking = true; player.attackType = 'heavy'; player.attackFrame = 18; player.attackCooldown = 48;
+        if (player.charId === 'luffy') {
+            // open heavy-attack choice menu for Luffy
+            player._chooseHeavy = true;
+        } else {
+            player.attacking = true; player.attackType = 'heavy'; player.attackFrame = 18; player.attackCooldown = 48;
+        }
     }
     if (spinKey && player.attackCooldown <= 0 && !player.attacking) {
         player.attacking = true; player.attackType = 'spin'; player.attackFrame = 20; player.attackCooldown = 80;
+    }
+
+    // If Luffy's heavy-choice UI is open, check numeric selection keys
+    if (player._chooseHeavy) {
+        // choice 1 = Gum Gum Bazooka (launch enemy)
+        if (keys['1']) {
+            // perform bazooka selection
+            // find nearest enemy in facing direction within range
+            let target = null; let bestD = 9999;
+            for (const e of enemies) {
+                if (!e.alive || e.petrified || e.grabbed || e.slamming) continue;
+                const dx = (e.x - player.x) * player.facing; // positive if in front
+                if (dx < 40) continue;
+                if (dx < 420) {
+                    const d = Math.abs(dx) + Math.abs(e.y - player.y);
+                    if (d < bestD) { bestD = d; target = e; }
+                }
+            }
+            if (target) {
+                // launch enemy forward two sections, arc through air, then die
+                const shift = 2 * (SECTION_W + GAP);
+                target.launched = true; target.launchedBy = 'luffy';
+                target.launchVx = player.facing * 14; target.launchVy = -12;
+                target.launchTargetX = Math.min(WORLD_W - target.w - 8, target.x + shift);
+                target.alive = true; // ensure alive while flying
+                // give player a momentary attack animation
+                player.attacking = true; player.attackType = 'heavy'; player.attackFrame = 18; player.attackCooldown = 60;
+            }
+            player._chooseHeavy = false; keys['1'] = false;
+        }
+        // choice 2 = fallback heavy (regular heavy)
+        if (keys['2']) {
+            player.attacking = true; player.attackType = 'heavy'; player.attackFrame = 18; player.attackCooldown = 48;
+            player._chooseHeavy = false; keys['2'] = false;
+        }
     }
 
     if (player.attacking) {
@@ -366,6 +406,16 @@ function update() {
 
     // Enemies update (handle grabbed/petrified/slamming states and special attacks)
     for (let e of enemies) {
+        // launched enemies (from Luffy bazooka) - arc through air toward launchTargetX then die
+        if (e.launched) {
+            e.x += e.launchVx; e.y += e.launchVy; e.launchVy += gravity * 0.6;
+            // small rotation or arc effect could be here
+            // when reached or passed target X, mark dead and schedule removal
+            if ((e.launchVx > 0 && e.x >= e.launchTargetX) || (e.launchVx < 0 && e.x <= e.launchTargetX)) {
+                e.alive = false; e.launched = false; e.removedTimer = 40; score += 300;
+            }
+            continue;
+        }
         // petrified corpses: countdown then expire
         if (e.petrified) {
             e.removedTimer = (e.removedTimer || 60) - 1;
@@ -459,6 +509,8 @@ function update() {
 
         // Simple collision with player (damage to player)
         if (rectsOverlap(player, e)) {
+            // Kizaru: invulnerable while in light-flight
+            if (player.flyMode === 'kizaru_light') { continue; }
             if (!player._inv) {
                 // enemy weapon may be ineffective against certain chars
                 let edmg = 8;
@@ -941,6 +993,17 @@ function draw() {
     ctx.fillStyle = '#222'; ctx.fillRect(14, 12, 220, 14);
     ctx.fillStyle = '#e33'; ctx.fillRect(16, 14, (player.hp / player.maxHp) * 216, 10);
     ctx.strokeStyle = '#000'; ctx.strokeRect(14, 12, 220, 14);
+
+    // Luffy heavy-choice overlay
+    if (player._chooseHeavy) {
+        const ox = W / 2 - 160, oy = H / 2 - 60;
+        ctx.fillStyle = 'rgba(0,0,0,0.7)'; ctx.fillRect(ox, oy, 320, 120);
+        ctx.fillStyle = '#fff'; ctx.font = '16px sans-serif'; ctx.fillText('Choose Heavy Attack for Luffy', ox + 12, oy + 28);
+        ctx.fillStyle = '#ffd'; ctx.fillRect(ox + 12, oy + 40, 140, 48);
+        ctx.fillStyle = '#fff'; ctx.fillText('1: Gum Gum Bazooka', ox + 18, oy + 68);
+        ctx.fillStyle = '#ffd'; ctx.fillRect(ox + 164, oy + 40, 140, 48);
+        ctx.fillStyle = '#fff'; ctx.fillText('2: Regular Heavy', ox + 170, oy + 68);
+    }
 
     // If player dead — require restart
     if (player.hp <= 0) {
