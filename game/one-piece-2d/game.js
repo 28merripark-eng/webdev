@@ -1162,11 +1162,14 @@ loop();
 
 // Basic spawn wave to keep action going
 setInterval(() => {
-    if (Math.random() < 0.7) {
-        if (gamePaused) return;
-        const sx = 80 + Math.random() * (WORLD_W - 240);
-        const sy = 200 + Math.random() * 260;
-        spawnEnemy(sx, sy);
+    if (gamePaused) return;
+    const attempts = player && player._gear2 ? 10 : 1;
+    for (let a = 0; a < attempts; a++) {
+        if (Math.random() < 0.7) {
+            const sx = 80 + Math.random() * (WORLD_W - 240);
+            const sy = 200 + Math.random() * 260;
+            spawnEnemy(sx, sy);
+        }
     }
 }, 3000);
 
