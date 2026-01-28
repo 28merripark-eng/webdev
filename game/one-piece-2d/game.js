@@ -58,6 +58,8 @@ function startBazookaAnim() {
         armBackX: armBackX, snapTo: player.x + player.facing * (SECTION_W - 8),
         targetIndex: idx, enemyTargetX: enemyTargetX
     };
+    // set Luffy into an attacking/animation state so his sprite reflects action
+    player.attacking = true; player.attackType = 'heavy'; player.attackFrame = 60; player.attackCooldown = 80;
 }
 
 function rectsOverlap(a, b) {
@@ -1024,7 +1026,7 @@ function draw() {
             const e = enemies[a.targetIndex];
             if (e) { e.alive = false; e.removedTimer = 30; }
             // animation complete: cleanup and unpause
-            delete player._bazookaAnim; player._bazookaAnim = null; player._chooseHeavy = false; gamePaused = false;
+            delete player._bazookaAnim; player._bazookaAnim = null; player._chooseHeavy = false; player.attacking = false; gamePaused = false;
         }
     }
 
@@ -1067,11 +1069,11 @@ function draw() {
     if (player._chooseHeavy) {
         const ox = W / 2 - 160, oy = H / 2 - 60;
         ctx.fillStyle = 'rgba(0,0,0,0.7)'; ctx.fillRect(ox, oy, 320, 120);
-        ctx.fillStyle = '#fff'; ctx.font = '16px sans-serif'; ctx.fillText('Choose Heavy Attack for Luffy', ox + 12, oy + 28);
+        ctx.fillStyle = '#000'; ctx.font = '16px sans-serif'; ctx.fillText('Choose Heavy Attack for Luffy', ox + 12, oy + 28);
         ctx.fillStyle = '#ffd'; ctx.fillRect(ox + 12, oy + 40, 140, 48);
-        ctx.fillStyle = '#fff'; ctx.fillText('1: Gum Gum Bazooka', ox + 18, oy + 68);
+        ctx.fillStyle = '#000'; ctx.fillText('1: Gum Gum Bazooka', ox + 18, oy + 68);
         ctx.fillStyle = '#ffd'; ctx.fillRect(ox + 164, oy + 40, 140, 48);
-        ctx.fillStyle = '#fff'; ctx.fillText('2: Regular Heavy', ox + 170, oy + 68);
+        ctx.fillStyle = '#000'; ctx.fillText('2: Regular Heavy', ox + 170, oy + 68);
     }
 
     // If player dead — require restart
