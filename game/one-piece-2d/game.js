@@ -180,9 +180,9 @@ function update() {
 
     // Flight / special move (F)
     if (player.flyCooldown > 0) player.flyCooldown--;
-    if (keys['f'] && player.flyCooldown <= 0) {
+    // start flight when F pressed (flight persists while F held)
+    if (keys['f'] && player.flyCooldown <= 0 && !player.flyMode) {
         // start special flight
-        player.flyCooldown = 240; // cooldown frames
         player.flyTimer = 0;
         if (player.charId === 'kizaru') {
             player.flyMode = 'kizaru_light';
@@ -224,7 +224,7 @@ function update() {
     // advance flying timer / handle end
     if (player.flyMode) {
         player.flyTimer++;
-        // durations (custom for Boa)
+        // durations kept for reference (not used for auto-ending while F held)
         const dur = player.charId === 'kizaru' ? 80 : player.charId === 'luffy' ? 28 : player.charId === 'buggy' ? 60 : player.charId === 'boa' ? 80 : 40;
         // update Boa's snake while active
         if (player.flyMode === 'boa_snake' && boaSnake) {
@@ -257,11 +257,21 @@ function update() {
                 delete player._sling;
             }
         }
-        if (player.flyTimer > dur) {
-            // clear state
-            player.flyMode = null; player.flyTimer = 0; player._pieces = null;
-            // restore normal speed and remove snake
-            player.vx = 0; boaSnake = null; player.riding = false;
+        // Flight no longer auto-ends by timer — it ends when the player releases the F key below.
+        // (keep player.flyTimer available for visuals or effects while flying)
+        
+        // End flight when F released: cleanup and apply a short cooldown
+        if (player.flyMode && !keys['f']) {
+            // cleanup per-mode
+            if (player.flyMode === 'boa_snake') { boaSnake = null; player.riding = false; }
+            if (player.flyMode === 'buggy_pieces') { player._pieces = null; }
+            if (player.flyMode === 'luffy_stretch') { delete player._sling; }
+            // clear flying state
+            player.flyMode = null; player.flyTimer = 0;
+            // restore normal movement state
+            player.vx = 0; player.vy = 0;
+            // apply cooldown to prevent instant re-trigger
+            player.flyCooldown = 60;
         }
     }
 
