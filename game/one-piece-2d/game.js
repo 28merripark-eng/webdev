@@ -21,7 +21,7 @@ document.addEventListener('keydown', e => {
         }
         if (e.key === '2') {
             // Gear 2 selection: tint Luffy and speed up his attacks
-            player._gear2 = true; player._gear2Count = 3; // lasts for 3 attacks
+            player._gear2 = true;
             // make absolutely sure the character id stays Luffy and restore immunities
             player.charId = 'luffy';
             const lc = characters.luffy || {};
@@ -35,14 +35,7 @@ document.addEventListener('keydown', e => {
     }
 });
 
-// Toggle Gear 2 quickly by pressing '2' while playing as Luffy and not paused
-document.addEventListener('keydown', e => {
-    if (e.key === '2' && !gamePaused && player.charId === 'luffy' && !player._chooseHeavy) {
-        player._gear2 = !player._gear2;
-        // clear key state so it doesn't interact with other handlers
-        keys[e.key.toLowerCase()] = false; e.preventDefault(); e.stopImmediatePropagation();
-    }
-});
+// (Gear 2 is selected from the paused heavy-choice menu; no global toggle)
 
 // Helper to begin the bazooka animation: find target and initialize animation state
 function startBazookaAnim() {
@@ -1116,9 +1109,9 @@ function draw() {
         ctx.fillStyle = 'rgba(0,0,0,0.7)'; ctx.fillRect(ox, oy, 320, 120);
         ctx.fillStyle = '#000'; ctx.font = '16px sans-serif'; ctx.fillText('Choose Heavy Attack for Luffy', ox + 12, oy + 28);
         ctx.fillStyle = '#ffd'; ctx.fillRect(ox + 12, oy + 40, 140, 48);
-        ctx.fillStyle = '#000'; ctx.fillText('1: Gum Gum Bazooka', ox + 18, oy + 68);
-        ctx.fillStyle = '#ffd'; ctx.fillRect(ox + 164, oy + 40, 140, 48);
-        ctx.fillStyle = '#000'; ctx.fillText('2: Regular Heavy', ox + 170, oy + 68);
+            ctx.fillStyle = '#000'; ctx.fillText('1: Gum Gum Bazooka', ox + 18, oy + 68);
+            ctx.fillStyle = '#ffd'; ctx.fillRect(ox + 164, oy + 40, 140, 48);
+            ctx.fillStyle = '#000'; ctx.fillText('2: Gear 2', ox + 170, oy + 68);
     }
 
     // If player dead — require restart
