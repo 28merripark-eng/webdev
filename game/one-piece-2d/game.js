@@ -15,14 +15,15 @@ document.addEventListener('keydown', e => {
         if (e.key === '1') {
             // start gum-gum bazooka animation sequence while paused
             startBazookaAnim();
-            e.preventDefault();
+            e.preventDefault(); e.stopImmediatePropagation();
             return;
         }
         if (e.key === '2') {
             // Gear 2 selection: tint Luffy and speed up his attacks
             player._gear2 = true;
             player._chooseHeavy = false; gamePaused = false;
-            e.preventDefault(); return;
+            e.preventDefault(); e.stopImmediatePropagation();
+            return;
         }
     }
 });
