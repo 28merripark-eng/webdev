@@ -19,8 +19,8 @@ document.addEventListener('keydown', e => {
             return;
         }
         if (e.key === '2') {
-            // regular heavy attack: close menu and perform heavy
-            player.attacking = true; player.attackType = 'heavy'; player.attackFrame = 18; player.attackCooldown = 48;
+            // Gear 2 selection: tint Luffy and speed up his attacks
+            player._gear2 = true;
             player._chooseHeavy = false; gamePaused = false;
             e.preventDefault(); return;
         }
@@ -235,7 +235,12 @@ function update() {
     let spinKey = keys['l'];
 
     if (lightKey && player.attackCooldown <= 0 && !player.attacking) {
-        player.attacking = true; player.attackType = 'light'; player.attackFrame = 8; player.attackCooldown = 22;
+        // Luffy Gear2: make light attacks extremely fast
+        if (player.charId === 'luffy' && player._gear2) {
+            player.attacking = true; player.attackType = 'light'; player.attackFrame = 2; player.attackCooldown = 6;
+        } else {
+            player.attacking = true; player.attackType = 'light'; player.attackFrame = 8; player.attackCooldown = 22;
+        }
     }
     if (heavyKey && player.attackCooldown <= 0 && !player.attacking) {
         if (player.charId === 'luffy') {
@@ -246,7 +251,12 @@ function update() {
         }
     }
     if (spinKey && player.attackCooldown <= 0 && !player.attacking) {
-        player.attacking = true; player.attackType = 'spin'; player.attackFrame = 20; player.attackCooldown = 80;
+        // spin (area) - much faster under Gear2
+        if (player.charId === 'luffy' && player._gear2) {
+            player.attacking = true; player.attackType = 'spin'; player.attackFrame = 6; player.attackCooldown = 18;
+        } else {
+            player.attacking = true; player.attackType = 'spin'; player.attackFrame = 20; player.attackCooldown = 80;
+        }
     }
 
     // heavy-choice selection handled via keydown listener while paused
@@ -663,7 +673,7 @@ function drawPlayer(ctx, p) {
     const legBob = Math.round(Math.abs(Math.sin(p.animT * 6)) * 1.5);
 
     // Palette
-    const skin = '#f1c27d';
+    const skin = p._gear2 ? '#f4b6a0' : '#f1c27d';
     const straw = '#f4d542';
     const band = '#b11';
     const shirt = '#d43';
