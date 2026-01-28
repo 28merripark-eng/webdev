@@ -1052,21 +1052,33 @@ function draw() {
         if (a.phase === 'stretch') {
             const p = Math.min(1, a.t / a.durStretch);
             a.armX = lerp(px, a.armBackX, p);
-            // draw stretched arm as a thin rectangle
+            // draw stretched arm (grow if Gear 3 active)
             ctx.fillStyle = '#f1c27d';
-            const x0 = Math.min(px, a.armX), w = Math.abs(a.armX - px) || 4;
-            ctx.fillRect(Math.round(x0), Math.round(py - 6), Math.round(w), 6);
+            const x0 = Math.min(px, a.armX);
+            let w = Math.abs(a.armX - px) || 4;
+            const thickness = player._gear3 ? player.h * 3 : 6;
+            if (player._gear3) { w = Math.max(w, player.w * 3); }
+            const drawY = Math.round(py - thickness / 2);
+            ctx.fillRect(Math.round(x0), drawY, Math.round(w), Math.round(thickness));
             if (p >= 1) { a.phase = 'hold'; a.t = 0; }
         } else if (a.phase === 'hold') {
-            // keep arm extended briefly
-            const x0 = Math.min(px, a.armBackX), w = Math.abs(a.armBackX - px) || 4;
-            ctx.fillStyle = '#f1c27d'; ctx.fillRect(Math.round(x0), Math.round(py - 6), Math.round(w), 6);
+            // keep arm extended briefly (respect Gear 3 size)
+            const x0 = Math.min(px, a.armBackX);
+            let w = Math.abs(a.armBackX - px) || 4;
+            const thickness = player._gear3 ? player.h * 3 : 6;
+            if (player._gear3) { w = Math.max(w, player.w * 3); }
+            const drawY = Math.round(py - thickness / 2);
+            ctx.fillStyle = '#f1c27d'; ctx.fillRect(Math.round(x0), drawY, Math.round(w), Math.round(thickness));
             if (a.t > a.durHold) { a.phase = 'snap'; a.t = 0; }
         } else if (a.phase === 'snap') {
             const p = Math.min(1, a.t / a.durSnap);
             a.armX = lerp(a.armBackX, a.snapTo, p);
-            const x0 = Math.min(px, a.armX), w = Math.abs(a.armX - px) || 4;
-            ctx.fillStyle = '#f1c27d'; ctx.fillRect(Math.round(x0), Math.round(py - 6), Math.round(w), 6);
+            const x0 = Math.min(px, a.armX);
+            let w = Math.abs(a.armX - px) || 4;
+            const thickness = player._gear3 ? player.h * 3 : 6;
+            if (player._gear3) { w = Math.max(w, player.w * 3); }
+            const drawY = Math.round(py - thickness / 2);
+            ctx.fillStyle = '#f1c27d'; ctx.fillRect(Math.round(x0), drawY, Math.round(w), Math.round(thickness));
             // animate all targets through the snap
             for (let ti = 0; ti < (a.targets || []).length; ti++) {
                 const idx = a.targets[ti]; const st = a.targetsState[ti];
