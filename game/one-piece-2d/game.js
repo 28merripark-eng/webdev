@@ -20,12 +20,24 @@ document.addEventListener('keydown', e => {
             return;
         }
         if (e.key === '2') {
-            // Gear 2 selection: tint Luffy and speed up his attacks
-            player._gear2 = true;
-            // make absolutely sure the character id stays Luffy and restore immunities
-            player.charId = 'luffy';
-            const lc = characters.luffy || {};
-            player.gunImmune = !!lc.gunImmune; player.swordImmune = !!lc.swordImmune;
+            // Gear 2 selection: toggle Gear2; if turning off, start cooldown (50s)
+            if (player._gear2) {
+                player._gear2 = false;
+                player.gear2Cooldown = 50 * 60; // 50 seconds at ~60fps
+            } else {
+                // prevent re-activating if cooldown active
+                if (player.gear2Cooldown && player.gear2Cooldown > 0) {
+                    // just close menu and unpause
+                    player._chooseHeavy = false; gamePaused = false;
+                    keys[e.key.toLowerCase()] = false; e.preventDefault(); e.stopImmediatePropagation();
+                    return;
+                }
+                player._gear2 = true;
+                // make absolutely sure the character id stays Luffy and restore immunities
+                player.charId = 'luffy';
+                const lc = characters.luffy || {};
+                player.gunImmune = !!lc.gunImmune; player.swordImmune = !!lc.swordImmune;
+            }
             // clear states and unpause
             player._chooseHeavy = false; gamePaused = false;
             // clear lingering key state and stop other handlers
@@ -837,6 +849,8 @@ function drawPlayer(ctx, p) {
 function draw() {
     // Background
     ctx.clearRect(0, 0, W, H);
+    // gear2 cooldown ticks even while paused (draw runs every frame)
+    if (player.gear2Cooldown && player.gear2Cooldown > 0) player.gear2Cooldown--;
     // If title not shown/selected yet, draw title screen and skip game draw
     if (!gameStarted) {
         // draw faint background blocks for sections
