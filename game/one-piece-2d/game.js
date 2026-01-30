@@ -711,27 +711,27 @@ function drawPlayer(ctx, p) {
     if (p.charId === 'luffy' && luffySpriteReady && sprites.luffy) {
         // guard against malformed images; fallback to procedural on error
         try {
-        // Determine animation frame: 0 = idle, 1/2 = walk, 3/4 = run
-        const img = sprites.luffy;
-        // frame dimensions guessed from common small sprite sheets; fallback to image height if unknown
-        const frameH = img.height || 32;
-        // try to pick a reasonable frame width: if width is multiple of height use that, else assume 32
-        const frameW = (img.width % frameH === 0 && img.width / frameH <= 8) ? frameH : 32;
-        const speed = Math.abs(p.vx || 0);
-        let frameIndex = 0;
-        if (speed < 0.5) frameIndex = 0; // idle
-        else if (speed < 6) frameIndex = 1 + (Math.floor(p.animT * 6) % 2); // walk toggle
-        else frameIndex = 3 + (Math.floor(p.animT * 10) % 2); // run toggle
+            // Determine animation frame: 0 = idle, 1/2 = walk, 3/4 = run
+            const img = sprites.luffy;
+            // frame dimensions guessed from common small sprite sheets; fallback to image height if unknown
+            const frameH = img.height || 32;
+            // try to pick a reasonable frame width: if width is multiple of height use that, else assume 32
+            const frameW = (img.width % frameH === 0 && img.width / frameH <= 8) ? frameH : 32;
+            const speed = Math.abs(p.vx || 0);
+            let frameIndex = 0;
+            if (speed < 0.5) frameIndex = 0; // idle
+            else if (speed < 6) frameIndex = 1 + (Math.floor(p.animT * 6) % 2); // walk toggle
+            else frameIndex = 3 + (Math.floor(p.animT * 10) % 2); // run toggle
 
-        // handle facing
-        if (p.facing < 0) { ctx.scale(-1, 1); ctx.translate(-(frameW * S), 0); }
-        // source x in sheet
-        const sx = frameIndex * frameW;
-        // draw scaled nearest-neighbor
-        ctx.imageSmoothingEnabled = false;
-        ctx.drawImage(img, sx, 0, frameW, frameH, 0, 0, frameW * S, frameH * S);
-        ctx.restore();
-        return;
+            // handle facing
+            if (p.facing < 0) { ctx.scale(-1, 1); ctx.translate(-(frameW * S), 0); }
+            // source x in sheet
+            const sx = frameIndex * frameW;
+            // draw scaled nearest-neighbor
+            ctx.imageSmoothingEnabled = false;
+            ctx.drawImage(img, sx, 0, frameW, frameH, 0, 0, frameW * S, frameH * S);
+            ctx.restore();
+            return;
         } catch (err) {
             // on any error using the image, disable it and fall back to procedural sprite
             luffySpriteReady = false; sprites.luffy = null;
