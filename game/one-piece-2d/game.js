@@ -1288,7 +1288,8 @@ canvas.addEventListener('pointerdown', (ev) => {
             const x = startX + i * (w + 14);
             if (mx >= x && mx <= x + w && my >= y && my <= y + h) { applyCharacter(choices[i]); gameStarted = true; gamePaused = false; return }
         }
-        return;
+        // if user clicked outside portraits, start quickly as Luffy
+        applyCharacter('luffy'); gameStarted = true; gamePaused = false; return;
     }
     // revive selection (disabled when a restart is required)
     if (needRestart) return;
@@ -1312,6 +1313,8 @@ document.addEventListener('keydown', e => {
         const map0 = { '1': 'luffy', '2': 'kizaru', '3': 'buggy', '4': 'boa' };
         const id0 = map0[e.key];
         if (id0) { applyCharacter(id0); gameStarted = true; gamePaused = false; return }
+        // allow Enter or Space to start quickly as Luffy
+        if (e.key === 'Enter' || e.key === ' ') { applyCharacter('luffy'); gameStarted = true; gamePaused = false; return }
     }
 
     // If restart required after death, allow pressing 'r' to go back to the title/start
