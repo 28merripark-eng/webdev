@@ -2,65 +2,7 @@ const canvas = document.getElementById('game');
 const ctx = canvas.getContext('2d');
 // prefer nearest-neighbor scaling for crisp pixel art (16-bit feel)
 ctx.imageSmoothingEnabled = false;
-    } else {
-    // Luffy simplified drawing: prefer loaded sprite sheet; fallback to a safe procedural sprite
-    if (p.charId === 'luffy' && luffySpriteReady && sprites.luffy) {
-        try {
-            const img = sprites.luffy;
-            const frameH = img.height || 32;
-            const frameW = (img.width % frameH === 0 && img.width / frameH <= 8) ? frameH : Math.floor(img.width / 5) || 32;
-            const speed = Math.abs(p.vx || 0);
-            let frameIndex = 0;
-            if (speed < 0.5) frameIndex = 0; // idle
-            else if (speed < 6) frameIndex = 1 + (Math.floor(p.animT * 6) % 2); // walk
-            else frameIndex = 3 + (Math.floor(p.animT * 10) % 2); // run
-
-            if (p.facing < 0) { ctx.scale(-1, 1); ctx.translate(-(frameW * S), 0); }
-            ctx.imageSmoothingEnabled = false;
-            const sx = frameIndex * frameW;
-            ctx.drawImage(img, sx, 0, frameW, frameH, 0, 0, frameW * S, frameH * S);
-            // done drawing Luffy via sprite sheet
-        } catch (err) {
-            // on error fall through to procedural fallback
-            luffySpriteReady = false; sprites.luffy = null;
-            // procedural fallback below
-            const hat = straw; const bandCol = band; const face = '#f1c27d'; const vest = '#d32b2b'; const blue = '#2b6fd6';
-            r(2, -2, 12, 4, hat); r(4, -6, 8, 4, hat); r(4, -1, 8, 2, bandCol);
-            r(4, 0, 8, 7, face);
-            r(2, 9, 12, 8, vest); r(6, 10, 4, 4, face);
-            r(4, 18, 8, 6, blue); r(4, 18, 8, 1, '#fff');
-        }
-    } else {
-        // No sprite available -> draw a minimal stable Luffy-like sprite
-        const hat = straw; const bandCol = band; const face = '#f1c27d'; const vest = '#d32b2b'; const blue = '#2b6fd6';
-        r(2, -2, 12, 4, hat); r(4, -6, 8, 4, hat); r(4, -1, 8, 2, bandCol);
-        r(4, 0, 8, 7, face);
-        r(2, 9, 12, 8, vest); r(6, 10, 4, 4, face);
-        r(4, 18, 8, 6, blue); r(4, 18, 8, 1, '#fff');
-        // arms/legs simple
-        r(0, 11, 4, 4, face); r(14, 11, 4, 4, face);
-    }
-}
-if (!e.alive || e.petrified || e.grabbed || e.slamming) continue;
-// enemy center
-const cx = e.x + e.w / 2;
-if (cx >= sweepStart && cx <= sweepEnd) targets.push(i);
-    }
-
-// prepare per-target state for the animation (enemy target X after launch)
-const targetsState = targets.map(i => {
-    const e = enemies[i];
-    return { origX: e.x, origY: e.y, t: 0, started: false, targetX: Math.min(WORLD_W - e.w - 8, e.x + shift) };
-});
-
-player._bazookaAnim = {
-    phase: 'stretch', t: 0, durStretch: 30, durHold: 8, durSnap: 18, durEnemyFly: 36,
-    armBackX: armBackX, snapTo: snapTo,
-    targets: targets, targetsState: targetsState
-};
-// set Luffy into an attacking/animation state so his sprite reflects action
-player.attacking = true; player.attackType = 'heavy'; player.attackFrame = 60; player.attackCooldown = 80;
-}
+// (no stray else-block here)
 
 function rectsOverlap(a, b) {
     return a.x < b.x + b.w && a.x + a.w > b.x && a.y < b.y + b.h && a.y + a.h > b.y;
@@ -1336,8 +1278,50 @@ canvas.addEventListener('pointerdown', (ev) => {
 
 // keyboard quick-select when dead (1..4)
 document.addEventListener('keydown', e => {
+    // When Luffy's heavy-choice overlay is active, handle 1/2/3 selections
+    if (player._chooseHeavy) {
+        if (e.key === '1') {
+            // Gum Gum Bazooka: collect targets in a long horizontal sweep in facing direction
+            const center = player.x + player.w / 2;
+            const reach = 480;
+            let sweepStart, sweepEnd, armBackX, snapTo;
+            if (player.facing > 0) {
+                sweepStart = center; sweepEnd = center + reach;
+                armBackX = player.x - 120; snapTo = center + reach - 60;
+            } else {
+                sweepEnd = center; sweepStart = center - reach;
+                armBackX = player.x + player.w + 120; snapTo = center - reach + 60;
+            }
+            const targets = [];
+            for (let i = 0; i < enemies.length; i++) {
+                const en = enemies[i];
+                if (!en.alive || en.petrified || en.grabbed || en.slamming) continue;
+                const cx = en.x + en.w / 2;
+                if (cx >= Math.min(sweepStart, sweepEnd) && cx <= Math.max(sweepStart, sweepEnd)) targets.push(i);
+            }
+            const targetsState = targets.map(i => {
+                const e2 = enemies[i];
+                return { origX: e2.x, origY: e2.y, t: 0, started: false, targetX: Math.min(WORLD_W - e2.w - 8, e2.x + (player.facing > 0 ? 400 : -400)) };
+            });
+            player._bazookaAnim = { phase: 'stretch', t: 0, durStretch: 30, durHold: 8, durSnap: 18, durEnemyFly: 36, armBackX: armBackX, snapTo: snapTo, targets: targets, targetsState: targetsState };
+            player.attacking = true; player.attackType = 'heavy'; player.attackFrame = 60; player.attackCooldown = 80;
+            // bazooka animation runs while paused; it will unpause when complete
+            return;
+        } else if (e.key === '2') {
+            // Gear 2 heavy: faster, shorter heavy punch
+            player._chooseHeavy = false; player._gear2 = true;
+            player.attacking = true; player.attackType = 'heavy'; player.attackFrame = 18; player.attackCooldown = 48;
+            gamePaused = false; return;
+        } else if (e.key === '3') {
+            // Gear 3 heavy: large-fist heavy
+            player._chooseHeavy = false; player._gear3 = true;
+            player.attacking = true; player.attackType = 'heavy'; player.attackFrame = 30; player.attackCooldown = 100;
+            gamePaused = false; return;
+        }
+        return; // ignore other keys while choosing
+    }
+
     // if on title screen, allow 1-3 to pick starting character
-    if (player._chooseHeavy) return; // ignore global quick-select while in Luffy's choice menu
     if (!gameStarted && gamePaused) {
         const map0 = { '1': 'luffy', '2': 'kizaru', '3': 'buggy', '4': 'boa' };
         const id0 = map0[e.key];
