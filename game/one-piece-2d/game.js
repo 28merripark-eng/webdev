@@ -274,9 +274,16 @@ function update() {
     let spinKey = keys['l'];
 
     if (lightKey && player.attackCooldown <= 0 && !player.attacking) {
-        let baseFrame = 8, baseCd = 22;
-        if (player.charId === 'luffy' && player._gear2) { baseFrame = Math.max(1, Math.floor(baseFrame / 10)); baseCd = Math.max(1, Math.floor(baseCd / 10)); }
-        player.attacking = true; player.attackType = 'light'; player.attackFrame = baseFrame; player.attackCooldown = baseCd;
+        // Luffy in Gear 2 gets a special dash-punch (faster and longer reach)
+        if (player.charId === 'luffy' && player._gear2) {
+            player.attacking = true; player.attackType = 'gear2_punch'; player.attackFrame = 10; player.attackCooldown = 30;
+            // small immediate burst forward to start the dash-punch
+            player.vx = player.facing * 10;
+        } else {
+            let baseFrame = 8, baseCd = 22;
+            if (player.charId === 'luffy' && player._gear2) { baseFrame = Math.max(1, Math.floor(baseFrame / 10)); baseCd = Math.max(1, Math.floor(baseCd / 10)); }
+            player.attacking = true; player.attackType = 'light'; player.attackFrame = baseFrame; player.attackCooldown = baseCd;
+        }
     }
     if (heavyKey && player.attackCooldown <= 0 && !player.attacking) {
         if (player.charId === 'luffy') {
@@ -402,7 +409,7 @@ function update() {
 
     // compute attack extension / radius based on type and progress
     if (player.attacking) {
-        const tot = player.attackType === 'heavy' ? 18 : player.attackType === 'spin' ? 20 : 8;
+        const tot = player.attackType === 'heavy' ? 18 : player.attackType === 'spin' ? 20 : player.attackType === 'gear2_punch' ? 10 : 8;
         const t = (tot - Math.max(0, player.attackFrame)) / tot; // 0->1
         if (player.attackType === 'light') {
             player.attackExt = Math.round(t * 28) + 8; player.attackRadius = 0;
@@ -410,6 +417,11 @@ function update() {
             player.attackExt = Math.round(t * 96) + 12; player.attackRadius = 0;
         } else if (player.attackType === 'spin') {
             player.attackExt = 0; player.attackRadius = Math.round(20 + t * 56);
+        } else if (player.attackType === 'gear2_punch') {
+            // Gear2 punch is a fast dash with extended reach and stronger damage
+            player.attackExt = Math.round(24 + t * 160); player.attackRadius = 0;
+            // maintain dash velocity while the punch progresses
+            player.vx = player.facing * (player._gear2 ? 10 : 8);
         }
     } else { player.attackExt = 0; player.attackRadius = 0 }
 
@@ -828,56 +840,97 @@ function drawPlayer(ctx, p) {
 
     } else {
         // Luffy-style model (default)
-        // Head area (more detail for Luffy)
-        // straw hat brim (wider)
-        r(1, -2, 14, 4, straw);
-        r(3, -6, 10, 4, straw);
-        // hat band (red)
-        r(4, -1, 8, 2, band);
-        // face and shadow
-        r(4, 1, 8, 8, skin);
-        r(3, 3, 2, 2, '#000'); r(11, 3, 2, 2, '#000'); // eyes
-        // scar under left eye
-        r(10, 5, 1, 1, '#a33');
+        // When Gear 2 is active, draw a rounder, puffed-up Luffy (anime-like Gear2 silhouette)
+        if (p._gear2) {
+            // Head as a round circle
+            const hx = Math.round(8 * S); const hy = Math.round(3 * S); const hr = Math.round(5 * S);
+            ctx.beginPath(); ctx.fillStyle = skin; ctx.arc(hx, hy, hr, 0, Math.PI * 2); ctx.fill();
+            // Straw hat (rounded brim)
+            ctx.beginPath(); ctx.fillStyle = straw; ctx.ellipse(hx, hy - Math.round(2 * S), Math.round(9 * S), Math.round(4 * S), 0, 0, Math.PI * 2); ctx.fill();
+            ctx.fillStyle = band; ctx.fillRect(Math.round((hx - 4 * S)), Math.round((hy - 1 * S)), Math.round(8 * S), Math.round(2 * S));
+            // Eyes and scar
+            ctx.fillStyle = '#000'; ctx.fillRect(hx - Math.round(3 * S), hy - Math.round(1 * S), Math.round(2 * S), Math.round(2 * S));
+            ctx.fillRect(hx + Math.round(1 * S), hy - Math.round(1 * S), Math.round(2 * S), Math.round(2 * S));
+            ctx.fillStyle = '#a33'; ctx.fillRect(hx + Math.round(2 * S), hy + Math.round(2 * S), Math.round(1 * S), Math.round(1 * S));
 
-        // Hair peek under brim
-        r(3, -1, 2, 2, '#110'); r(11, -1, 2, 2, '#110');
+            // Torso as an oval (puffed)
+            ctx.beginPath(); ctx.fillStyle = shirt; ctx.ellipse(Math.round(8 * S), Math.round(16 * S), Math.round(9 * S), Math.round(11 * S), 0, 0, Math.PI * 2); ctx.fill();
+            // open chest
+            ctx.fillStyle = skin; ctx.fillRect(Math.round(6 * S), Math.round(11 * S), Math.round(4 * S), Math.round(4 * S));
 
-        // Torso: red vest with darker shade and visible buttons
-        r(2, 10, 12, 10, shirt);
-        r(6, 12, 2, 2, '#b11'); r(8, 12, 2, 2, '#b11');
-        // open chest area (skin) centered
-        r(6, 11, 4, 4, skin);
+            // Shorts + legs
+            r(4, 20, 8, 6, pants);
+            r(4, 19, 8, 1, '#15305a');
+            r(4, 26 + legBob, 3, 3, pants);
+            r(9, 26 - legBob, 3, 3, pants);
+            r(3, 29 + legBob, 3, 2, shoe);
+            r(10, 29 - legBob, 3, 2, shoe);
 
-        // Shorts with stronger blue + belt
-        r(4, 20, 8, 6, pants);
-        r(4, 19, 8, 1, '#15305a');
-
-        // Legs and shoes (with bob)
-        r(4, 26 + legBob, 3, 3, pants);
-        r(9, 26 - legBob, 3, 3, pants);
-        r(3, 29 + legBob, 3, 2, shoe);
-        r(10, 29 - legBob, 3, 2, shoe);
-
-        // Arm base position
-        const ax = 12; const ay = 12;
-        // Arm extension based on attackExt (rubber/stretch look)
-        const ext = p.attackExt ? Math.round((p.attackExt / 6)) : 0;
-        // Upper arm with outline
-        r(ax - 3, ay - 1, 6 + ext, 4, '#d09f78');
-        // hand (draw a rounded/padded fist when attacking)
-        if (p.attacking && (p.attackType === 'light' || p.attackType === 'heavy')) {
-            const handX = ax + 3 + ext;
-            // outline
-            ctx.fillStyle = '#6b3f2a'; ctx.fillRect(Math.round(handX * S - 1), Math.round((ay - 1) * S - 1), Math.round(6 * S + 2), Math.round(5 * S + 2));
-            // main hand
-            ctx.fillStyle = skin; ctx.fillRect(Math.round(handX * S), Math.round(ay * S), Math.round(6 * S), Math.round(4 * S));
-            // quick motion lines when light attack
-            if (p.attackType === 'light') {
-                ctx.fillStyle = 'rgba(255,220,120,0.9)'; ctx.fillRect(Math.round((handX + 6) * S), Math.round((ay) * S), Math.round(8 * S), Math.round(2 * S));
+            // Arms: thicker rubbery arms while Gear2
+            const ax = 12; const ay = 12;
+            const ext = p.attackExt ? Math.round((p.attackExt / 6)) : 0;
+            ctx.fillStyle = '#d09f78'; ctx.fillRect(Math.round((ax - 3) * S), Math.round((ay - 1) * S), Math.round((6 + ext) * S), Math.round(4 * S));
+            if (p.attacking && p.attackType === 'gear2_punch') {
+                // draw a big rounded fist
+                const handX = ax + 4 + ext;
+                ctx.fillStyle = '#6b3f2a'; ctx.fillRect(Math.round(handX * S), Math.round((ay) * S), Math.round(8 * S), Math.round(6 * S));
+                // steam / speed lines behind
+                ctx.fillStyle = 'rgba(255,250,220,0.9)'; ctx.fillRect(Math.round((handX - 6) * S), Math.round((ay) * S - 2 * S), Math.round(6 * S), Math.round(2 * S));
+            } else {
+                r(ax + 2 + ext, ay, 3, 3, skin);
             }
         } else {
-            r(ax + 2 + ext, ay, 3, 3, skin);
+            // regular (non-Gear2) Luffy drawing
+            // straw hat brim (wider)
+            r(1, -2, 14, 4, straw);
+            r(3, -6, 10, 4, straw);
+            // hat band (red)
+            r(4, -1, 8, 2, band);
+            // face and shadow
+            r(4, 1, 8, 8, skin);
+            r(3, 3, 2, 2, '#000'); r(11, 3, 2, 2, '#000'); // eyes
+            // scar under left eye
+            r(10, 5, 1, 1, '#a33');
+
+            // Hair peek under brim
+            r(3, -1, 2, 2, '#110'); r(11, -1, 2, 2, '#110');
+
+            // Torso: red vest with darker shade and visible buttons
+            r(2, 10, 12, 10, shirt);
+            r(6, 12, 2, 2, '#b11'); r(8, 12, 2, 2, '#b11');
+            // open chest area (skin) centered
+            r(6, 11, 4, 4, skin);
+
+            // Shorts with stronger blue + belt
+            r(4, 20, 8, 6, pants);
+            r(4, 19, 8, 1, '#15305a');
+
+            // Legs and shoes (with bob)
+            r(4, 26 + legBob, 3, 3, pants);
+            r(9, 26 - legBob, 3, 3, pants);
+            r(3, 29 + legBob, 3, 2, shoe);
+            r(10, 29 - legBob, 3, 2, shoe);
+
+            // Arm base position
+            const ax = 12; const ay = 12;
+            // Arm extension based on attackExt (rubber/stretch look)
+            const ext = p.attackExt ? Math.round((p.attackExt / 6)) : 0;
+            // Upper arm with outline
+            r(ax - 3, ay - 1, 6 + ext, 4, '#d09f78');
+            // hand (draw a rounded/padded fist when attacking)
+            if (p.attacking && (p.attackType === 'light' || p.attackType === 'heavy')) {
+                const handX = ax + 3 + ext;
+                // outline
+                ctx.fillStyle = '#6b3f2a'; ctx.fillRect(Math.round(handX * S - 1), Math.round((ay - 1) * S - 1), Math.round(6 * S + 2), Math.round(5 * S + 2));
+                // main hand
+                ctx.fillStyle = skin; ctx.fillRect(Math.round(handX * S), Math.round(ay * S), Math.round(6 * S), Math.round(4 * S));
+                // quick motion lines when light attack
+                if (p.attackType === 'light') {
+                    ctx.fillStyle = 'rgba(255,220,120,0.9)'; ctx.fillRect(Math.round((handX + 6) * S), Math.round((ay) * S), Math.round(8 * S), Math.round(2 * S));
+                }
+            } else {
+                r(ax + 2 + ext, ay, 3, 3, skin);
+            }
         }
     }
 
