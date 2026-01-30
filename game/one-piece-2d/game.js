@@ -2,7 +2,69 @@ const canvas = document.getElementById('game');
 const ctx = canvas.getContext('2d');
 // prefer nearest-neighbor scaling for crisp pixel art (16-bit feel)
 ctx.imageSmoothingEnabled = false;
-// (no stray else-block here)
+// canvas size shortcuts
+const W = canvas.width;
+const H = canvas.height;
+
+// sprite storage and flags
+const sprites = {};
+let luffySpriteReady = false;
+
+// Create a small default 5-frame Luffy-ish pixel sprite sheet (32x32 frames)
+function createDefaultLuffySprite() {
+    const fw = 32, fh = 32, frames = 5;
+    const oc = document.createElement('canvas'); oc.width = fw * frames; oc.height = fh;
+    const octx = oc.getContext('2d');
+    octx.imageSmoothingEnabled = false;
+    for (let f = 0; f < frames; f++) {
+        const ox = f * fw;
+        // background transparent
+        // hat
+        octx.fillStyle = '#f4d542'; octx.fillRect(ox + 6, 2, 20, 6);
+        octx.fillStyle = '#b11'; octx.fillRect(ox + 10, 8, 12, 2);
+        // face
+        octx.fillStyle = '#f1c27d'; octx.fillRect(ox + 8, 10, 16, 10);
+        // vest
+        octx.fillStyle = '#d43'; octx.fillRect(ox + 6, 20, 20, 8);
+        // small arm/leg offsets per frame for simple walk animation
+        const shift = (f % 2) ? 1 : 0;
+        octx.fillStyle = '#f1c27d'; octx.fillRect(ox + 4 + shift, 20, 4, 6); // left arm
+        octx.fillRect(ox + 24 - shift, 20, 4, 6); // right arm
+        // eyes/mouth
+        octx.fillStyle = '#000'; octx.fillRect(ox + 12, 14, 2, 1); octx.fillRect(ox + 18, 14, 2, 1);
+    }
+    const img = new Image(); img.onload = () => { sprites.luffy = img; luffySpriteReady = true; }; img.src = oc.toDataURL();
+}
+createDefaultLuffySprite();
+
+// Hook up sprite file loader UI (optional user-supplied sprite sheet or single image)
+const spriteInput = document.getElementById('spriteFile');
+const spriteButton = document.getElementById('loadSprite');
+if (spriteButton && spriteInput) {
+    spriteButton.addEventListener('click', () => spriteInput.click());
+    spriteInput.addEventListener('change', (ev) => {
+        const f = ev.target.files && ev.target.files[0]; if (!f) return;
+        const fr = new FileReader();
+        fr.onload = () => {
+            const img = new Image();
+            img.onload = () => {
+                // if image looks like a horizontal sheet (width >= height*2), accept it
+                if (img.width >= img.height * 2) {
+                    sprites.luffy = img; luffySpriteReady = true; return;
+                }
+                // otherwise synthesize a 5-frame sheet by repeating the single image
+                const fw = img.width, fh = img.height, frames = 5;
+                const oc = document.createElement('canvas'); oc.width = fw * frames; oc.height = fh;
+                const octx = oc.getContext('2d'); octx.imageSmoothingEnabled = false;
+                for (let i = 0; i < frames; i++) octx.drawImage(img, i * fw, 0, fw, fh);
+                const sheet = new Image(); sheet.onload = () => { sprites.luffy = sheet; luffySpriteReady = true; }; sheet.src = oc.toDataURL();
+            };
+            img.onerror = () => { alert('Could not load that image.'); };
+            img.src = fr.result;
+        };
+        fr.readAsDataURL(f);
+    });
+}
 
 function rectsOverlap(a, b) {
     return a.x < b.x + b.w && a.x + a.w > b.x && a.y < b.y + b.h && a.y + a.h > b.y;
