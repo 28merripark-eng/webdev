@@ -7,59 +7,65 @@ ctx.webkitImageSmoothingEnabled = false;
 const W = canvas.width, H = canvas.height;
 
 // Simple world
-const gravity = 0.9;
-let keys = {};
+        } else {
+            // Regular Luffy drawing updated to match provided pixel art reference
+            // colors tuned to look closer to the sprite
+            const hatTop = straw; const hatBand = band; const faceSkin = skin;
+            const vest = '#d32b2b'; // brighter red
+            const shortsBlue = '#2b6fd6';
 
-document.addEventListener('keydown', e => { keys[e.key.toLowerCase()] = true; });
-document.addEventListener('keyup', e => { keys[e.key.toLowerCase()] = false; });
+            // Hat brim (wider, slightly angled)
+            r(0, -2, 16, 4, hatTop);
+            r(2, -6, 12, 4, hatTop);
+            r(4, -1, 8, 2, hatBand);
 
-// Special key handler for paused choice menus (e.g., Luffy heavy-attack choices)
-document.addEventListener('keydown', e => {
-    if (player._chooseHeavy && player.charId === 'luffy') {
-        if (e.key === '1') {
-            // start gum-gum bazooka animation sequence while paused
-            startBazookaAnim();
-            // clear lingering key state and stop other handlers
-            keys[e.key.toLowerCase()] = false; e.preventDefault(); e.stopImmediatePropagation();
-            return;
-        }
-        if (e.key === '2') {
-            // Gear 2 selection: toggle Gear2; if turning off, start cooldown (50s)
-            if (player._gear2) {
-                player._gear2 = false;
-                player.gear2Cooldown = 50 * 60; // 50 seconds at ~60fps
-            } else {
-                // prevent re-activating if cooldown active
-                if (player.gear2Cooldown && player.gear2Cooldown > 0) {
-                    // just close menu and unpause
-                    player._chooseHeavy = false; gamePaused = false;
-                    keys[e.key.toLowerCase()] = false; e.preventDefault(); e.stopImmediatePropagation();
-                    return;
+            // Head / face
+            r(4, 0, 8, 7, faceSkin);
+            // eyes
+            r(6, 2, 1, 1, '#000'); r(9, 2, 1, 1, '#000');
+            // small mouth
+            r(7, 5, 2, 1, '#6b3f2a');
+
+            // Hair under brim (small peeks)
+            r(3, -1, 2, 2, '#110'); r(11, -1, 2, 2, '#110');
+
+            // Open red vest with visible chest (skin) like the sprite
+            r(2, 9, 12, 8, vest);
+            r(6, 10, 4, 4, faceSkin);
+
+            // Buttons / vest detail
+            r(5, 12, 1, 1, '#b11'); r(9, 12, 1, 1, '#b11');
+
+            // Shorts and white cuffs
+            r(4, 18, 8, 6, shortsBlue);
+            r(4, 18, 8, 1, '#ffffff');
+
+            // Legs and shoes
+            r(4, 24 + legBob, 3, 4, shortsBlue);
+            r(9, 24 - legBob, 3, 4, shortsBlue);
+            r(3, 28 + legBob, 3, 2, shoe);
+            r(10, 28 - legBob, 3, 2, shoe);
+
+            // Arms: hang slightly lowered like the reference
+            const ax = 12, ay = 11;
+            const ext = p.attackExt ? Math.round((p.attackExt / 6)) : 0;
+            // left arm stub
+            r(0, 11, 4, 4, faceSkin);
+            // right arm stub
+            r(14, 11, 4, 4, faceSkin);
+
+            // Hands and punches: if attacking show appropriate fist (respect Gear3 giant fist elsewhere)
+            if (p.attacking && p._gear3) {
+                // giant Gear3 fist handled in Gear3 logic elsewhere (keeps consistency)
+            } else if (p.attacking) {
+                // small pixel fist for normal attacks
+                const handX = ax + 3 + ext;
+                ctx.fillStyle = '#6b3f2a'; ctx.fillRect(Math.round(handX * S), Math.round((ay + 1) * S), Math.round(5 * S), Math.round(3 * S));
+                if (p.attackType === 'light') {
+                    ctx.fillStyle = 'rgba(255,220,120,0.9)'; ctx.fillRect(Math.round((handX + 5) * S), Math.round((ay + 2) * S), Math.round(6 * S), Math.round(2 * S));
                 }
-                player._gear2 = true;
-                // make absolutely sure the character id stays Luffy and restore immunities
-                player.charId = 'luffy';
-                const lc = characters.luffy || {};
-                player.gunImmune = !!lc.gunImmune; player.swordImmune = !!lc.swordImmune;
             }
-            // clear states and unpause
-            player._chooseHeavy = false; gamePaused = false;
-            // clear lingering key state and stop other handlers
-            keys[e.key.toLowerCase()] = false; e.preventDefault(); e.stopImmediatePropagation();
-            return;
         }
-        if (e.key === '3') {
-            // Gear 3 selection: toggle Gear3 (hand growth)
-            player._gear3 = !player._gear3;
-            // ensure still Luffy
-            player.charId = 'luffy';
-            const lc3 = characters.luffy || {};
-            player.gunImmune = !!lc3.gunImmune; player.swordImmune = !!lc3.swordImmune;
-            player._chooseHeavy = false; gamePaused = false;
-            keys[e.key.toLowerCase()] = false; e.preventDefault(); e.stopImmediatePropagation();
-            return;
-        }
-    }
 });
 
 // (Gear 2 is selected from the paused heavy-choice menu; no global toggle)
@@ -870,8 +876,15 @@ function drawPlayer(ctx, p) {
             const ax = 12; const ay = 12;
             const ext = p.attackExt ? Math.round((p.attackExt / 6)) : 0;
             ctx.fillStyle = '#d09f78'; ctx.fillRect(Math.round((ax - 3) * S), Math.round((ay - 1) * S), Math.round((6 + ext) * S), Math.round(4 * S));
-            if (p.attacking && p.attackType === 'gear2_punch') {
-                // draw a big rounded fist
+            if (p._gear3 && p.attacking) {
+                // Gear 3: always show a giant fist for any punch
+                const handX = ax + 4 + ext;
+                // larger fist when Gear3 (fatter + taller)
+                ctx.fillStyle = '#6b3f2a'; ctx.fillRect(Math.round((handX - 1) * S), Math.round((ay - 1) * S), Math.round(12 * S), Math.round(8 * S));
+                // steam / impact glow
+                ctx.fillStyle = 'rgba(255,220,140,0.95)'; ctx.fillRect(Math.round((handX + 10) * S), Math.round((ay) * S), Math.round(6 * S), Math.round(3 * S));
+            } else if (p.attacking && p.attackType === 'gear2_punch') {
+                // draw a big rounded fist (Gear2 punch specific)
                 const handX = ax + 4 + ext;
                 ctx.fillStyle = '#6b3f2a'; ctx.fillRect(Math.round(handX * S), Math.round((ay) * S), Math.round(8 * S), Math.round(6 * S));
                 // steam / speed lines behind
@@ -917,8 +930,14 @@ function drawPlayer(ctx, p) {
             const ext = p.attackExt ? Math.round((p.attackExt / 6)) : 0;
             // Upper arm with outline
             r(ax - 3, ay - 1, 6 + ext, 4, '#d09f78');
-            // hand (draw a rounded/padded fist when attacking)
-            if (p.attacking && (p.attackType === 'light' || p.attackType === 'heavy')) {
+            // Gear 3 giant fist for normal punches
+            if (p._gear3 && p.attacking) {
+                const handX = ax + 4 + ext;
+                ctx.fillStyle = '#6b3f2a'; ctx.fillRect(Math.round((handX - 1) * S), Math.round((ay - 1) * S), Math.round(12 * S), Math.round(8 * S));
+                if (p.attackType === 'light') {
+                    ctx.fillStyle = 'rgba(255,230,160,0.9)'; ctx.fillRect(Math.round((handX + 10) * S), Math.round((ay) * S), Math.round(6 * S), Math.round(3 * S));
+                }
+            } else if (p.attacking && (p.attackType === 'light' || p.attackType === 'heavy')) {
                 const handX = ax + 3 + ext;
                 // outline
                 ctx.fillStyle = '#6b3f2a'; ctx.fillRect(Math.round(handX * S - 1), Math.round((ay - 1) * S - 1), Math.round(6 * S + 2), Math.round(5 * S + 2));
