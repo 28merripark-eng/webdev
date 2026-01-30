@@ -33,10 +33,11 @@ canvas {
 }
 
 /* Prefer pixelated nearest-neighbour scaling for a retro 16-bit look */
-canvas { 
+canvas {
     image-rendering: pixelated;
     image-rendering: crisp-edges;
 }
+
 #health,
 #score {
     font-weight: 600;
