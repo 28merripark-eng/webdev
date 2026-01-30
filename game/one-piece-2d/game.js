@@ -29,10 +29,38 @@ window.addEventListener('load', () => {
         if (!f) return;
         const reader = new FileReader();
         reader.onload = () => {
-            const img = new Image();
-            img.onload = () => { sprites.luffy = img; luffySpriteReady = true; };
-            img.onerror = () => { luffySpriteReady = false; };
-            img.src = reader.result;
+            const srcImg = new Image();
+            srcImg.onload = () => {
+                try {
+                    // build a small 5-frame horizontal sheet from the uploaded image
+                    const frames = 5;
+                    const frameW = 32; const frameH = 32;
+                    const sheet = document.createElement('canvas');
+                    sheet.width = frameW * frames; sheet.height = frameH;
+                    const sc = sheet.getContext('2d');
+                    sc.imageSmoothingEnabled = false;
+                    // scale source to fit frame while preserving aspect
+                    const scale = Math.min(frameW / srcImg.width, frameH / srcImg.height);
+                    const dw = Math.max(1, Math.round(srcImg.width * scale));
+                    const dh = Math.max(1, Math.round(srcImg.height * scale));
+                    for (let i = 0; i < frames; i++) {
+                        const dx = i * frameW + Math.round((frameW - dw) / 2);
+                        const dy = Math.round((frameH - dh) / 2);
+                        // small per-frame offsets to simulate motion
+                        const shift = i === 1 ? 2 : i === 2 ? -2 : i === 3 ? 3 : i === 4 ? -3 : 0;
+                        sc.clearRect(i * frameW, 0, frameW, frameH);
+                        sc.drawImage(srcImg, 0, 0, srcImg.width, srcImg.height, dx + shift, dy, dw, dh);
+                    }
+                    const sheetImg = new Image();
+                    sheetImg.onload = () => { sprites.luffy = sheetImg; luffySpriteReady = true; };
+                    sheetImg.onerror = () => { luffySpriteReady = false; sprites.luffy = null; };
+                    sheetImg.src = sheet.toDataURL();
+                } catch (e) {
+                    luffySpriteReady = false; sprites.luffy = null;
+                }
+            };
+            srcImg.onerror = () => { luffySpriteReady = false; sprites.luffy = null; };
+            srcImg.src = reader.result;
         };
         reader.readAsDataURL(f);
     });
