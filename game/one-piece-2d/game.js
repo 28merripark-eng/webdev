@@ -14,7 +14,7 @@ let luffySpriteReady = false;
 try {
     const img = new Image();
     img.src = 'sprites/luffy.png';
-    img.onload = () => { sprites.luffy = img; luffySpriteReady = true; };
+    img.onload = () => { sprites.luffy = img; luffySpriteReady = !!(img.naturalWidth && img.naturalHeight); };
     img.onerror = () => { luffySpriteReady = false; };
 } catch (e) { luffySpriteReady = false; }
 
@@ -709,6 +709,8 @@ function drawPlayer(ctx, p) {
 
     // If we have a sprite image for Luffy, draw it (animated frames).
     if (p.charId === 'luffy' && luffySpriteReady && sprites.luffy) {
+        // guard against malformed images; fallback to procedural on error
+        try {
         // Determine animation frame: 0 = idle, 1/2 = walk, 3/4 = run
         const img = sprites.luffy;
         // frame dimensions guessed from common small sprite sheets; fallback to image height if unknown
@@ -730,6 +732,11 @@ function drawPlayer(ctx, p) {
         ctx.drawImage(img, sx, 0, frameW, frameH, 0, 0, frameW * S, frameH * S);
         ctx.restore();
         return;
+        } catch (err) {
+            // on any error using the image, disable it and fall back to procedural sprite
+            luffySpriteReady = false; sprites.luffy = null;
+            // continue to procedural drawing below
+        }
     }
 
     if (p.charId === 'buggy') {
