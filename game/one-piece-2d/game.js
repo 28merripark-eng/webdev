@@ -2,108 +2,45 @@ const canvas = document.getElementById('game');
 const ctx = canvas.getContext('2d');
 // prefer nearest-neighbor scaling for crisp pixel art (16-bit feel)
 ctx.imageSmoothingEnabled = false;
-ctx.mozImageSmoothingEnabled = false;
-ctx.webkitImageSmoothingEnabled = false;
-const W = canvas.width, H = canvas.height;
+    } else {
+        // Luffy simplified drawing: prefer loaded sprite sheet; fallback to a safe procedural sprite
+        if (p.charId === 'luffy' && luffySpriteReady && sprites.luffy) {
+            try {
+                const img = sprites.luffy;
+                const frameH = img.height || 32;
+                const frameW = (img.width % frameH === 0 && img.width / frameH <= 8) ? frameH : Math.floor(img.width / 5) || 32;
+                const speed = Math.abs(p.vx || 0);
+                let frameIndex = 0;
+                if (speed < 0.5) frameIndex = 0; // idle
+                else if (speed < 6) frameIndex = 1 + (Math.floor(p.animT * 6) % 2); // walk
+                else frameIndex = 3 + (Math.floor(p.animT * 10) % 2); // run
 
-// Optional external sprite support: looks for sprites/luffy.png (sprite sheet)
-// If present, it will be used for Luffy frames (idle, walk1, walk2, run1, run2).
-// If missing or failing to load, we silently fall back to the procedural sprite.
-const sprites = { luffy: null };
-let luffySpriteReady = false;
-try {
-    const img = new Image();
-    img.src = 'sprites/luffy.png';
-    img.onload = () => { sprites.luffy = img; luffySpriteReady = !!(img.naturalWidth && img.naturalHeight); };
-    img.onerror = () => { luffySpriteReady = false; };
-} catch (e) { luffySpriteReady = false; }
-
-// Allow user to load an exact sprite PNG at runtime via the UI (no file writes needed).
-window.addEventListener('load', () => {
-    const fileInput = document.getElementById('spriteFile');
-    const btn = document.getElementById('loadSprite');
-    if (!fileInput || !btn) return;
-    btn.addEventListener('click', () => fileInput.click());
-    fileInput.addEventListener('change', (ev) => {
-        const f = ev.target.files && ev.target.files[0];
-        if (!f) return;
-        const reader = new FileReader();
-        reader.onload = () => {
-            const srcImg = new Image();
-            srcImg.onload = () => {
-                try {
-                    // build a small 5-frame horizontal sheet from the uploaded image
-                    const frames = 5;
-                    const frameW = 32; const frameH = 32;
-                    const sheet = document.createElement('canvas');
-                    sheet.width = frameW * frames; sheet.height = frameH;
-                    const sc = sheet.getContext('2d');
-                    sc.imageSmoothingEnabled = false;
-                    // scale source to fit frame while preserving aspect
-                    const scale = Math.min(frameW / srcImg.width, frameH / srcImg.height);
-                    const dw = Math.max(1, Math.round(srcImg.width * scale));
-                    const dh = Math.max(1, Math.round(srcImg.height * scale));
-                    for (let i = 0; i < frames; i++) {
-                        const dx = i * frameW + Math.round((frameW - dw) / 2);
-                        const dy = Math.round((frameH - dh) / 2);
-                        // small per-frame offsets to simulate motion
-                        const shift = i === 1 ? 2 : i === 2 ? -2 : i === 3 ? 3 : i === 4 ? -3 : 0;
-                        sc.clearRect(i * frameW, 0, frameW, frameH);
-                        sc.drawImage(srcImg, 0, 0, srcImg.width, srcImg.height, dx + shift, dy, dw, dh);
-                    }
-                    const sheetImg = new Image();
-                    sheetImg.onload = () => { sprites.luffy = sheetImg; luffySpriteReady = true; };
-                    sheetImg.onerror = () => { luffySpriteReady = false; sprites.luffy = null; };
-                    sheetImg.src = sheet.toDataURL();
-                } catch (e) {
-                    luffySpriteReady = false; sprites.luffy = null;
-                }
-            };
-            srcImg.onerror = () => { luffySpriteReady = false; sprites.luffy = null; };
-            srcImg.src = reader.result;
-        };
-        reader.readAsDataURL(f);
-    });
-});
-
-// Simple world
-
-// (Gear 2 is selected from the paused heavy-choice menu; no global toggle)
-
-// Helper to begin the bazooka animation: find target and initialize animation state
-function startBazookaAnim() {
-    if (!player._chooseHeavy || player.charId !== 'luffy') return;
-    // find nearest enemy in front
-    let target = null; let bestD = 999999; let idx = -1;
-    for (let i = 0; i < enemies.length; i++) {
-        const e = enemies[i];
-        if (!e.alive || e.petrified || e.grabbed || e.slamming) continue;
-        const dx = (e.x - player.x) * player.facing;
-        if (dx < 40) continue;
-        if (dx < 1200) {
-            const d = Math.abs(dx) + Math.abs(e.y - player.y);
-            if (d < bestD) { bestD = d; target = e; idx = i; }
+                if (p.facing < 0) { ctx.scale(-1, 1); ctx.translate(-(frameW * S), 0); }
+                ctx.imageSmoothingEnabled = false;
+                const sx = frameIndex * frameW;
+                ctx.drawImage(img, sx, 0, frameW, frameH, 0, 0, frameW * S, frameH * S);
+                // done drawing Luffy via sprite sheet
+            } catch (err) {
+                // on error fall through to procedural fallback
+                luffySpriteReady = false; sprites.luffy = null;
+                // procedural fallback below
+                const hat = straw; const bandCol = band; const face = '#f1c27d'; const vest = '#d32b2b'; const blue = '#2b6fd6';
+                r(2, -2, 12, 4, hat); r(4, -6, 8, 4, hat); r(4, -1, 8, 2, bandCol);
+                r(4, 0, 8, 7, face);
+                r(2, 9, 12, 8, vest); r(6, 10, 4, 4, face);
+                r(4, 18, 8, 6, blue); r(4, 18, 8, 1, '#fff');
+            }
+        } else {
+            // No sprite available -> draw a minimal stable Luffy-like sprite
+            const hat = straw; const bandCol = band; const face = '#f1c27d'; const vest = '#d32b2b'; const blue = '#2b6fd6';
+            r(2, -2, 12, 4, hat); r(4, -6, 8, 4, hat); r(4, -1, 8, 2, bandCol);
+            r(4, 0, 8, 7, face);
+            r(2, 9, 12, 8, vest); r(6, 10, 4, 4, face);
+            r(4, 18, 8, 6, blue); r(4, 18, 8, 1, '#fff');
+            // arms/legs simple
+            r(0, 11, 4, 4, face); r(14, 11, 4, 4, face);
         }
     }
-    if (!target) { player._chooseHeavy = false; gamePaused = false; return; }
-
-    // compute arm back position (stretch to the edge of the current section behind the player)
-    const sectionIndex = Math.floor(player.x / (SECTION_W + GAP));
-    const sectionStart = sectionIndex * (SECTION_W + GAP);
-    const sectionEnd = sectionStart + SECTION_W;
-    const armBackX = player.facing === 1 ? sectionStart : sectionEnd;
-
-    // when Gear 3 is active, extend the snap/sweep range so the Bazooka is larger and reaches farther
-    const extra = player._gear3 ? 2 * (SECTION_W + GAP) : 0;
-    const snapTo = player.facing === 1 ? sectionEnd + extra : sectionStart - extra;
-    const shift = (player._gear3 ? 3 : 2) * (SECTION_W + GAP);
-
-    // collect targets across the sweep from armBackX -> snapTo (enemies in the path)
-    const sweepStart = Math.min(armBackX, snapTo);
-    const sweepEnd = Math.max(armBackX, snapTo);
-    const targets = [];
-    for (let i = 0; i < enemies.length; i++) {
-        const e = enemies[i];
         if (!e.alive || e.petrified || e.grabbed || e.slamming) continue;
         // enemy center
         const cx = e.x + e.w / 2;
