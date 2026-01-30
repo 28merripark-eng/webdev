@@ -1,5 +1,9 @@
 const canvas = document.getElementById('game');
 const ctx = canvas.getContext('2d');
+// prefer nearest-neighbor scaling for crisp pixel art (16-bit feel)
+ctx.imageSmoothingEnabled = false;
+ctx.mozImageSmoothingEnabled = false;
+ctx.webkitImageSmoothingEnabled = false;
 const W = canvas.width, H = canvas.height;
 
 // Simple world
@@ -689,7 +693,7 @@ function drawPlayer(ctx, p) {
     ctx.save();
     // draw at top-left world coords (so feet align with platform y)
     ctx.translate(Math.round(p.x), Math.round(p.y));
-    const S = 2; // pixel scale: sprite grid is 16x28 -> 32x56
+    const S = 3; // larger pixel scale for a chunkier 16-bit look
     const pxw = 16, pxh = 28;
     if (p.facing < 0) {
         ctx.scale(-1, 1);
@@ -824,37 +828,57 @@ function drawPlayer(ctx, p) {
 
     } else {
         // Luffy-style model (default)
+        // Head area (more detail for Luffy)
+        // straw hat brim (wider)
+        r(1, -2, 14, 4, straw);
+        r(3, -6, 10, 4, straw);
+        // hat band (red)
+        r(4, -1, 8, 2, band);
+        // face and shadow
+        r(4, 1, 8, 8, skin);
+        r(3, 3, 2, 2, '#000'); r(11, 3, 2, 2, '#000'); // eyes
+        // scar under left eye
+        r(10, 5, 1, 1, '#a33');
 
-        // Head area (pixel coords)
-        r(4, 1, 8, 8, skin);       // face
-        r(2, -2, 12, 4, straw);     // hat brim
-        r(4, -6, 8, 6, straw);      // hat top
-        r(4, -1, 8, 2, band);       // band
+        // Hair peek under brim
+        r(3, -1, 2, 2, '#110'); r(11, -1, 2, 2, '#110');
 
-        // scar under eye (tiny)
-        r(9, 4, 1, 1, '#a33');
+        // Torso: red vest with darker shade and visible buttons
+        r(2, 10, 12, 10, shirt);
+        r(6, 12, 2, 2, '#b11'); r(8, 12, 2, 2, '#b11');
+        // open chest area (skin) centered
+        r(6, 11, 4, 4, skin);
 
-        // Torso and shirt
-        r(2, 9, 12, 10, shirt);
-
-        // Shorts
-        r(4, 19, 8, 6, pants);
+        // Shorts with stronger blue + belt
+        r(4, 20, 8, 6, pants);
+        r(4, 19, 8, 1, '#15305a');
 
         // Legs and shoes (with bob)
-        r(4, 25 + legBob, 3, 3, pants);
-        r(9, 25 - legBob, 3, 3, pants);
-        r(3, 28 + legBob, 3, 2, shoe);
-        r(10, 28 - legBob, 3, 2, shoe);
+        r(4, 26 + legBob, 3, 3, pants);
+        r(9, 26 - legBob, 3, 3, pants);
+        r(3, 29 + legBob, 3, 2, shoe);
+        r(10, 29 - legBob, 3, 2, shoe);
 
         // Arm base position
         const ax = 12; const ay = 12;
-        // Arm extension based on attackExt
-        const ext = p.attackExt ? Math.round((p.attackExt / 8)) : 0;
-        // Upper arm
-        r(ax - 2, ay, 4 + ext, 3, skin);
-        // Hand (grow if Gear 3 active while attacking)
-        const handW = (p._gear3 && p.attacking) ? 9 : 3;
-        r(ax + 2 + ext, ay, handW, 3, skin);
+        // Arm extension based on attackExt (rubber/stretch look)
+        const ext = p.attackExt ? Math.round((p.attackExt / 6)) : 0;
+        // Upper arm with outline
+        r(ax - 3, ay - 1, 6 + ext, 4, '#d09f78');
+        // hand (draw a rounded/padded fist when attacking)
+        if (p.attacking && (p.attackType === 'light' || p.attackType === 'heavy')) {
+            const handX = ax + 3 + ext;
+            // outline
+            ctx.fillStyle = '#6b3f2a'; ctx.fillRect(Math.round(handX * S - 1), Math.round((ay - 1) * S - 1), Math.round(6 * S + 2), Math.round(5 * S + 2));
+            // main hand
+            ctx.fillStyle = skin; ctx.fillRect(Math.round(handX * S), Math.round(ay * S), Math.round(6 * S), Math.round(4 * S));
+            // quick motion lines when light attack
+            if (p.attackType === 'light') {
+                ctx.fillStyle = 'rgba(255,220,120,0.9)'; ctx.fillRect(Math.round((handX + 6) * S), Math.round((ay) * S), Math.round(8 * S), Math.round(2 * S));
+            }
+        } else {
+            r(ax + 2 + ext, ay, 3, 3, skin);
+        }
     }
 
     ctx.restore();
@@ -1056,34 +1080,50 @@ function draw() {
         if (a.phase === 'stretch') {
             const p = Math.min(1, a.t / a.durStretch);
             a.armX = lerp(px, a.armBackX, p);
-            // draw stretched arm (grow if Gear 3 active)
-            ctx.fillStyle = '#f1c27d';
+            // draw rubbery stretched arm with outline for a "gomu-gomu" look
             const x0 = Math.min(px, a.armX);
-            let w = Math.abs(a.armX - px) || 4;
-            const thickness = player._gear3 ? player.h * 3 : 6;
+            let w = Math.abs(a.armX - px) || 6;
+            const thickness = player._gear3 ? player.h * 3 : 8;
             if (player._gear3) { w = Math.max(w, player.w * 3); }
             const drawY = Math.round(py - thickness / 2);
-            ctx.fillRect(Math.round(x0), drawY, Math.round(w), Math.round(thickness));
+            // outline
+            ctx.fillStyle = '#8b5d3b'; ctx.fillRect(Math.round(x0) - 2, drawY - 1, Math.round(w) + 4, Math.round(thickness) + 2);
+            // main rubber
+            ctx.fillStyle = '#f1c27d'; ctx.fillRect(Math.round(x0), drawY, Math.round(w), Math.round(thickness));
+            // show a clenched hand at the pulled-back side
+            ctx.fillStyle = '#6b3f2a'; ctx.fillRect(Math.round(px - 6), drawY + Math.round(thickness / 2) - 6, 10, 8);
             if (p >= 1) { a.phase = 'hold'; a.t = 0; }
         } else if (a.phase === 'hold') {
-            // keep arm extended briefly (respect Gear 3 size)
+            // visible stretched arm held; draw fists at ends to emphasize Bazooka charge
             const x0 = Math.min(px, a.armBackX);
-            let w = Math.abs(a.armBackX - px) || 4;
-            const thickness = player._gear3 ? player.h * 3 : 6;
+            let w = Math.abs(a.armBackX - px) || 6;
+            const thickness = player._gear3 ? player.h * 3 : 8;
             if (player._gear3) { w = Math.max(w, player.w * 3); }
             const drawY = Math.round(py - thickness / 2);
             ctx.fillStyle = '#f1c27d'; ctx.fillRect(Math.round(x0), drawY, Math.round(w), Math.round(thickness));
+            // fists
+            ctx.fillStyle = '#6b3f2a'; ctx.fillRect(Math.round(px - 6), drawY + Math.round(thickness / 2) - 6, 10, 8);
+            ctx.fillRect(Math.round(a.armBackX - 6), drawY + Math.round(thickness / 2) - 6, 10, 8);
             if (a.t > a.durHold) { a.phase = 'snap'; a.t = 0; }
         } else if (a.phase === 'snap') {
             const p = Math.min(1, a.t / a.durSnap);
             a.armX = lerp(a.armBackX, a.snapTo, p);
             const x0 = Math.min(px, a.armX);
-            let w = Math.abs(a.armX - px) || 4;
-            const thickness = player._gear3 ? player.h * 3 : 6;
+            let w = Math.abs(a.armX - px) || 6;
+            const thickness = player._gear3 ? player.h * 3 : 8;
             if (player._gear3) { w = Math.max(w, player.w * 3); }
             const drawY = Math.round(py - thickness / 2);
+            // main rubber band
             ctx.fillStyle = '#f1c27d'; ctx.fillRect(Math.round(x0), drawY, Math.round(w), Math.round(thickness));
-            // animate all targets through the snap
+            // moving fist (front) and trailing motion blur
+            const frontX = a.armX;
+            const handY = drawY + Math.round(thickness / 2) - 6;
+            // draw front fist with small blur
+            ctx.fillStyle = 'rgba(255,240,200,0.9)'; ctx.fillRect(Math.round(frontX - 2), handY, 12, 8);
+            ctx.fillStyle = '#6b3f2a'; ctx.fillRect(Math.round(frontX), handY + 1, 8, 6);
+            // motion streaks
+            ctx.fillStyle = 'rgba(255,200,120,0.85)'; ctx.fillRect(Math.round(frontX + 8), handY + 2, Math.round(18 * (1 - p)), 3);
+            // small impact bursts near targets as they start flying
             for (let ti = 0; ti < (a.targets || []).length; ti++) {
                 const idx = a.targets[ti]; const st = a.targetsState[ti];
                 const e = enemies[idx];
@@ -1096,6 +1136,13 @@ function draw() {
                     e.x = lerp(st.origX, targetX, ep);
                     const peak = Math.max(80, Math.abs(targetX - st.origX) * 0.08);
                     e.y = st.origY + Math.sin(ep * Math.PI) * -peak;
+                    // tiny burst particles where the fist hits
+                    if (st.t === 1 || st.t === 2) {
+                        const bx = Math.round((st.origX + targetX) / 2 - camX);
+                        const by = Math.round(st.origY - 8);
+                        ctx.fillStyle = '#ffd86b'; ctx.fillRect(bx - 4, by - 2, 3, 3);
+                        ctx.fillStyle = '#ff8a00'; ctx.fillRect(bx + 2, by + 2, 4, 2);
+                    }
                     if (ep >= 1) { e.alive = false; e.removedTimer = 30; }
                 }
             }
@@ -1121,6 +1168,16 @@ function draw() {
         const R = player.attackRadius;
         ctx.beginPath(); ctx.arc(cx, cy, R, 0, Math.PI * 2); ctx.fill();
         ctx.strokeStyle = 'rgba(255,255,255,0.25)'; ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(cx, cy, R + 6, 0, Math.PI * 2); ctx.stroke();
+        // draw small fist sprites along rays to suggest multiple rubber punches
+        const rays = 12;
+        for (let i = 0; i < rays; i++) {
+            const a = (i / rays) * Math.PI * 2;
+            const fx = Math.round(cx + Math.cos(a) * (R * 0.65));
+            const fy = Math.round(cy + Math.sin(a) * (R * 0.65));
+            // brief translucent glove
+            ctx.fillStyle = 'rgba(255,230,200,0.95)'; ctx.fillRect(fx - 6, fy - 4, 10, 6);
+            ctx.fillStyle = 'rgba(120,60,40,0.95)'; ctx.fillRect(fx - 3, fy - 2, 6, 3);
+        }
     }
     // Kizaru heavy-beam visual (covers the whole map while firing)
     if (player.attacking && player.charId === 'kizaru' && player.attackType === 'heavy') {

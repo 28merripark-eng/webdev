@@ -32,6 +32,11 @@ canvas {
     border-radius: 8px
 }
 
+/* Prefer pixelated nearest-neighbour scaling for a retro 16-bit look */
+canvas { 
+    image-rendering: pixelated;
+    image-rendering: crisp-edges;
+}
 #health,
 #score {
     font-weight: 600;
