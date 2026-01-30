@@ -46,6 +46,7 @@ createDefaultLuffySprite();
 // Hook up sprite file loader UI (optional user-supplied sprite sheet or single image)
 const spriteInput = document.getElementById('spriteFile');
 const spriteButton = document.getElementById('loadSprite');
+const startButton = document.getElementById('startGame');
 if (spriteButton && spriteInput) {
     spriteButton.addEventListener('click', () => spriteInput.click());
     spriteInput.addEventListener('change', (ev) => {
@@ -71,6 +72,19 @@ if (spriteButton && spriteInput) {
         fr.readAsDataURL(f);
     });
 }
+if (startButton) {
+    startButton.addEventListener('click', () => {
+        console.log('Start button pressed — forcing start as Luffy');
+        applyCharacter('luffy'); gameStarted = true; gamePaused = false;
+    });
+}
+
+// Add lightweight debug logs for pointerdown to see coordinates and state
+canvas.addEventListener('pointerdown', ev => {
+    const rect = canvas.getBoundingClientRect();
+    const mx = ev.clientX - rect.left, my = ev.clientY - rect.top;
+    console.log('canvas pointerdown', { mx, my, gameStarted, gamePaused });
+}, { once: false });
 
 function rectsOverlap(a, b) {
     return a.x < b.x + b.w && a.x + a.w > b.x && a.y < b.y + b.h && a.y + a.h > b.y;
