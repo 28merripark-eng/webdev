@@ -9,6 +9,12 @@ const H = canvas.height;
 // sprite storage and flags
 const sprites = {};
 let luffySpriteReady = false;
+// keyboard state
+const keys = {};
+
+// simple keyboard tracking for movement/attacks
+document.addEventListener('keydown', e => { keys[e.key.toLowerCase()] = true; });
+document.addEventListener('keyup', e => { keys[e.key.toLowerCase()] = false; });
 
 // Create a small default 5-frame Luffy-ish pixel sprite sheet (32x32 frames)
 function createDefaultLuffySprite() {
