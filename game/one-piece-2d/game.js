@@ -18,6 +18,26 @@ try {
     img.onerror = () => { luffySpriteReady = false; };
 } catch (e) { luffySpriteReady = false; }
 
+// Allow user to load an exact sprite PNG at runtime via the UI (no file writes needed).
+window.addEventListener('load', () => {
+    const fileInput = document.getElementById('spriteFile');
+    const btn = document.getElementById('loadSprite');
+    if (!fileInput || !btn) return;
+    btn.addEventListener('click', () => fileInput.click());
+    fileInput.addEventListener('change', (ev) => {
+        const f = ev.target.files && ev.target.files[0];
+        if (!f) return;
+        const reader = new FileReader();
+        reader.onload = () => {
+            const img = new Image();
+            img.onload = () => { sprites.luffy = img; luffySpriteReady = true; };
+            img.onerror = () => { luffySpriteReady = false; };
+            img.src = reader.result;
+        };
+        reader.readAsDataURL(f);
+    });
+});
+
 // Simple world
 
 // (Gear 2 is selected from the paused heavy-choice menu; no global toggle)
