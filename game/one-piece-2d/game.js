@@ -7,66 +7,6 @@ ctx.webkitImageSmoothingEnabled = false;
 const W = canvas.width, H = canvas.height;
 
 // Simple world
-        } else {
-    // Regular Luffy drawing updated to match provided pixel art reference
-    // colors tuned to look closer to the sprite
-    const hatTop = straw; const hatBand = band; const faceSkin = skin;
-    const vest = '#d32b2b'; // brighter red
-    const shortsBlue = '#2b6fd6';
-
-    // Hat brim (wider, slightly angled)
-    r(0, -2, 16, 4, hatTop);
-    r(2, -6, 12, 4, hatTop);
-    r(4, -1, 8, 2, hatBand);
-
-    // Head / face
-    r(4, 0, 8, 7, faceSkin);
-    // eyes
-    r(6, 2, 1, 1, '#000'); r(9, 2, 1, 1, '#000');
-    // small mouth
-    r(7, 5, 2, 1, '#6b3f2a');
-
-    // Hair under brim (small peeks)
-    r(3, -1, 2, 2, '#110'); r(11, -1, 2, 2, '#110');
-
-    // Open red vest with visible chest (skin) like the sprite
-    r(2, 9, 12, 8, vest);
-    r(6, 10, 4, 4, faceSkin);
-
-    // Buttons / vest detail
-    r(5, 12, 1, 1, '#b11'); r(9, 12, 1, 1, '#b11');
-
-    // Shorts and white cuffs
-    r(4, 18, 8, 6, shortsBlue);
-    r(4, 18, 8, 1, '#ffffff');
-
-    // Legs and shoes
-    r(4, 24 + legBob, 3, 4, shortsBlue);
-    r(9, 24 - legBob, 3, 4, shortsBlue);
-    r(3, 28 + legBob, 3, 2, shoe);
-    r(10, 28 - legBob, 3, 2, shoe);
-
-    // Arms: hang slightly lowered like the reference
-    const ax = 12, ay = 11;
-    const ext = p.attackExt ? Math.round((p.attackExt / 6)) : 0;
-    // left arm stub
-    r(0, 11, 4, 4, faceSkin);
-    // right arm stub
-    r(14, 11, 4, 4, faceSkin);
-
-    // Hands and punches: if attacking show appropriate fist (respect Gear3 giant fist elsewhere)
-    if (p.attacking && p._gear3) {
-        // giant Gear3 fist handled in Gear3 logic elsewhere (keeps consistency)
-    } else if (p.attacking) {
-        // small pixel fist for normal attacks
-        const handX = ax + 3 + ext;
-        ctx.fillStyle = '#6b3f2a'; ctx.fillRect(Math.round(handX * S), Math.round((ay + 1) * S), Math.round(5 * S), Math.round(3 * S));
-        if (p.attackType === 'light') {
-            ctx.fillStyle = 'rgba(255,220,120,0.9)'; ctx.fillRect(Math.round((handX + 5) * S), Math.round((ay + 2) * S), Math.round(6 * S), Math.round(2 * S));
-        }
-    }
-}
-});
 
 // (Gear 2 is selected from the paused heavy-choice menu; no global toggle)
 
