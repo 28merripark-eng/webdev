@@ -1,0 +1,21 @@
+body {
+    background-color: red;
+    color:aliceblue;
+}
+
+h1 {
+
+    text-align: center;
+    color:black;
+}
+
+h2 {
+    color: aqua;
+    font-style: italic;
+}
+.class{
+    color:beige;
+}
+#id {
+    color:aqua
+}
