@@ -400,7 +400,7 @@
         const raycaster = new THREE.Raycaster();
         const mouse = new THREE.Vector2((mouseX / window.innerWidth) * 2 - 1, -(mouseY / window.innerHeight) * 2 + 1);
         raycaster.setFromCamera(mouse, camera);
-        
+
         // Get aim direction - cast ray and find a point far ahead
         const aimDir = raycaster.ray.direction.clone().setY(0).normalize();
         const behindDir = aimDir.clone().multiplyScalar(-1); // opposite of aim direction (back)
