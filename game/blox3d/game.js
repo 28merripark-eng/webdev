@@ -483,7 +483,7 @@
         if (gearLevel === 3 && gear3InflationTimer > 0 && armMesh) {
             gear3InflationTimer -= dt;
             const inflateProgress = 1 - (gear3InflationTimer / gear3InflationDuration); // 0->1
-            
+
             // Phase 1 (0->0.5): Arm moves to mouth
             if (inflateProgress < 0.5) {
                 const mouthPhase = inflateProgress * 2; // 0->1 over first half
@@ -496,11 +496,11 @@
                 // Phase 2 (0.5->1): Arm hidden, body inflates
                 armMesh.visible = false;
             }
-            
+
             // Scale up gradually from 1 to 1.8
             const scale = 1 + (1.8 - 1) * inflateProgress;
             player.scale.set(scale, scale, scale);
-            
+
             if (gear3InflationTimer <= 0) {
                 // Animation complete
                 armMesh.visible = true;
