@@ -65,13 +65,13 @@
         group.add(leftLeg, rightLeg);
 
         // Arm (right) — will be animated for Gum-Gum
-              const armGeo = new THREE.BoxGeometry(0.16, 0.16, 1.0);
-              armGeo.translate(0, 0, 0.5); // move geometry so back end sits at local origin (shoulder)
-              const armMat = new THREE.MeshStandardMaterial({color:0xffd27f});
-              const arm = new THREE.Mesh(armGeo, armMat);
-              arm.position.set(0.45, 1.2, 0); // shoulder offset in local space
-              arm.name = 'arm';
-              group.add(arm);
+        const armGeo = new THREE.BoxGeometry(0.16, 0.16, 1.0);
+        armGeo.translate(0, 0, 0.5); // move geometry so back end sits at local origin (shoulder)
+        const armMat = new THREE.MeshStandardMaterial({ color: 0xffd27f });
+        const arm = new THREE.Mesh(armGeo, armMat);
+        arm.position.set(0.45, 1.2, 0); // shoulder offset in local space
+        arm.name = 'arm';
+        group.add(arm);
 
         // store refs
         group.userData = { body, head, arm };
@@ -126,9 +126,9 @@
     let armCharging = false;
     let armCharge = 0; // 0..1
     let armState = 'idle'; // idle, charging, shooting
-        let armShootTimer = 0;
-        const armShootDuration = 0.18;
-        const baseArmLength = 1.0;
+    let armShootTimer = 0;
+    const armShootDuration = 0.18;
+    const baseArmLength = 1.0;
     const projectiles = [];
 
     // Simple physics params
@@ -215,60 +215,60 @@
         if (!keys['k'] && armCharging && armState === 'charging') {
             armState = 'shooting';
             armCharging = false;
-                armShootTimer = armShootDuration;
+            armShootTimer = armShootDuration;
         }
 
-            // Arm visuals & animation
-            const armMesh = player.userData && player.userData.arm;
-            const shoulderWorld = new THREE.Vector3().copy(player.position).add(new THREE.Vector3(0,1.2,0));
-            if (armState === 'charging' && armMesh) {
-                armCharge = Math.min(1, armCharge + dt * 1.4);
-                const backDir = new THREE.Vector3();
-                camera.getWorldDirection(backDir);
-                backDir.multiplyScalar(-1).setY(0).normalize();
-                const target = shoulderWorld.clone().add(backDir.clone().multiplyScalar(0.6 + armCharge * 1.2));
-                armMesh.lookAt(target);
-                armMesh.scale.z = 1 + armCharge * 2.2;
+        // Arm visuals & animation
+        const armMesh = player.userData && player.userData.arm;
+        const shoulderWorld = new THREE.Vector3().copy(player.position).add(new THREE.Vector3(0, 1.2, 0));
+        if (armState === 'charging' && armMesh) {
+            armCharge = Math.min(1, armCharge + dt * 1.4);
+            const backDir = new THREE.Vector3();
+            camera.getWorldDirection(backDir);
+            backDir.multiplyScalar(-1).setY(0).normalize();
+            const target = shoulderWorld.clone().add(backDir.clone().multiplyScalar(0.6 + armCharge * 1.2));
+            armMesh.lookAt(target);
+            armMesh.scale.z = 1 + armCharge * 2.2;
+        }
+
+        // Shooting animation: interpolate arm from pulled-back to forward, spawn projectile at mid-point
+        if (armState === 'shooting' && armMesh) {
+            armShootTimer -= dt;
+            const t = 1 - Math.max(0, armShootTimer) / armShootDuration; // 0->1 through animation
+            const backDir = new THREE.Vector3();
+            camera.getWorldDirection(backDir);
+            backDir.multiplyScalar(-1).setY(0).normalize();
+            const forwardDir = new THREE.Vector3();
+            camera.getWorldDirection(forwardDir).setY(0).normalize();
+            const backTarget = shoulderWorld.clone().add(backDir.clone().multiplyScalar(0.6 + armCharge * 1.2));
+            const forwardTarget = shoulderWorld.clone().add(forwardDir.clone().multiplyScalar(0.8 + armCharge * 2.2));
+            const currentTarget = backTarget.clone().lerp(forwardTarget, t);
+            armMesh.lookAt(currentTarget);
+            armMesh.scale.z = 1 + (1 + armCharge * 2.5) * (0.8 + t * 1.2);
+
+            // spawn projectile near peak (once when t crosses ~0.35)
+            if (t > 0.35 && !armMesh.userData.fired) {
+                armMesh.userData.fired = true;
+                const dir = forwardDir.clone().normalize();
+                const speedFactor = 18 + armCharge * 40;
+                const projGeo = new THREE.SphereGeometry(0.12, 8, 8);
+                const projMat = new THREE.MeshStandardMaterial({ color: 0xffd27f });
+                const proj = new THREE.Mesh(projGeo, projMat);
+                const tip = shoulderWorld.clone().add(forwardDir.clone().multiplyScalar(0.9 + armMesh.scale.z * baseArmLength));
+                proj.position.copy(tip);
+                proj.userData = { vel: dir.clone().multiplyScalar(speedFactor), life: 1.5 };
+                scene.add(proj);
+                projectiles.push(proj);
             }
 
-            // Shooting animation: interpolate arm from pulled-back to forward, spawn projectile at mid-point
-            if (armState === 'shooting' && armMesh) {
-                armShootTimer -= dt;
-                const t = 1 - Math.max(0, armShootTimer) / armShootDuration; // 0->1 through animation
-                const backDir = new THREE.Vector3();
-                camera.getWorldDirection(backDir);
-                backDir.multiplyScalar(-1).setY(0).normalize();
-                const forwardDir = new THREE.Vector3();
-                camera.getWorldDirection(forwardDir).setY(0).normalize();
-                const backTarget = shoulderWorld.clone().add(backDir.clone().multiplyScalar(0.6 + armCharge * 1.2));
-                const forwardTarget = shoulderWorld.clone().add(forwardDir.clone().multiplyScalar(0.8 + armCharge * 2.2));
-                const currentTarget = backTarget.clone().lerp(forwardTarget, t);
-                armMesh.lookAt(currentTarget);
-                armMesh.scale.z = 1 + (1 + armCharge * 2.5) * (0.8 + t * 1.2);
-
-                // spawn projectile near peak (once when t crosses ~0.35)
-                if (t > 0.35 && !armMesh.userData.fired) {
-                    armMesh.userData.fired = true;
-                    const dir = forwardDir.clone().normalize();
-                    const speedFactor = 18 + armCharge * 40;
-                    const projGeo = new THREE.SphereGeometry(0.12, 8, 8);
-                    const projMat = new THREE.MeshStandardMaterial({color:0xffd27f});
-                    const proj = new THREE.Mesh(projGeo, projMat);
-                    const tip = shoulderWorld.clone().add(forwardDir.clone().multiplyScalar(0.9 + armMesh.scale.z * baseArmLength));
-                    proj.position.copy(tip);
-                    proj.userData = { vel: dir.clone().multiplyScalar(speedFactor), life: 1.5 };
-                    scene.add(proj);
-                    projectiles.push(proj);
-                }
-
-                if (armShootTimer <= 0) {
-                    armState = 'idle';
-                    armCharge = 0;
-                    if (armMesh.userData) armMesh.userData.fired = false;
-                    // reset arm size/rotation
-                    armMesh.scale.z = 1;
-                }
+            if (armShootTimer <= 0) {
+                armState = 'idle';
+                armCharge = 0;
+                if (armMesh.userData) armMesh.userData.fired = false;
+                // reset arm size/rotation
+                armMesh.scale.z = 1;
             }
+        }
 
         // Arm charging animation
         const armMesh = player.userData && player.userData.arm;
