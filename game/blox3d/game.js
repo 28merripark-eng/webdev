@@ -159,14 +159,22 @@
 
                     // expose to outer scope for movement/attack switching
                     player.userData._anims = { idleAction, runAction, attackAction, playAction };
+
+                    // Report animations found
+                    const animNames = gltf.animations.map(a => a.name).join(', ') || '(none)';
+                    updateDebug(`✓ Loaded luffy.glb\nAnimations: ${animNames}`);
+                } else {
+                    updateDebug('✓ Loaded luffy.glb\n(no animations found)');
                 }
 
                 console.log('Loaded luffy.glb and attached to player');
             }, undefined, function (err) {
                 console.warn('Failed to load luffy.glb:', err);
+                updateDebug('✗ Failed to load luffy.glb.\nCheck file exists in game/blox3d/ folder.\nError: ' + err.message);
             });
         } catch (e) {
             console.warn('GLTFLoader not available or failed to construct', e);
+            updateDebug('✗ GLTFLoader error: ' + e.message);
         }
     }
 
@@ -202,7 +210,14 @@
     // UI
     const fruitCountEl = document.getElementById('fruitCount');
     const messageEl = document.getElementById('message');
+    const debugEl = document.getElementById('debug');
     let fruitCount = 0;
+
+    // Debug function
+    function updateDebug(text) {
+        if (debugEl) debugEl.textContent = text;
+    }
+    updateDebug('Status: Using placeholder model. Place luffy.glb in game/blox3d/ folder.');
 
     // Controls
     const keys = {};
@@ -216,7 +231,6 @@
     let armShootTimer = 0;
     const armShootDuration = 0.18;
     const baseArmLength = 1.0;
-    const projectiles = [];
 
     // Simple physics params
     const GRAVITY = -20;
@@ -376,19 +390,9 @@
             armMesh.lookAt(currentTarget);
             armMesh.scale.z = 1 + (1 + armCharge * 2.5) * (0.8 + t * 1.2);
 
-            // spawn projectile near peak (once when t crosses ~0.35)
+            // mark fired once at peak (no projectile spawned)
             if (t > 0.35 && !armMesh.userData.fired) {
                 armMesh.userData.fired = true;
-                const dir = forwardDir.clone().normalize();
-                const speedFactor = 18 + armCharge * 40;
-                const projGeo = new THREE.SphereGeometry(0.12, 8, 8);
-                const projMat = new THREE.MeshStandardMaterial({ color: 0xffd27f });
-                const proj = new THREE.Mesh(projGeo, projMat);
-                const tip = shoulderWorld.clone().add(forwardDir.clone().multiplyScalar(0.9 + armMesh.scale.z * baseArmLength));
-                proj.position.copy(tip);
-                proj.userData = { vel: dir.clone().multiplyScalar(speedFactor), life: 1.5 };
-                scene.add(proj);
-                projectiles.push(proj);
             }
 
             if (armShootTimer <= 0) {
@@ -402,27 +406,7 @@
 
 
 
-        // Update projectiles
-        for (let i = projectiles.length - 1; i >= 0; i--) {
-            const p = projectiles[i];
-            p.position.add(p.userData.vel.clone().multiplyScalar(dt));
-            p.userData.life -= dt;
-            // check fruit collision
-            for (let f of fruits) {
-                if (f.userData.collected) continue;
-                if (p.position.distanceTo(f.position) < 0.8) {
-                    f.userData.collected = true;
-                    scene.remove(f);
-                    fruitCount++;
-                    fruitCountEl.textContent = fruitCount;
-                    showMessage('Fruit knocked away!');
-                }
-            }
-            if (p.userData.life <= 0) {
-                scene.remove(p);
-                projectiles.splice(i, 1);
-            }
-        }
+        
 
         // update gltf animation mixer if present
         if (mixer) mixer.update(dt);
