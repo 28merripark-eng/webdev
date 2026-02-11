@@ -365,24 +365,28 @@
         // Arm visuals & animation
         const armMesh = player.userData && player.userData.arm;
         const shoulderWorld = new THREE.Vector3().copy(player.position).add(new THREE.Vector3(0, 1.2, 0));
+        
+        // Get directions relative to camera (player faces camera)
+        const cameraDir = new THREE.Vector3();
+        camera.getWorldDirection(cameraDir);
+        cameraDir.setY(0).normalize();
+        const behindDir = cameraDir.clone().multiplyScalar(-1); // behind player
+        const frontDir = cameraDir.clone(); // in front of player
+        
         if (armState === 'charging' && armMesh) {
             armCharge = Math.min(1, armCharge + dt * 1.4);
-            // Stretch arm straight to the right (fixed direction to avoid body clipping)
-            const rightDir = new THREE.Vector3(1, 0, 0); // local +X = right
-            const target = shoulderWorld.clone().add(rightDir.clone().multiplyScalar(0.6 + armCharge * 1.5));
+            // Pull arm back behind the player during charge
+            const target = shoulderWorld.clone().add(behindDir.clone().multiplyScalar(0.6 + armCharge * 1.5));
             armMesh.lookAt(target);
             armMesh.scale.z = 1 + armCharge * 2.2;
         }
 
-        // Shooting animation: interpolate arm from pulled-back to forward, stretch straight out
+        // Shooting animation: arm swings from behind to in front
         if (armState === 'shooting' && armMesh) {
             armShootTimer -= dt;
             const t = 1 - Math.max(0, armShootTimer) / armShootDuration; // 0->1 through animation
-            // Pull back to the right, then shoot forward
-            const rightDir = new THREE.Vector3(1, 0, 0); // right
-            const forwardDir = new THREE.Vector3(0, 0, -1); // forward in local
-            const backTarget = shoulderWorld.clone().add(rightDir.clone().multiplyScalar(0.6 + armCharge * 1.5));
-            const forwardTarget = shoulderWorld.clone().add(forwardDir.clone().multiplyScalar(0.8 + armCharge * 2.2));
+            const backTarget = shoulderWorld.clone().add(behindDir.clone().multiplyScalar(0.6 + armCharge * 1.5));
+            const forwardTarget = shoulderWorld.clone().add(frontDir.clone().multiplyScalar(0.8 + armCharge * 2.2));
             const currentTarget = backTarget.clone().lerp(forwardTarget, t);
             armMesh.lookAt(currentTarget);
             armMesh.scale.z = 1 + (1 + armCharge * 2.5) * (0.8 + t * 1.2);
