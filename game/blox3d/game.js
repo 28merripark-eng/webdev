@@ -221,7 +221,23 @@
 
     // Controls
     const keys = {};
-    window.addEventListener('keydown', e => keys[e.key.toLowerCase()] = true);
+    window.addEventListener('keydown', e => {
+        const key = e.key.toLowerCase();
+        keys[key] = true;
+        // Gear switching
+        if (key === '2') {
+            gearLevel = gearLevel === 2 ? 1 : 2;
+            gearSpeedMult = gearLevel === 2 ? 1.5 : 1.0;
+            gearLevelEl.textContent = gearLevel;
+            showMessage(`Gear ${gearLevel}! Speed x${gearSpeedMult.toFixed(1)}`);
+        }
+        if (key === '3') {
+            gearLevel = gearLevel === 3 ? 1 : 3;
+            gearSpeedMult = gearLevel === 3 ? 2.5 : 1.0;
+            gearLevelEl.textContent = gearLevel;
+            showMessage(`Gear ${gearLevel}! Speed x${gearSpeedMult.toFixed(1)}`);
+        }
+    });
     window.addEventListener('keyup', e => keys[e.key.toLowerCase()] = false);
 
     // Gum-Gum arm state
@@ -229,13 +245,19 @@
     let armCharge = 0; // 0..1
     let armState = 'idle'; // idle, charging, shooting
     let armShootTimer = 0;
-    const armShootDuration = 0.18;
+    const armShootDuration = 0.12; // faster teleport-like punch
     const baseArmLength = 1.0;
+
+    // Gear modes
+    let gearLevel = 1; // 1, 2, or 3
+    const gearLevelEl = document.getElementById('gearLevel');
+    let gearSpeedMult = 1.0; // speed multiplier based on gear
 
     // Simple physics params
     const GRAVITY = -20;
     let speed = 5;
     let canJump = true;
+    let currentGearEndTime = 0; // timer for gear mode duration
 
     function playerOnGround() {
         if (player.position.y <= 0.5) return true;
@@ -302,7 +324,7 @@
             const rightVec = new THREE.Vector3(Math.cos(yaw), 0, Math.sin(yaw));
             const moveVec = forwardVec.multiplyScalar(forwardIn).add(rightVec.multiplyScalar(strafeIn));
             if (moveVec.lengthSq() > 0) moveVec.normalize();
-            moveVec.multiplyScalar(speed * dt);
+            moveVec.multiplyScalar(speed * gearSpeedMult * dt);
             // test horizontal collision before applying
             const candidate = player.position.clone().add(new THREE.Vector3(moveVec.x, 0, moveVec.z));
             if (!collidesWithIslands(candidate)) {
@@ -318,7 +340,8 @@
 
         // Jump
         if (keys[' '] && canJump && playerOnGround()) {
-            player.velocity.y = 8;
+            const jumpPower = 8 * (1 + (gearLevel - 1) * 0.3); // boost jump with gear
+            player.velocity.y = jumpPower;
             canJump = false;
         }
 
@@ -364,7 +387,7 @@
         // Make player face the camera (yaw)
         player.rotation.y = cameraYaw;
 
-        // Arm visuals & animation
+        // Arm visuals & animation (straight back, then teleport to straight forward)
         const armMesh = player.userData && player.userData.arm;
         const shoulderWorld = new THREE.Vector3().copy(player.position).add(new THREE.Vector3(0, 1.2, 0));
 
@@ -377,24 +400,42 @@
 
         if (armState === 'charging' && armMesh) {
             armCharge = Math.min(1, armCharge + dt * 1.4);
-            // Pull arm back behind the player during charge
-            const target = shoulderWorld.clone().add(behindDir.clone().multiplyScalar(0.6 + armCharge * 1.5));
-            armMesh.lookAt(target);
-            armMesh.scale.z = 1 + armCharge * 2.2;
+            // Stretch arm straight back (behind player)
+            const backDistance = 0.6 + armCharge * 2.0;
+            const backTarget = shoulderWorld.clone().add(behindDir.clone().multiplyScalar(backDistance));
+            armMesh.lookAt(backTarget);
+            armMesh.scale.z = 1 + armCharge * 2.8;
         }
 
-        // Shooting animation: arm swings from behind to in front
+        // Shooting animation: teleport arm from back to front instantly, then retract
         if (armState === 'shooting' && armMesh) {
             armShootTimer -= dt;
-            const t = 1 - Math.max(0, armShootTimer) / armShootDuration; // 0->1 through animation
-            const backTarget = shoulderWorld.clone().add(behindDir.clone().multiplyScalar(0.6 + armCharge * 1.5));
-            const forwardTarget = shoulderWorld.clone().add(frontDir.clone().multiplyScalar(0.8 + armCharge * 2.2));
-            const currentTarget = backTarget.clone().lerp(forwardTarget, t);
-            armMesh.lookAt(currentTarget);
-            armMesh.scale.z = 1 + (1 + armCharge * 2.5) * (0.8 + t * 1.2);
+            const t = Math.min(1, 1 - Math.max(0, armShootTimer) / armShootDuration); // 0->1 through animation
+            
+            // Teleport: if t < 0.1, go to forward; if t > 0.9, retract
+            if (t < 0.1) {
+                // Instantly at forward position
+                const frontDistance = 0.8 + armCharge * 2.5;
+                const frontTarget = shoulderWorld.clone().add(frontDir.clone().multiplyScalar(frontDistance));
+                armMesh.lookAt(frontTarget);
+                armMesh.scale.z = 1 + (1 + armCharge * 3) * 1.2;
+            } else if (t > 0.7) {
+                // Start retracting back
+                const retractAmount = (t - 0.7) / 0.3; // 0->1 over last 30% of animation
+                const frontDistance = (0.8 + armCharge * 2.5) * (1 - retractAmount * 0.8);
+                const frontTarget = shoulderWorld.clone().add(frontDir.clone().multiplyScalar(Math.max(0.3, frontDistance)));
+                armMesh.lookAt(frontTarget);
+                armMesh.scale.z = Math.max(1, 1 + (1 + armCharge * 3) * (1 - retractAmount));
+            } else {
+                // Hold at full extension
+                const frontDistance = 0.8 + armCharge * 2.5;
+                const frontTarget = shoulderWorld.clone().add(frontDir.clone().multiplyScalar(frontDistance));
+                armMesh.lookAt(frontTarget);
+                armMesh.scale.z = 1 + (1 + armCharge * 3) * 1.2;
+            }
 
-            // mark fired once at peak (no projectile spawned)
-            if (t > 0.35 && !armMesh.userData.fired) {
+            // mark fired once at peak
+            if (t > 0.1 && !armMesh.userData.fired) {
                 armMesh.userData.fired = true;
             }
 
