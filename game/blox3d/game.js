@@ -25,7 +25,7 @@
         const dy = e.clientY - lastY;
         lastX = e.clientX; lastY = e.clientY;
         cameraYaw -= dx * 0.005;
-        cameraPitch = Math.max(-Math.PI/3, Math.min(Math.PI/3, cameraPitch - dy * 0.005));
+        cameraPitch = Math.max(-Math.PI / 3, Math.min(Math.PI / 3, cameraPitch - dy * 0.005));
     });
     // Zoom with wheel
     renderer.domElement.addEventListener('wheel', (e) => { cameraDistance = Math.max(3, Math.min(30, cameraDistance + e.deltaY * 0.01)); });
@@ -329,7 +329,7 @@
             }
         }
 
-        
+
 
         // Update projectiles
         for (let i = projectiles.length - 1; i >= 0; i--) {
