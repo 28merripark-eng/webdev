@@ -16,30 +16,60 @@ const keys = {};
 document.addEventListener('keydown', e => { keys[e.key.toLowerCase()] = true; });
 document.addEventListener('keyup', e => { keys[e.key.toLowerCase()] = false; });
 
-// Create a small default 5-frame Luffy-ish pixel sprite sheet (32x32 frames)
+// Create a better default 5-frame Luffy-ish pixel sprite sheet (32x32 frames)
 function createDefaultLuffySprite() {
     const fw = 32, fh = 32, frames = 5;
     const oc = document.createElement('canvas'); oc.width = fw * frames; oc.height = fh;
     const octx = oc.getContext('2d');
     octx.imageSmoothingEnabled = false;
+    
     for (let f = 0; f < frames; f++) {
         const ox = f * fw;
-        // background transparent
-        // hat
-        octx.fillStyle = '#f4d542'; octx.fillRect(ox + 6, 2, 20, 6);
-        octx.fillStyle = '#b11'; octx.fillRect(ox + 10, 8, 12, 2);
-        // face
-        octx.fillStyle = '#f1c27d'; octx.fillRect(ox + 8, 10, 16, 10);
-        // vest
-        octx.fillStyle = '#d43'; octx.fillRect(ox + 6, 20, 20, 8);
-        // small arm/leg offsets per frame for simple walk animation
-        const shift = (f % 2) ? 1 : 0;
-        octx.fillStyle = '#f1c27d'; octx.fillRect(ox + 4 + shift, 20, 4, 6); // left arm
-        octx.fillRect(ox + 24 - shift, 20, 4, 6); // right arm
-        // eyes/mouth
-        octx.fillStyle = '#000'; octx.fillRect(ox + 12, 14, 2, 1); octx.fillRect(ox + 18, 14, 2, 1);
+        
+        // Straw hat (gold/yellow)
+        octx.fillStyle = '#ffd700';
+        octx.fillRect(ox + 4, 1, 24, 5);      // hat brim
+        octx.fillRect(ox + 10, 0, 12, 1);     // top
+        octx.fillStyle = '#ccaa00';
+        octx.fillRect(ox + 6, 2, 20, 2);      // hat shading
+        
+        // Head (skin tone)
+        octx.fillStyle = '#f1c27d';
+        octx.fillRect(ox + 8, 6, 16, 12);     // larger head
+        
+        // Eyes (black)
+        octx.fillStyle = '#000';
+        octx.fillRect(ox + 11, 8, 2, 2);
+        octx.fillRect(ox + 19, 8, 2, 2);
+        
+        // Mouth (simple smile)
+        octx.fillStyle = '#000';
+        octx.fillRect(ox + 12, 13, 8, 1);
+        
+        // Vest (red)
+        octx.fillStyle = '#cc3333';
+        octx.fillRect(ox + 6, 18, 20, 10);
+        
+        // Vest buttons
+        octx.fillStyle = '#000';
+        octx.fillRect(ox + 14, 19, 1, 1);
+        octx.fillRect(ox + 14, 22, 1, 1);
+        octx.fillRect(ox + 14, 25, 1, 1);
+        
+        // Shorts (blue)
+        octx.fillStyle = '#1a4d7a';
+        octx.fillRect(ox + 8, 28, 16, 3);
+        
+        // Legs (skin)
+        octx.fillStyle = '#f1c27d';
+        const legShift = (f % 2) ? 1 : -1;
+        octx.fillRect(ox + 10 + legShift, 30, 3, 2); // left leg
+        octx.fillRect(ox + 19 - legShift, 30, 3, 2); // right leg
     }
-    const img = new Image(); img.onload = () => { sprites.luffy = img; luffySpriteReady = true; }; img.src = oc.toDataURL();
+    
+    const img = new Image();
+    img.onload = () => { sprites.luffy = img; luffySpriteReady = true; };
+    img.src = oc.toDataURL();
 }
 createDefaultLuffySprite();
 
@@ -50,21 +80,65 @@ const startButton = document.getElementById('startGame');
 if (spriteButton && spriteInput) {
     spriteButton.addEventListener('click', () => spriteInput.click());
     spriteInput.addEventListener('change', (ev) => {
-        const f = ev.target.files && ev.target.files[0]; if (!f) return;
+        const f = ev.target.files && ev.target.files[0];
+        if (!f) return;
         const fr = new FileReader();
         fr.onload = () => {
             const img = new Image();
             img.onload = () => {
-                // if image looks like a horizontal sheet (width >= height*2), accept it
+                // Check if it's a sprite sheet (width at least 2x height)
                 if (img.width >= img.height * 2) {
-                    sprites.luffy = img; luffySpriteReady = true; return;
+                    // Use as-is or scale to proper sprite sheet dimensions
+                    const targetH = 32;
+                    const scale = targetH / img.height;
+                    const targetW = Math.round(img.width * scale);
+                    
+                    const oc = document.createElement('canvas');
+                    oc.width = targetW;
+                    oc.height = targetH;
+                    const octx = oc.getContext('2d');
+                    octx.imageSmoothingEnabled = false;
+                    octx.drawImage(img, 0, 0, targetW, targetH);
+                    
+                    const sheet = new Image();
+                    sheet.onload = () => { sprites.luffy = sheet; luffySpriteReady = true; };
+                    sheet.src = oc.toDataURL();
+                    return;
                 }
-                // otherwise synthesize a 5-frame sheet by repeating the single image
-                const fw = img.width, fh = img.height, frames = 5;
-                const oc = document.createElement('canvas'); oc.width = fw * frames; oc.height = fh;
-                const octx = oc.getContext('2d'); octx.imageSmoothingEnabled = false;
-                for (let i = 0; i < frames; i++) octx.drawImage(img, i * fw, 0, fw, fh);
-                const sheet = new Image(); sheet.onload = () => { sprites.luffy = sheet; luffySpriteReady = true; }; sheet.src = oc.toDataURL();
+                
+                // Single sprite image: scale to 32x32 and create 5-frame sheet
+                const targetSize = 32;
+                const scale = targetSize / Math.max(img.width, img.height);
+                const scaledW = Math.round(img.width * scale);
+                const scaledH = Math.round(img.height * scale);
+                
+                // Create single frame canvas
+                const singleFrame = document.createElement('canvas');
+                singleFrame.width = targetSize;
+                singleFrame.height = targetSize;
+                const singleCtx = singleFrame.getContext('2d');
+                singleCtx.imageSmoothingEnabled = false;
+                
+                // Center the scaled sprite on the frame
+                const offsetX = (targetSize - scaledW) / 2;
+                const offsetY = (targetSize - scaledH) / 2;
+                singleCtx.drawImage(img, offsetX, offsetY, scaledW, scaledH);
+                
+                // Now create 5-frame sheet by repeating
+                const frames = 5;
+                const oc = document.createElement('canvas');
+                oc.width = targetSize * frames;
+                oc.height = targetSize;
+                const octx = oc.getContext('2d');
+                octx.imageSmoothingEnabled = false;
+                
+                for (let i = 0; i < frames; i++) {
+                    octx.drawImage(singleFrame, i * targetSize, 0, targetSize, targetSize);
+                }
+                
+                const sheet = new Image();
+                sheet.onload = () => { sprites.luffy = sheet; luffySpriteReady = true; };
+                sheet.src = oc.toDataURL();
             };
             img.onerror = () => { alert('Could not load that image.'); };
             img.src = fr.result;
