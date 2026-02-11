@@ -406,7 +406,7 @@
 
 
 
-        
+
 
         // update gltf animation mixer if present
         if (mixer) mixer.update(dt);
