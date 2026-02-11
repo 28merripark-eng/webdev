@@ -152,6 +152,7 @@ function drawTitleScreen(ctx) {
 // Increased section width and gaps so each theme feels like a separate, longer level
 const SECTION_W = 1600; // wider per-theme section
 const GAP = 220; // gap between sections to feel separated
+const gravity = 0.8; // physics constant for gravity and falling
 const themes = [
     { name: 'Louge Town', bg: '#dbeefc' },
     { name: 'Alabasta', bg: '#f6e1c4' },
