@@ -199,8 +199,8 @@
     const PLAYER_RADIUS = 0.45;
 
     // simple sphere vs AABB test against islands
-    function collidesWithIslands(pos){
-        for (let isl of islands){
+    function collidesWithIslands(pos) {
+        for (let isl of islands) {
             // island box is 4 x 0.6 x 4 with center at isl.position
             const hx = 2.0, hy = 0.3, hz = 2.0;
             const minX = isl.position.x - hx, maxX = isl.position.x + hx;
@@ -210,8 +210,8 @@
             const cy = Math.max(minY, Math.min(pos.y, maxY));
             const cz = Math.max(minZ, Math.min(pos.z, maxZ));
             const dx = cx - pos.x, dy = cy - pos.y, dz = cz - pos.z;
-            const dist2 = dx*dx + dy*dy + dz*dz;
-            if (dist2 < PLAYER_RADIUS*PLAYER_RADIUS) return true;
+            const dist2 = dx * dx + dy * dy + dz * dz;
+            if (dist2 < PLAYER_RADIUS * PLAYER_RADIUS) return true;
         }
         return false;
     }
@@ -253,12 +253,12 @@
             moveVec.multiplyScalar(speed * dt);
             // test horizontal collision before applying
             const candidate = player.position.clone().add(new THREE.Vector3(moveVec.x, 0, moveVec.z));
-            if (!collidesWithIslands(candidate)){
+            if (!collidesWithIslands(candidate)) {
                 player.position.add(moveVec);
             } else {
                 // try sliding on X then Z separately
-                const candX = player.position.clone().add(new THREE.Vector3(moveVec.x,0,0));
-                const candZ = player.position.clone().add(new THREE.Vector3(0,0,moveVec.z));
+                const candX = player.position.clone().add(new THREE.Vector3(moveVec.x, 0, 0));
+                const candZ = player.position.clone().add(new THREE.Vector3(0, 0, moveVec.z));
                 if (!collidesWithIslands(candX)) player.position.x = candX.x;
                 else if (!collidesWithIslands(candZ)) player.position.z = candZ.z;
             }
