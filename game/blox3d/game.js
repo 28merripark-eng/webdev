@@ -111,18 +111,56 @@
             const gltfLoader = new THREE.GLTFLoader();
             gltfLoader.load('luffy.glb', function (gltf) {
                 const model = gltf.scene;
-                // scale and center model
-                model.scale.setScalar(1.0);
+                // heuristics: scale down/up if model too large/small
+                const bbox = new THREE.Box3().setFromObject(model);
+                const size = bbox.getSize(new THREE.Vector3()).length();
+                if (size > 5) model.scale.setScalar(1 / (size / 2.5));
+                else if (size < 0.8) model.scale.setScalar(1.6);
+
                 model.position.set(0, 0, 0);
                 // remove placeholder children and attach model to player group
                 while (player.children.length) player.remove(player.children[0]);
                 player.add(model);
-                // setup mixer for animations (if any)
+
+                // Setup animation mixer and actions map
                 if (gltf.animations && gltf.animations.length) {
                     mixer = new THREE.AnimationMixer(model);
-                    const action = mixer.clipAction(gltf.animations[0]);
-                    action.play();
+                    const actions = {};
+                    gltf.animations.forEach((clip) => {
+                        actions[clip.name] = mixer.clipAction(clip);
+                    });
+
+                    // helper to pick best-named clip
+                    function findClip(names){
+                        for (let n of names){
+                            if (actions[n]) return actions[n];
+                        }
+                        // fallback to first
+                        const keys = Object.keys(actions);
+                        return keys.length ? actions[keys[0]] : null;
+                    }
+
+                    const idleAction = findClip(['Idle','idle','IDLE','Idle_01','Idle_0']);
+                    const runAction = findClip(['Run','run','Walk','walk','RUN']);
+                    const attackAction = findClip(['Attack','attack','Punch','punch','Attack_01']);
+
+                    let currentAction = null;
+                    function playAction(next){
+                        if (!next || currentAction === next) return;
+                        if (currentAction){
+                            currentAction.fadeOut(0.15);
+                        }
+                        next.reset().fadeIn(0.15).play();
+                        currentAction = next;
+                    }
+
+                    // start idle
+                    if (idleAction) playAction(idleAction);
+
+                    // expose to outer scope for movement/attack switching
+                    player.userData._anims = { idleAction, runAction, attackAction, playAction };
                 }
+
                 console.log('Loaded luffy.glb and attached to player');
             }, undefined, function (err) {
                 console.warn('Failed to load luffy.glb:', err);
@@ -388,6 +426,20 @@
 
         // update gltf animation mixer if present
         if (mixer) mixer.update(dt);
+
+        // animation switching: idle/run/attack
+        const anims = player.userData && player.userData._anims;
+        if (anims){
+            const moving = (forwardIn !== 0 || strafeIn !== 0) && playerOnGround();
+            if (armState === 'shooting' && anims.attackAction){
+                // play attack once
+                anims.playAction(anims.attackAction);
+            } else if (moving && anims.runAction){
+                anims.playAction(anims.runAction);
+            } else if (anims.idleAction){
+                anims.playAction(anims.idleAction);
+            }
+        }
 
         // Simple floating islands bob
         const t = performance.now() * 0.001;
