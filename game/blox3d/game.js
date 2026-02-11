@@ -196,6 +196,26 @@
         return false;
     }
 
+    const PLAYER_RADIUS = 0.45;
+
+    // simple sphere vs AABB test against islands
+    function collidesWithIslands(pos){
+        for (let isl of islands){
+            // island box is 4 x 0.6 x 4 with center at isl.position
+            const hx = 2.0, hy = 0.3, hz = 2.0;
+            const minX = isl.position.x - hx, maxX = isl.position.x + hx;
+            const minY = isl.position.y - hy, maxY = isl.position.y + hy;
+            const minZ = isl.position.z - hz, maxZ = isl.position.z + hz;
+            const cx = Math.max(minX, Math.min(pos.x, maxX));
+            const cy = Math.max(minY, Math.min(pos.y, maxY));
+            const cz = Math.max(minZ, Math.min(pos.z, maxZ));
+            const dx = cx - pos.x, dy = cy - pos.y, dz = cz - pos.z;
+            const dist2 = dx*dx + dy*dy + dz*dz;
+            if (dist2 < PLAYER_RADIUS*PLAYER_RADIUS) return true;
+        }
+        return false;
+    }
+
     function showMessage(text, ms = 1500) {
         messageEl.style.display = 'block';
         messageEl.textContent = text;
@@ -231,7 +251,17 @@
             const moveVec = forwardVec.multiplyScalar(forwardIn).add(rightVec.multiplyScalar(strafeIn));
             if (moveVec.lengthSq() > 0) moveVec.normalize();
             moveVec.multiplyScalar(speed * dt);
-            player.position.add(moveVec);
+            // test horizontal collision before applying
+            const candidate = player.position.clone().add(new THREE.Vector3(moveVec.x, 0, moveVec.z));
+            if (!collidesWithIslands(candidate)){
+                player.position.add(moveVec);
+            } else {
+                // try sliding on X then Z separately
+                const candX = player.position.clone().add(new THREE.Vector3(moveVec.x,0,0));
+                const candZ = player.position.clone().add(new THREE.Vector3(0,0,moveVec.z));
+                if (!collidesWithIslands(candX)) player.position.x = candX.x;
+                else if (!collidesWithIslands(candZ)) player.position.z = candZ.z;
+            }
         }
 
         // Jump
@@ -276,6 +306,9 @@
             armCharging = false;
             armShootTimer = armShootDuration;
         }
+
+        // Make player face the camera (yaw)
+        player.rotation.y = cameraYaw;
 
         // Arm visuals & animation
         const armMesh = player.userData && player.userData.arm;
