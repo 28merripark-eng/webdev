@@ -365,14 +365,14 @@
         // Arm visuals & animation
         const armMesh = player.userData && player.userData.arm;
         const shoulderWorld = new THREE.Vector3().copy(player.position).add(new THREE.Vector3(0, 1.2, 0));
-        
+
         // Get directions relative to camera (player faces camera)
         const cameraDir = new THREE.Vector3();
         camera.getWorldDirection(cameraDir);
         cameraDir.setY(0).normalize();
         const behindDir = cameraDir.clone().multiplyScalar(-1); // behind player
         const frontDir = cameraDir.clone(); // in front of player
-        
+
         if (armState === 'charging' && armMesh) {
             armCharge = Math.min(1, armCharge + dt * 1.4);
             // Pull arm back behind the player during charge
