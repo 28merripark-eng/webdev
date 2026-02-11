@@ -127,6 +127,7 @@
         const arm = new THREE.Mesh(armGeo, armMat);
         arm.position.set(0.45, 1.2, 0); // shoulder offset in local space
         arm.name = 'arm';
+        arm.userData = { fired: false }; // Initialize userData for punch tracking
         group.add(arm);
 
         // store refs
