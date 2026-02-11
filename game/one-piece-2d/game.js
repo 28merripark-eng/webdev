@@ -108,7 +108,7 @@ if (spriteButton && spriteInput) {
                         const g = data[i + 1];
                         const b = data[i + 2];
                         const a = data[i + 3];
-                        
+
                         // If pixel is very light (close to white) or fully transparent, make it transparent
                         if ((r > 200 && g > 200 && b > 200) || a < 50) {
                             data[i + 3] = 0; // Make alpha 0 (transparent)
@@ -148,7 +148,7 @@ if (spriteButton && spriteInput) {
                     const g = data[i + 1];
                     const b = data[i + 2];
                     const a = data[i + 3];
-                    
+
                     // If pixel is very light (close to white) or fully transparent, make it transparent
                     if ((r > 200 && g > 200 && b > 200) || a < 50) {
                         data[i + 3] = 0; // Make alpha 0 (transparent)
