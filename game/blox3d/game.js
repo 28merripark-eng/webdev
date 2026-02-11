@@ -12,23 +12,28 @@
     let isDragging = false;
     let lastX = 0, lastY = 0;
 
+    // Mouse position for arm aiming
+    let mouseX = window.innerWidth / 2, mouseY = window.innerHeight / 2;
+
     const renderer = new THREE.WebGLRenderer({ antialias: true });
     renderer.setSize(window.innerWidth, window.innerHeight);
     document.body.appendChild(renderer.domElement);
 
-    // Pointer controls for camera orbit
+    // Pointer controls for camera orbit & track mouse for arm aiming
     renderer.domElement.addEventListener('pointerdown', (e) => { isDragging = true; lastX = e.clientX; lastY = e.clientY; renderer.domElement.setPointerCapture(e.pointerId); });
     window.addEventListener('pointerup', () => { isDragging = false; });
     window.addEventListener('pointermove', (e) => {
+        mouseX = e.clientX;
+        mouseY = e.clientY;
         if (!isDragging) return;
         const dx = e.clientX - lastX;
         const dy = e.clientY - lastY;
         lastX = e.clientX; lastY = e.clientY;
-        cameraYaw -= dx * 0.005;
-        cameraPitch = Math.max(-Math.PI / 3, Math.min(Math.PI / 3, cameraPitch - dy * 0.005));
+        cameraYaw -= dx * 0.012;
+        cameraPitch = Math.max(-Math.PI / 3, Math.min(Math.PI / 3, cameraPitch - dy * 0.012));
     });
-    // Zoom with wheel
-    renderer.domElement.addEventListener('wheel', (e) => { cameraDistance = Math.max(3, Math.min(30, cameraDistance + e.deltaY * 0.01)); });
+    // Zoom with wheel (increased sensitivity)
+    renderer.domElement.addEventListener('wheel', (e) => { e.preventDefault(); cameraDistance = Math.max(3, Math.min(30, cameraDistance + e.deltaY * 0.02)); }, { passive: false });
 
     const ambient = new THREE.HemisphereLight(0xffffff, 0x444444, 0.8);
     scene.add(ambient);
@@ -387,34 +392,37 @@
         // Make player face the camera (yaw)
         player.rotation.y = cameraYaw;
 
-        // Arm visuals & animation (straight back, then teleport to straight forward)
+        // Arm visuals & animation (aim toward mouse pointer)
         const armMesh = player.userData && player.userData.arm;
         const shoulderWorld = new THREE.Vector3().copy(player.position).add(new THREE.Vector3(0, 1.2, 0));
 
-        // Get directions relative to camera (player faces camera)
-        const cameraDir = new THREE.Vector3();
-        camera.getWorldDirection(cameraDir);
-        cameraDir.setY(0).normalize();
-        const behindDir = cameraDir.clone().multiplyScalar(-1); // behind player
-        const frontDir = cameraDir.clone(); // in front of player
+        // Calculate aim direction from mouse position using raycasting
+        const raycaster = new THREE.Raycaster();
+        const mouse = new THREE.Vector2((mouseX / window.innerWidth) * 2 - 1, -(mouseY / window.innerHeight) * 2 + 1);
+        raycaster.setFromCamera(mouse, camera);
+        
+        // Get aim direction - cast ray and find a point far ahead
+        const aimDir = raycaster.ray.direction.clone().setY(0).normalize();
+        const behindDir = aimDir.clone().multiplyScalar(-1); // opposite of aim direction (back)
+        const frontDir = aimDir.clone(); // aim direction (forward)
 
         if (armState === 'charging' && armMesh) {
             armCharge = Math.min(1, armCharge + dt * 1.4);
-            // Stretch arm straight back (behind player)
+            // Stretch arm straight back (pull back away from aim direction)
             const backDistance = 0.6 + armCharge * 2.0;
             const backTarget = shoulderWorld.clone().add(behindDir.clone().multiplyScalar(backDistance));
             armMesh.lookAt(backTarget);
             armMesh.scale.z = 1 + armCharge * 2.8;
         }
 
-        // Shooting animation: teleport arm from back to front instantly, then retract
+        // Shooting animation: teleport arm from back to aim direction instantly, then retract
         if (armState === 'shooting' && armMesh) {
             armShootTimer -= dt;
             const t = Math.min(1, 1 - Math.max(0, armShootTimer) / armShootDuration); // 0->1 through animation
 
             // Teleport: if t < 0.1, go to forward; if t > 0.9, retract
             if (t < 0.1) {
-                // Instantly at forward position
+                // Instantly at forward position (aim toward mouse)
                 const frontDistance = 0.8 + armCharge * 2.5;
                 const frontTarget = shoulderWorld.clone().add(frontDir.clone().multiplyScalar(frontDistance));
                 armMesh.lookAt(frontTarget);
