@@ -318,12 +318,12 @@ function update() {
     if (lightKey && player.attackCooldown <= 0 && !player.attacking) {
         // Luffy in Gear 2 gets a special dash-punch (faster and longer reach)
         if (player.charId === 'luffy' && player._gear2) {
-            player.attacking = true; player.attackType = 'gear2_punch'; player.attackFrame = 10; player.attackCooldown = 30;
+            player.attacking = true; player.attackType = 'gear2_punch'; player.attackFrame = 1; player.attackCooldown = 2;
             // small immediate burst forward to start the dash-punch
             player.vx = player.facing * 10;
         } else {
             let baseFrame = 8, baseCd = 22;
-            if (player.charId === 'luffy' && player._gear2) { baseFrame = Math.max(1, Math.floor(baseFrame / 10)); baseCd = Math.max(1, Math.floor(baseCd / 10)); }
+            if (player.charId === 'luffy' && player._gear2) { baseFrame = Math.max(1, Math.floor(baseFrame / 30)); baseCd = Math.max(1, Math.floor(baseCd / 30)); }
             player.attacking = true; player.attackType = 'light'; player.attackFrame = baseFrame; player.attackCooldown = baseCd;
         }
     }
@@ -334,13 +334,13 @@ function update() {
         } else {
             // apply Gear2 speedup for heavy attacks (except bazooka which sets its own frame elsewhere)
             let hf = 18, hcd = 48;
-            if (player.charId === 'luffy' && player._gear2) { hf = Math.max(1, Math.floor(hf / 10)); hcd = Math.max(1, Math.floor(hcd / 10)); }
+            if (player.charId === 'luffy' && player._gear2) { hf = Math.max(1, Math.floor(hf / 30)); hcd = Math.max(1, Math.floor(hcd / 30)); }
             player.attacking = true; player.attackType = 'heavy'; player.attackFrame = hf; player.attackCooldown = hcd;
         }
     }
     if (spinKey && player.attackCooldown <= 0 && !player.attacking) {
         let baseFrame = 20, baseCd = 80;
-        if (player.charId === 'luffy' && player._gear2) { baseFrame = Math.max(1, Math.floor(baseFrame / 10)); baseCd = Math.max(1, Math.floor(baseCd / 10)); }
+        if (player.charId === 'luffy' && player._gear2) { baseFrame = Math.max(1, Math.floor(baseFrame / 30)); baseCd = Math.max(1, Math.floor(baseCd / 30)); }
         player.attacking = true; player.attackType = 'spin'; player.attackFrame = baseFrame; player.attackCooldown = baseCd;
     }
 
@@ -451,7 +451,7 @@ function update() {
 
     // compute attack extension / radius based on type and progress
     if (player.attacking) {
-        const tot = player.attackType === 'heavy' ? 18 : player.attackType === 'spin' ? 20 : player.attackType === 'gear2_punch' ? 10 : 8;
+        const tot = player.attackType === 'heavy' ? 18 : player.attackType === 'spin' ? 20 : player.attackType === 'gear2_punch' ? 1 : 8;
         const t = (tot - Math.max(0, player.attackFrame)) / tot; // 0->1
         if (player.attackType === 'light') {
             player.attackExt = Math.round(t * 28) + 8; player.attackRadius = 0;
@@ -1465,9 +1465,9 @@ document.addEventListener('keydown', e => {
             // bazooka animation runs while paused; it will unpause when complete
             return;
         } else if (e.key === '2') {
-            // Gear 2 heavy: faster, shorter heavy punch
+            // Gear 2 heavy: extremely fast punch
             player._chooseHeavy = false; player._gear2 = true;
-            player.attacking = true; player.attackType = 'heavy'; player.attackFrame = 18; player.attackCooldown = 48;
+            player.attacking = true; player.attackType = 'heavy'; player.attackFrame = 1; player.attackCooldown = 2;
             gamePaused = false; return;
         } else if (e.key === '3') {
             // Gear 3 heavy: large-fist heavy
