@@ -100,7 +100,7 @@
         group.add(arm);
 
         // store refs
-        group.userData = { body, head, arm };
+        group.userData = { body, head, arm, bodyMat };
         return group;
     }
 
@@ -232,15 +232,35 @@
         // Gear switching
         if (key === '2') {
             gearLevel = gearLevel === 2 ? 1 : 2;
-            gearSpeedMult = gearLevel === 2 ? 1.5 : 1.0;
+            gearSpeedMult = gearLevel === 2 ? 10000 : 1.0;
             gearLevelEl.textContent = gearLevel;
-            showMessage(`Gear ${gearLevel}! Speed x${gearSpeedMult.toFixed(1)}`);
+            if (gearLevel === 2) {
+                // Gear 2: Light pink color
+                if (player.userData && player.userData.bodyMat) {
+                    player.userData.bodyMat.color.setHex(0xff99cc);
+                }
+                showMessage('⚡ GEAR 2! SPEED x10000');
+            } else {
+                // Back to normal red
+                if (player.userData && player.userData.bodyMat) {
+                    player.userData.bodyMat.color.setHex(0xff4d4d);
+                }
+                showMessage('Gear 1');
+            }
         }
         if (key === '3') {
             gearLevel = gearLevel === 3 ? 1 : 3;
-            gearSpeedMult = gearLevel === 3 ? 2.5 : 1.0;
+            gearSpeedMult = gearLevel === 3 ? 3.0 : 1.0;
             gearLevelEl.textContent = gearLevel;
-            showMessage(`Gear ${gearLevel}! Speed x${gearSpeedMult.toFixed(1)}`);
+            if (gearLevel === 3) {
+                // Gear 3: Scale up (Bone Balloon)
+                player.scale.set(1.8, 1.8, 1.8);
+                showMessage('🦴 GEAR 3: BONE BALLOON!');
+            } else {
+                // Back to normal size
+                player.scale.set(1, 1, 1);
+                showMessage('Gear 1');
+            }
         }
     });
     window.addEventListener('keyup', e => keys[e.key.toLowerCase()] = false);
