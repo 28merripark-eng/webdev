@@ -88,7 +88,7 @@ if (spriteButton && spriteInput) {
             img.onload = () => {
                 // Check if it's a sprite sheet (width at least 2x height)
                 if (img.width >= img.height * 2) {
-                    // Use as-is or scale to proper sprite sheet dimensions
+                    // Sprite sheet detected - scale to proper dimensions and remove white background
                     const targetH = 32;
                     const scale = targetH / img.height;
                     const targetW = Math.round(img.width * scale);
@@ -100,31 +100,63 @@ if (spriteButton && spriteInput) {
                     octx.imageSmoothingEnabled = false;
                     octx.drawImage(img, 0, 0, targetW, targetH);
 
+                    // Remove white background
+                    const imageData = octx.getImageData(0, 0, targetW, targetH);
+                    const data = imageData.data;
+                    for (let i = 0; i < data.length; i += 4) {
+                        const r = data[i];
+                        const g = data[i + 1];
+                        const b = data[i + 2];
+                        const a = data[i + 3];
+                        
+                        // If pixel is very light (close to white) or fully transparent, make it transparent
+                        if ((r > 200 && g > 200 && b > 200) || a < 50) {
+                            data[i + 3] = 0; // Make alpha 0 (transparent)
+                        }
+                    }
+                    octx.putImageData(imageData, 0, 0);
+
                     const sheet = new Image();
                     sheet.onload = () => { sprites.luffy = sheet; luffySpriteReady = true; };
                     sheet.src = oc.toDataURL();
                     return;
                 }
 
-                // Single sprite image: scale to 32x32 and create 5-frame sheet
+                // Single sprite image: scale to 32x32, remove white background, and create 5-frame animated sheet
                 const targetSize = 32;
                 const scale = targetSize / Math.max(img.width, img.height);
                 const scaledW = Math.round(img.width * scale);
                 const scaledH = Math.round(img.height * scale);
 
-                // Create single frame canvas
-                const singleFrame = document.createElement('canvas');
-                singleFrame.width = targetSize;
-                singleFrame.height = targetSize;
-                const singleCtx = singleFrame.getContext('2d');
-                singleCtx.imageSmoothingEnabled = false;
+                // Create temp canvas to draw and process the sprite
+                const tempCanvas = document.createElement('canvas');
+                tempCanvas.width = targetSize;
+                tempCanvas.height = targetSize;
+                const tempCtx = tempCanvas.getContext('2d');
+                tempCtx.imageSmoothingEnabled = false;
 
                 // Center the scaled sprite on the frame
                 const offsetX = (targetSize - scaledW) / 2;
                 const offsetY = (targetSize - scaledH) / 2;
-                singleCtx.drawImage(img, offsetX, offsetY, scaledW, scaledH);
+                tempCtx.drawImage(img, offsetX, offsetY, scaledW, scaledH);
 
-                // Now create 5-frame sheet by repeating
+                // Remove white background by making it transparent
+                const imageData = tempCtx.getImageData(0, 0, targetSize, targetSize);
+                const data = imageData.data;
+                for (let i = 0; i < data.length; i += 4) {
+                    const r = data[i];
+                    const g = data[i + 1];
+                    const b = data[i + 2];
+                    const a = data[i + 3];
+                    
+                    // If pixel is very light (close to white) or fully transparent, make it transparent
+                    if ((r > 200 && g > 200 && b > 200) || a < 50) {
+                        data[i + 3] = 0; // Make alpha 0 (transparent)
+                    }
+                }
+                tempCtx.putImageData(imageData, 0, 0);
+
+                // Now create 5-frame animated sheet with sprite variations
                 const frames = 5;
                 const oc = document.createElement('canvas');
                 oc.width = targetSize * frames;
@@ -132,8 +164,14 @@ if (spriteButton && spriteInput) {
                 const octx = oc.getContext('2d');
                 octx.imageSmoothingEnabled = false;
 
-                for (let i = 0; i < frames; i++) {
-                    octx.drawImage(singleFrame, i * targetSize, 0, targetSize, targetSize);
+                // Frame 0: original sprite
+                octx.drawImage(tempCanvas, 0, 0);
+
+                // Frames 1-4: create simple walking animation by shifting the sprite slightly
+                for (let i = 1; i < frames; i++) {
+                    const xShift = Math.sin((i / frames) * Math.PI * 2) * 1.5; // slight horizontal bob
+                    const yShift = Math.abs(Math.sin((i / frames) * Math.PI)) * 1; // slight vertical bob
+                    octx.drawImage(tempCanvas, (i * targetSize) + xShift, yShift);
                 }
 
                 const sheet = new Image();
