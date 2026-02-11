@@ -232,14 +232,14 @@
         // Gear switching
         if (key === '2') {
             gearLevel = gearLevel === 2 ? 1 : 2;
-            gearSpeedMult = gearLevel === 2 ? 10000 : 1.0;
+            gearSpeedMult = gearLevel === 2 ? 500000 : 1.0;
             gearLevelEl.textContent = gearLevel;
             if (gearLevel === 2) {
                 // Gear 2: Light pink color
                 if (player.userData && player.userData.bodyMat) {
                     player.userData.bodyMat.color.setHex(0xff99cc);
                 }
-                showMessage('⚡ GEAR 2! SPEED x10000');
+                showMessage('⚡ GEAR 2! SPEED x500000 - LIGHTNING FAST!');
             } else {
                 // Back to normal red
                 if (player.userData && player.userData.bodyMat) {
