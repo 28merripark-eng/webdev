@@ -816,9 +816,9 @@ function drawPlayer(ctx, p) {
             const img = sprites.luffy;
             const frameH = img.height || 32;
             const frameW = (img.width % frameH === 0 && img.width / frameH <= 8) ? frameH : 32;
-            
+
             let frameIndex = 0;
-            
+
             // Select frame based on attack type and progress
             if (p.attacking && p.attackType) {
                 // Map attack types to frame indices
@@ -845,20 +845,20 @@ function drawPlayer(ctx, p) {
 
             ctx.save();
             ctx.translate(Math.round(p.x), Math.round(p.y));
-            
+
             // Handle facing
             if (p.facing < 0) {
                 ctx.scale(-1, 1);
                 ctx.translate(-(frameW * S), 0);
             }
-            
+
             // Apply special effects based on attack type
             let scaleX = 1, scaleY = 1, offsetX = 0;
-            
+
             if (p.attacking && p.attackType && p.attackFrame) {
                 const tot = p.attackType === 'heavy' ? 18 : p.attackType === 'spin' ? 20 : p.attackType === 'gear2_punch' ? 1 : 8;
                 const progress = Math.max(0, 1 - p.attackFrame / tot); // 0->1 as attack progresses
-                
+
                 if (p.attackType === 'light') {
                     // Light punch: quick extension
                     offsetX = Math.sin(progress * Math.PI) * (frameW * S * 0.3);
@@ -875,19 +875,19 @@ function drawPlayer(ctx, p) {
                     offsetX = Math.sin(progress * Math.PI) * (frameW * S * 0.8);
                 }
             }
-            
+
             // Apply scale
             if (scaleX !== 1 || scaleY !== 1) {
                 ctx.translate(frameW * S / 2, frameH * S / 2);
                 ctx.scale(scaleX, scaleY);
                 ctx.translate(-(frameW * S / 2), -(frameH * S / 2));
             }
-            
+
             // Draw the sprite frame
             const sx = frameIndex * frameW;
             ctx.imageSmoothingEnabled = false;
             ctx.drawImage(img, sx, 0, frameW, frameH, offsetX, 0, frameW * S, frameH * S);
-            
+
             ctx.restore();
             return;
         } catch (err) {
@@ -1310,7 +1310,7 @@ function draw() {
         function lerp(a0, a1, p) { return a0 + (a1 - a0) * p; }
         // player's center world coordinate
         const px = player.x + player.w / 2; const py = player.y + player.h / 2;
-        
+
         // If using sprite and it's ready, draw sprite during bazooka instead of procedural arm
         if (luffySpriteReady && sprites.luffy) {
             // Draw sprite with special bazooka stretching
@@ -1319,43 +1319,43 @@ function draw() {
                 const frameH = img.height || 32;
                 const frameW = (img.width % frameH === 0 && img.width / frameH <= 8) ? frameH : 32;
                 const spriteScale = 3;
-                
+
                 // phase: stretch -> hold -> snap -> enemyFlight
                 if (a.phase === 'stretch') {
                     const p = Math.min(1, a.t / a.durStretch);
                     a.armX = lerp(px, a.armBackX, p);
-                    
+
                     // Draw sprite stretched horizontally
                     const stretchAmount = 1 + p * 2; // stretches from 1x to 3x
                     const spriteDrawX = Math.round(a.armX - camX);
                     const spriteDrawY = Math.round(py - frameH * spriteScale / 2);
-                    
+
                     ctx.save();
                     ctx.scale(stretchAmount, 1);
                     ctx.drawImage(img, 0, 0, frameW, frameH, Math.round(spriteDrawX / stretchAmount), spriteDrawY, frameW * spriteScale, frameH * spriteScale);
                     ctx.restore();
-                    
+
                     if (p >= 1) { a.phase = 'hold'; a.t = 0; }
                 } else if (a.phase === 'hold') {
                     // Sprite held in stretched state
                     const stretchAmount = 3;
                     const spriteDrawX = Math.round(a.armBackX - camX);
                     const spriteDrawY = Math.round(py - frameH * spriteScale / 2);
-                    
+
                     ctx.save();
                     ctx.scale(stretchAmount, 1);
                     ctx.drawImage(img, 0, 0, frameW, frameH, Math.round(spriteDrawX / stretchAmount), spriteDrawY, frameW * spriteScale, frameH * spriteScale);
                     ctx.restore();
-                    
+
                     if (a.t > a.durHold) { a.phase = 'snap'; a.t = 0; }
                 } else if (a.phase === 'snap') {
                     const p = Math.min(1, a.t / a.durSnap);
                     a.armX = lerp(a.armBackX, a.snapTo, p);
-                    
+
                     // Sprite shooting forward
                     const spriteDrawX = Math.round(a.armX - camX);
                     const spriteDrawY = Math.round(py - frameH * spriteScale / 2);
-                    
+
                     ctx.save();
                     ctx.drawImage(img, 0, 0, frameW, frameH, spriteDrawX, spriteDrawY, frameW * spriteScale * 1.2, frameH * spriteScale);
                     ctx.restore();
