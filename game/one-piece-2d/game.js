@@ -813,25 +813,81 @@ function drawPlayer(ctx, p) {
     if (p.charId === 'luffy' && luffySpriteReady && sprites.luffy) {
         // guard against malformed images; fallback to procedural on error
         try {
-            // Determine animation frame: 0 = idle, 1/2 = walk, 3/4 = run
             const img = sprites.luffy;
-            // frame dimensions guessed from common small sprite sheets; fallback to image height if unknown
             const frameH = img.height || 32;
-            // try to pick a reasonable frame width: if width is multiple of height use that, else assume 32
             const frameW = (img.width % frameH === 0 && img.width / frameH <= 8) ? frameH : 32;
-            const speed = Math.abs(p.vx || 0);
+            
             let frameIndex = 0;
-            if (speed < 0.5) frameIndex = 0; // idle
-            else if (speed < 6) frameIndex = 1 + (Math.floor(p.animT * 6) % 2); // walk toggle
-            else frameIndex = 3 + (Math.floor(p.animT * 10) % 2); // run toggle
+            
+            // Select frame based on attack type and progress
+            if (p.attacking && p.attackType) {
+                // Map attack types to frame indices
+                if (p.attackType === 'light') {
+                    frameIndex = 1; // Light punch frame
+                } else if (p.attackType === 'heavy') {
+                    frameIndex = 2; // Heavy attack frame
+                } else if (p.attackType === 'spin') {
+                    frameIndex = 3; // Spin attack frame
+                } else if (p.attackType === 'gear2_punch') {
+                    frameIndex = 4; // Gear 2 punch frame
+                }
+            } else {
+                // Movement-based frames
+                const speed = Math.abs(p.vx || 0);
+                if (speed < 0.5) {
+                    frameIndex = 0; // idle
+                } else if (speed < 6) {
+                    frameIndex = 1 + (Math.floor(p.animT * 6) % 2); // walk toggle
+                } else {
+                    frameIndex = 3 + (Math.floor(p.animT * 10) % 2); // run toggle
+                }
+            }
 
-            // handle facing
-            if (p.facing < 0) { ctx.scale(-1, 1); ctx.translate(-(frameW * S), 0); }
-            // source x in sheet
+            ctx.save();
+            ctx.translate(Math.round(p.x), Math.round(p.y));
+            
+            // Handle facing
+            if (p.facing < 0) {
+                ctx.scale(-1, 1);
+                ctx.translate(-(frameW * S), 0);
+            }
+            
+            // Apply special effects based on attack type
+            let scaleX = 1, scaleY = 1, offsetX = 0;
+            
+            if (p.attacking && p.attackType && p.attackFrame) {
+                const tot = p.attackType === 'heavy' ? 18 : p.attackType === 'spin' ? 20 : p.attackType === 'gear2_punch' ? 1 : 8;
+                const progress = Math.max(0, 1 - p.attackFrame / tot); // 0->1 as attack progresses
+                
+                if (p.attackType === 'light') {
+                    // Light punch: quick extension
+                    offsetX = Math.sin(progress * Math.PI) * (frameW * S * 0.3);
+                } else if (p.attackType === 'heavy') {
+                    // Heavy: stretch and retract
+                    scaleX = 1 + Math.sin(progress * Math.PI) * 0.4;
+                    offsetX = Math.sin(progress * Math.PI) * (frameW * S * 0.5);
+                } else if (p.attackType === 'spin') {
+                    // Spin: rotate
+                    ctx.rotate(progress * Math.PI * 4);
+                } else if (p.attackType === 'gear2_punch') {
+                    // Gear 2: extreme dash
+                    scaleX = 1.2;
+                    offsetX = Math.sin(progress * Math.PI) * (frameW * S * 0.8);
+                }
+            }
+            
+            // Apply scale
+            if (scaleX !== 1 || scaleY !== 1) {
+                ctx.translate(frameW * S / 2, frameH * S / 2);
+                ctx.scale(scaleX, scaleY);
+                ctx.translate(-(frameW * S / 2), -(frameH * S / 2));
+            }
+            
+            // Draw the sprite frame
             const sx = frameIndex * frameW;
-            // draw scaled nearest-neighbor
             ctx.imageSmoothingEnabled = false;
-            ctx.drawImage(img, sx, 0, frameW, frameH, 0, 0, frameW * S, frameH * S);
+            ctx.drawImage(img, sx, 0, frameW, frameH, offsetX, 0, frameW * S, frameH * S);
+            
             ctx.restore();
             return;
         } catch (err) {
@@ -1254,84 +1310,145 @@ function draw() {
         function lerp(a0, a1, p) { return a0 + (a1 - a0) * p; }
         // player's center world coordinate
         const px = player.x + player.w / 2; const py = player.y + player.h / 2;
-        // phase: stretch -> hold -> snap -> enemyFlight
-        if (a.phase === 'stretch') {
-            const p = Math.min(1, a.t / a.durStretch);
-            a.armX = lerp(px, a.armBackX, p);
-            // draw rubbery stretched arm with outline for a "gomu-gomu" look
-            const x0 = Math.min(px, a.armX);
-            let w = Math.abs(a.armX - px) || 6;
-            const thickness = player._gear3 ? player.h * 3 : 8;
-            if (player._gear3) { w = Math.max(w, player.w * 3); }
-            const drawY = Math.round(py - thickness / 2);
-            // outline
-            ctx.fillStyle = '#8b5d3b'; ctx.fillRect(Math.round(x0) - 2, drawY - 1, Math.round(w) + 4, Math.round(thickness) + 2);
-            // main rubber
-            ctx.fillStyle = '#f1c27d'; ctx.fillRect(Math.round(x0), drawY, Math.round(w), Math.round(thickness));
-            // show a clenched hand at the pulled-back side
-            ctx.fillStyle = '#6b3f2a'; ctx.fillRect(Math.round(px - 6), drawY + Math.round(thickness / 2) - 6, 10, 8);
-            if (p >= 1) { a.phase = 'hold'; a.t = 0; }
-        } else if (a.phase === 'hold') {
-            // visible stretched arm held; draw fists at ends to emphasize Bazooka charge
-            const x0 = Math.min(px, a.armBackX);
-            let w = Math.abs(a.armBackX - px) || 6;
-            const thickness = player._gear3 ? player.h * 3 : 8;
-            if (player._gear3) { w = Math.max(w, player.w * 3); }
-            const drawY = Math.round(py - thickness / 2);
-            ctx.fillStyle = '#f1c27d'; ctx.fillRect(Math.round(x0), drawY, Math.round(w), Math.round(thickness));
-            // fists
-            ctx.fillStyle = '#6b3f2a'; ctx.fillRect(Math.round(px - 6), drawY + Math.round(thickness / 2) - 6, 10, 8);
-            ctx.fillRect(Math.round(a.armBackX - 6), drawY + Math.round(thickness / 2) - 6, 10, 8);
-            if (a.t > a.durHold) { a.phase = 'snap'; a.t = 0; }
-        } else if (a.phase === 'snap') {
-            const p = Math.min(1, a.t / a.durSnap);
-            a.armX = lerp(a.armBackX, a.snapTo, p);
-            const x0 = Math.min(px, a.armX);
-            let w = Math.abs(a.armX - px) || 6;
-            const thickness = player._gear3 ? player.h * 3 : 8;
-            if (player._gear3) { w = Math.max(w, player.w * 3); }
-            const drawY = Math.round(py - thickness / 2);
-            // main rubber band
-            ctx.fillStyle = '#f1c27d'; ctx.fillRect(Math.round(x0), drawY, Math.round(w), Math.round(thickness));
-            // moving fist (front) and trailing motion blur
-            const frontX = a.armX;
-            const handY = drawY + Math.round(thickness / 2) - 6;
-            // draw front fist with small blur
-            ctx.fillStyle = 'rgba(255,240,200,0.9)'; ctx.fillRect(Math.round(frontX - 2), handY, 12, 8);
-            ctx.fillStyle = '#6b3f2a'; ctx.fillRect(Math.round(frontX), handY + 1, 8, 6);
-            // motion streaks
-            ctx.fillStyle = 'rgba(255,200,120,0.85)'; ctx.fillRect(Math.round(frontX + 8), handY + 2, Math.round(18 * (1 - p)), 3);
-            // small impact bursts near targets as they start flying
-            for (let ti = 0; ti < (a.targets || []).length; ti++) {
-                const idx = a.targets[ti]; const st = a.targetsState[ti];
-                const e = enemies[idx];
-                if (!e) continue;
-                if (!st.started && p > 0.35) { st.started = true; st.t = 0; }
-                if (st.started) {
-                    st.t++;
-                    const ep = Math.min(1, st.t / a.durEnemyFly);
-                    const targetX = st.targetX;
-                    e.x = lerp(st.origX, targetX, ep);
-                    const peak = Math.max(80, Math.abs(targetX - st.origX) * 0.08);
-                    e.y = st.origY + Math.sin(ep * Math.PI) * -peak;
-                    // tiny burst particles where the fist hits
-                    if (st.t === 1 || st.t === 2) {
-                        const bx = Math.round((st.origX + targetX) / 2 - camX);
-                        const by = Math.round(st.origY - 8);
-                        ctx.fillStyle = '#ffd86b'; ctx.fillRect(bx - 4, by - 2, 3, 3);
-                        ctx.fillStyle = '#ff8a00'; ctx.fillRect(bx + 2, by + 2, 4, 2);
-                    }
-                    if (ep >= 1) { e.alive = false; e.removedTimer = 30; }
+        
+        // If using sprite and it's ready, draw sprite during bazooka instead of procedural arm
+        if (luffySpriteReady && sprites.luffy) {
+            // Draw sprite with special bazooka stretching
+            try {
+                const img = sprites.luffy;
+                const frameH = img.height || 32;
+                const frameW = (img.width % frameH === 0 && img.width / frameH <= 8) ? frameH : 32;
+                const spriteScale = 3;
+                
+                // phase: stretch -> hold -> snap -> enemyFlight
+                if (a.phase === 'stretch') {
+                    const p = Math.min(1, a.t / a.durStretch);
+                    a.armX = lerp(px, a.armBackX, p);
+                    
+                    // Draw sprite stretched horizontally
+                    const stretchAmount = 1 + p * 2; // stretches from 1x to 3x
+                    const spriteDrawX = Math.round(a.armX - camX);
+                    const spriteDrawY = Math.round(py - frameH * spriteScale / 2);
+                    
+                    ctx.save();
+                    ctx.scale(stretchAmount, 1);
+                    ctx.drawImage(img, 0, 0, frameW, frameH, Math.round(spriteDrawX / stretchAmount), spriteDrawY, frameW * spriteScale, frameH * spriteScale);
+                    ctx.restore();
+                    
+                    if (p >= 1) { a.phase = 'hold'; a.t = 0; }
+                } else if (a.phase === 'hold') {
+                    // Sprite held in stretched state
+                    const stretchAmount = 3;
+                    const spriteDrawX = Math.round(a.armBackX - camX);
+                    const spriteDrawY = Math.round(py - frameH * spriteScale / 2);
+                    
+                    ctx.save();
+                    ctx.scale(stretchAmount, 1);
+                    ctx.drawImage(img, 0, 0, frameW, frameH, Math.round(spriteDrawX / stretchAmount), spriteDrawY, frameW * spriteScale, frameH * spriteScale);
+                    ctx.restore();
+                    
+                    if (a.t > a.durHold) { a.phase = 'snap'; a.t = 0; }
+                } else if (a.phase === 'snap') {
+                    const p = Math.min(1, a.t / a.durSnap);
+                    a.armX = lerp(a.armBackX, a.snapTo, p);
+                    
+                    // Sprite shooting forward
+                    const spriteDrawX = Math.round(a.armX - camX);
+                    const spriteDrawY = Math.round(py - frameH * spriteScale / 2);
+                    
+                    ctx.save();
+                    ctx.drawImage(img, 0, 0, frameW, frameH, spriteDrawX, spriteDrawY, frameW * spriteScale * 1.2, frameH * spriteScale);
+                    ctx.restore();
+                    if (p >= 1) { a.phase = 'enemyFlight'; a.t = 0; }
+                } else if (a.phase === 'enemyFlight') {
+                    // Animation complete
+                    delete player._bazookaAnim; player._bazookaAnim = null; player._chooseHeavy = false; player.attacking = false; gamePaused = false;
                 }
+            } catch (err) {
+                // Fallback to procedural if sprite fails
+                luffySpriteReady = false;
             }
-            if (p >= 1) { a.phase = 'enemyFlight'; a.t = 0; }
-        } else if (a.phase === 'enemyFlight') {
-            // ensure all enemies complete flight (redundant safety)
-            for (let ti = 0; ti < (a.targets || []).length; ti++) {
-                const idx = a.targets[ti]; const e = enemies[idx]; if (e) { e.alive = false; e.removedTimer = 30; }
+        } else {
+            // Original procedural bazooka drawing
+            // phase: stretch -> hold -> snap -> enemyFlight
+            if (a.phase === 'stretch') {
+                const p = Math.min(1, a.t / a.durStretch);
+                a.armX = lerp(px, a.armBackX, p);
+                // draw rubbery stretched arm with outline for a "gomu-gomu" look
+                const x0 = Math.min(px, a.armX);
+                let w = Math.abs(a.armX - px) || 6;
+                const thickness = player._gear3 ? player.h * 3 : 8;
+                if (player._gear3) { w = Math.max(w, player.w * 3); }
+                const drawY = Math.round(py - thickness / 2);
+                // outline
+                ctx.fillStyle = '#8b5d3b'; ctx.fillRect(Math.round(x0) - 2, drawY - 1, Math.round(w) + 4, Math.round(thickness) + 2);
+                // main rubber
+                ctx.fillStyle = '#f1c27d'; ctx.fillRect(Math.round(x0), drawY, Math.round(w), Math.round(thickness));
+                // show a clenched hand at the pulled-back side
+                ctx.fillStyle = '#6b3f2a'; ctx.fillRect(Math.round(px - 6), drawY + Math.round(thickness / 2) - 6, 10, 8);
+                if (p >= 1) { a.phase = 'hold'; a.t = 0; }
+            } else if (a.phase === 'hold') {
+                // visible stretched arm held; draw fists at ends to emphasize Bazooka charge
+                const x0 = Math.min(px, a.armBackX);
+                let w = Math.abs(a.armBackX - px) || 6;
+                const thickness = player._gear3 ? player.h * 3 : 8;
+                if (player._gear3) { w = Math.max(w, player.w * 3); }
+                const drawY = Math.round(py - thickness / 2);
+                ctx.fillStyle = '#f1c27d'; ctx.fillRect(Math.round(x0), drawY, Math.round(w), Math.round(thickness));
+                // fists
+                ctx.fillStyle = '#6b3f2a'; ctx.fillRect(Math.round(px - 6), drawY + Math.round(thickness / 2) - 6, 10, 8);
+                ctx.fillRect(Math.round(a.armBackX - 6), drawY + Math.round(thickness / 2) - 6, 10, 8);
+                if (a.t > a.durHold) { a.phase = 'snap'; a.t = 0; }
+            } else if (a.phase === 'snap') {
+                const p = Math.min(1, a.t / a.durSnap);
+                a.armX = lerp(a.armBackX, a.snapTo, p);
+                const x0 = Math.min(px, a.armX);
+                let w = Math.abs(a.armX - px) || 6;
+                const thickness = player._gear3 ? player.h * 3 : 8;
+                if (player._gear3) { w = Math.max(w, player.w * 3); }
+                const drawY = Math.round(py - thickness / 2);
+                // main rubber band
+                ctx.fillStyle = '#f1c27d'; ctx.fillRect(Math.round(x0), drawY, Math.round(w), Math.round(thickness));
+                // moving fist (front) and trailing motion blur
+                const frontX = a.armX;
+                const handY = drawY + Math.round(thickness / 2) - 6;
+                // draw front fist with small blur
+                ctx.fillStyle = 'rgba(255,240,200,0.9)'; ctx.fillRect(Math.round(frontX - 2), handY, 12, 8);
+                ctx.fillStyle = '#6b3f2a'; ctx.fillRect(Math.round(frontX), handY + 1, 8, 6);
+                // motion streaks
+                ctx.fillStyle = 'rgba(255,200,120,0.85)'; ctx.fillRect(Math.round(frontX + 8), handY + 2, Math.round(18 * (1 - p)), 3);
+                // small impact bursts near targets as they start flying
+                for (let ti = 0; ti < (a.targets || []).length; ti++) {
+                    const idx = a.targets[ti]; const st = a.targetsState[ti];
+                    const e = enemies[idx];
+                    if (!e) continue;
+                    if (!st.started && p > 0.35) { st.started = true; st.t = 0; }
+                    if (st.started) {
+                        st.t++;
+                        const ep = Math.min(1, st.t / a.durEnemyFly);
+                        const targetX = st.targetX;
+                        e.x = lerp(st.origX, targetX, ep);
+                        const peak = Math.max(80, Math.abs(targetX - st.origX) * 0.08);
+                        e.y = st.origY + Math.sin(ep * Math.PI) * -peak;
+                        // tiny burst particles where the fist hits
+                        if (st.t === 1 || st.t === 2) {
+                            const bx = Math.round((st.origX + targetX) / 2 - camX);
+                            const by = Math.round(st.origY - 8);
+                            ctx.fillStyle = '#ffd86b'; ctx.fillRect(bx - 4, by - 2, 3, 3);
+                            ctx.fillStyle = '#ff8a00'; ctx.fillRect(bx + 2, by + 2, 4, 2);
+                        }
+                        if (ep >= 1) { e.alive = false; e.removedTimer = 30; }
+                    }
+                }
+                if (p >= 1) { a.phase = 'enemyFlight'; a.t = 0; }
+            } else if (a.phase === 'enemyFlight') {
+                // ensure all enemies complete flight (redundant safety)
+                for (let ti = 0; ti < (a.targets || []).length; ti++) {
+                    const idx = a.targets[ti]; const e = enemies[idx]; if (e) { e.alive = false; e.removedTimer = 30; }
+                }
+                // animation complete: cleanup and unpause
+                delete player._bazookaAnim; player._bazookaAnim = null; player._chooseHeavy = false; player.attacking = false; gamePaused = false;
             }
-            // animation complete: cleanup and unpause
-            delete player._bazookaAnim; player._bazookaAnim = null; player._chooseHeavy = false; player.attacking = false; gamePaused = false;
         }
     }
 
