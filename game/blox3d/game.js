@@ -43,7 +43,7 @@
 
     // Ground with grid texture for visibility
     const groundGeo = new THREE.PlaneGeometry(200, 200);
-    
+
     // Create canvas-based grid texture
     const gridCanvas = document.createElement('canvas');
     gridCanvas.width = gridCanvas.height = 512;
@@ -66,13 +66,13 @@
     gridCtx.strokeStyle = '#0d3d0d';
     gridCtx.lineWidth = 4;
     gridCtx.strokeRect(0, 0, 512, 512);
-    
+
     const gridTexture = new THREE.CanvasTexture(gridCanvas);
     gridTexture.magFilter = THREE.NearestFilter;
     gridTexture.minFilter = THREE.NearestFilter;
     gridTexture.repeat.set(4, 4);
     gridTexture.wrapS = gridTexture.wrapT = THREE.RepeatWrapping;
-    
+
     const groundMat = new THREE.MeshStandardMaterial({ map: gridTexture, roughness: 0.8, metalness: 0.0 });
     const ground = new THREE.Mesh(groundGeo, groundMat);
     ground.rotation.x = -Math.PI / 2;
@@ -256,7 +256,7 @@
         const m = new THREE.MeshStandardMaterial({ color: 0x882200 });
         const mesh = new THREE.Mesh(g, m);
         mesh.position.set(x, y, z);
-        mesh.userData = { 
+        mesh.userData = {
             vel: new THREE.Vector3(2 + Math.random() * 2, 0, 0),
             life: 100,
             direction: 1
