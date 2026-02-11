@@ -411,7 +411,7 @@
         if (armState === 'shooting' && armMesh) {
             armShootTimer -= dt;
             const t = Math.min(1, 1 - Math.max(0, armShootTimer) / armShootDuration); // 0->1 through animation
-            
+
             // Teleport: if t < 0.1, go to forward; if t > 0.9, retract
             if (t < 0.1) {
                 // Instantly at forward position
