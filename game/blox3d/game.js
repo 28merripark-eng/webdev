@@ -5,9 +5,30 @@
     const camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 1000);
     camera.position.set(0, 6, 10);
 
+    // Camera control state (mouse drag to orbit, wheel to zoom)
+    let cameraYaw = 0; // radians, 0 = behind on +Z
+    let cameraPitch = -0.25; // radians (negative looks down)
+    let cameraDistance = 10;
+    let isDragging = false;
+    let lastX = 0, lastY = 0;
+
     const renderer = new THREE.WebGLRenderer({ antialias: true });
     renderer.setSize(window.innerWidth, window.innerHeight);
     document.body.appendChild(renderer.domElement);
+
+    // Pointer controls for camera orbit
+    renderer.domElement.addEventListener('pointerdown', (e) => { isDragging = true; lastX = e.clientX; lastY = e.clientY; renderer.domElement.setPointerCapture(e.pointerId); });
+    window.addEventListener('pointerup', () => { isDragging = false; });
+    window.addEventListener('pointermove', (e) => {
+        if (!isDragging) return;
+        const dx = e.clientX - lastX;
+        const dy = e.clientY - lastY;
+        lastX = e.clientX; lastY = e.clientY;
+        cameraYaw -= dx * 0.005;
+        cameraPitch = Math.max(-Math.PI/3, Math.min(Math.PI/3, cameraPitch - dy * 0.005));
+    });
+    // Zoom with wheel
+    renderer.domElement.addEventListener('wheel', (e) => { cameraDistance = Math.max(3, Math.min(30, cameraDistance + e.deltaY * 0.01)); });
 
     const ambient = new THREE.HemisphereLight(0xffffff, 0x444444, 0.8);
     scene.add(ambient);
@@ -83,6 +104,34 @@
     scene.add(player);
     player.velocity = new THREE.Vector3();
 
+    // GLTF loader to replace placeholder player with high-quality model if available
+    let mixer = null;
+    if (THREE && THREE.GLTFLoader) {
+        try {
+            const gltfLoader = new THREE.GLTFLoader();
+            gltfLoader.load('luffy.glb', function (gltf) {
+                const model = gltf.scene;
+                // scale and center model
+                model.scale.setScalar(1.0);
+                model.position.set(0, 0, 0);
+                // remove placeholder children and attach model to player group
+                while (player.children.length) player.remove(player.children[0]);
+                player.add(model);
+                // setup mixer for animations (if any)
+                if (gltf.animations && gltf.animations.length) {
+                    mixer = new THREE.AnimationMixer(model);
+                    const action = mixer.clipAction(gltf.animations[0]);
+                    action.play();
+                }
+                console.log('Loaded luffy.glb and attached to player');
+            }, undefined, function (err) {
+                console.warn('Failed to load luffy.glb:', err);
+            });
+        } catch (e) {
+            console.warn('GLTFLoader not available or failed to construct', e);
+        }
+    }
+
     // Floating islands
     const islands = [];
     function addIsland(x, y, z) {
@@ -153,11 +202,18 @@
         setTimeout(() => messageEl.style.display = 'none', ms);
     }
 
-    // Camera follow
+    // Camera follow using orbit variables
     function updateCamera() {
-        const desired = new THREE.Vector3(player.position.x, player.position.y + 4, player.position.z + 8);
-        camera.position.lerp(desired, 0.08);
-        camera.lookAt(player.position.x, player.position.y + 1, player.position.z);
+        const px = player.position.x, py = player.position.y, pz = player.position.z;
+        const cp = Math.cos(cameraPitch), sp = Math.sin(cameraPitch);
+        const cy = Math.cos(cameraYaw), sy = Math.sin(cameraYaw);
+        const desired = new THREE.Vector3(
+            px + Math.sin(cameraYaw) * cameraDistance * cp,
+            py + cameraDistance * sp + 1.0,
+            pz + Math.cos(cameraYaw) * cameraDistance * cp
+        );
+        camera.position.lerp(desired, 0.12);
+        camera.lookAt(new THREE.Vector3(px, py + 1.0, pz));
     }
 
     // Main loop
@@ -165,14 +221,17 @@
     function animate() {
         const dt = Math.min(0.05, clock.getDelta());
 
-        // Input
-        const forward = (keys['w'] ? 1 : 0) - (keys['s'] ? 1 : 0);
-        const strafe = (keys['d'] ? 1 : 0) - (keys['a'] ? 1 : 0);
-
-        const dir = new THREE.Vector3(strafe, 0, forward).normalize();
-        if (dir.lengthSq() > 0) {
-            const move = dir.multiplyScalar(speed * dt);
-            player.position.add(new THREE.Vector3(move.x, 0, move.z));
+        // Input (camera-relative movement)
+        const forwardIn = (keys['w'] ? 1 : 0) - (keys['s'] ? 1 : 0);
+        const strafeIn = (keys['d'] ? 1 : 0) - (keys['a'] ? 1 : 0);
+        if (forwardIn !== 0 || strafeIn !== 0) {
+            const yaw = cameraYaw;
+            const forwardVec = new THREE.Vector3(-Math.sin(yaw), 0, -Math.cos(yaw));
+            const rightVec = new THREE.Vector3(Math.cos(yaw), 0, Math.sin(yaw));
+            const moveVec = forwardVec.multiplyScalar(forwardIn).add(rightVec.multiplyScalar(strafeIn));
+            if (moveVec.lengthSq() > 0) moveVec.normalize();
+            moveVec.multiplyScalar(speed * dt);
+            player.position.add(moveVec);
         }
 
         // Jump
@@ -270,37 +329,7 @@
             }
         }
 
-        // Arm charging animation
-        const armMesh = player.userData && player.userData.arm;
-        if (armState === 'charging' && armMesh) {
-            armCharge = Math.min(1, armCharge + dt * 1.2);
-            armMesh.scale.set(1, 1, 1 + armCharge * 2);
-            armMesh.position.x = 0.6 + (-0.5 * armCharge);
-        }
-
-        // Shooting: spawn a projectile forward based on camera direction
-        if (armState === 'shooting') {
-            const dir = new THREE.Vector3();
-            camera.getWorldDirection(dir);
-            dir.y = Math.max(-0.1, dir.y);
-            dir.normalize();
-            const speedFactor = 18 + armCharge * 30;
-            const projGeo = new THREE.CylinderGeometry(0.08, 0.08, 1, 8);
-            const projMat = new THREE.MeshStandardMaterial({ color: 0xffd27f });
-            const proj = new THREE.Mesh(projGeo, projMat);
-            proj.geometry.translate(0, -0.5, 0);
-            proj.position.copy(player.position).add(new THREE.Vector3(0, 1.2, 0)).add(dir.clone().multiplyScalar(1));
-            proj.userData = { vel: dir.clone().multiplyScalar(speedFactor), life: 1.2 };
-            scene.add(proj);
-            projectiles.push(proj);
-            // reset arm visual
-            if (armMesh) {
-                armMesh.scale.set(1, 1, 1);
-                armMesh.position.set(0.6, 1.2, 0);
-            }
-            armCharge = 0;
-            armState = 'idle';
-        }
+        
 
         // Update projectiles
         for (let i = projectiles.length - 1; i >= 0; i--) {
@@ -323,6 +352,9 @@
                 projectiles.splice(i, 1);
             }
         }
+
+        // update gltf animation mixer if present
+        if (mixer) mixer.update(dt);
 
         // Simple floating islands bob
         const t = performance.now() * 0.001;
