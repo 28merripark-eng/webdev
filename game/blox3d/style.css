@@ -1,0 +1,6 @@
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html, body { height: 100%; width: 100%; overflow: hidden; font-family: Arial, sans-serif; }
+canvas { display: block; }
+#ui { position: absolute; top: 12px; left: 12px; color: #fff; z-index: 10; }
+#info { background: rgba(0,0,0,0.5); padding: 8px 12px; border-radius: 6px; }
+#message { position: absolute; left: 50%; transform: translateX(-50%); top: 12px; background: rgba(0,0,0,0.6); color: #fff; padding: 6px 10px; border-radius: 6px; display: none; }
