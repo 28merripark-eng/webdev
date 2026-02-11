@@ -24,10 +24,65 @@
     scene.add(ground);
 
     // Player
-    const player = new THREE.Mesh(new THREE.SphereGeometry(0.5, 16, 16), new THREE.MeshStandardMaterial({ color: 0xffd27f }));
-    player.position.set(0, 0.5, 0);
-    scene.add(player);
-    player.velocity = new THREE.Vector3();
+        // Player (Luffy-inspired stylized model + arm ability)
+        function createPlayerModel(){
+            const group = new THREE.Group();
+
+            // Body
+            const bodyGeo = new THREE.CylinderGeometry(0.5, 0.6, 1.2, 12);
+            const bodyMat = new THREE.MeshStandardMaterial({color:0xff4d4d});
+            const body = new THREE.Mesh(bodyGeo, bodyMat);
+            body.position.y = 0.6;
+            group.add(body);
+
+            // Head
+            const headGeo = new THREE.SphereGeometry(0.45, 16, 16);
+            const headMat = new THREE.MeshStandardMaterial({color:0xffe0c0});
+            const head = new THREE.Mesh(headGeo, headMat);
+            head.position.y = 1.5;
+            group.add(head);
+
+            // Straw hat (stylized)
+            const hatBrim = new THREE.TorusGeometry(0.65, 0.12, 8, 40);
+            const brimMat = new THREE.MeshStandardMaterial({color:0xffd700});
+            const brim = new THREE.Mesh(hatBrim, brimMat);
+            brim.rotation.x = Math.PI/2;
+            brim.position.y = 1.85;
+            group.add(brim);
+
+            const hatTopGeo = new THREE.CylinderGeometry(0.35, 0.35, 0.2, 12);
+            const hatTop = new THREE.Mesh(hatTopGeo, brimMat);
+            hatTop.position.y = 2.0;
+            group.add(hatTop);
+
+            // Simple legs
+            const legGeo = new THREE.CylinderGeometry(0.18,0.18,0.8,8);
+            const legMat = new THREE.MeshStandardMaterial({color:0x2b2b2b});
+            const leftLeg = new THREE.Mesh(legGeo, legMat);
+            leftLeg.position.set(-0.18,0.0,0);
+            const rightLeg = leftLeg.clone();
+            rightLeg.position.x = 0.18;
+            group.add(leftLeg, rightLeg);
+
+            // Arm (right) — will be animated for Gum-Gum
+            const armGeo = new THREE.CylinderGeometry(0.12,0.12,1.0,8);
+            const armMat = new THREE.MeshStandardMaterial({color:0xffd27f});
+            const arm = new THREE.Mesh(armGeo, armMat);
+            arm.geometry.translate(0, -0.5, 0); // pivot at shoulder
+            arm.position.set(0.6, 1.2, 0);
+            arm.rotation.z = Math.PI/2;
+            arm.name = 'arm';
+            group.add(arm);
+
+            // store refs
+            group.userData = { body, head, arm };
+            return group;
+        }
+
+        const player = createPlayerModel();
+        player.position.set(0, 0.5, 0);
+        scene.add(player);
+        player.velocity = new THREE.Vector3();
 
     // Floating islands
     const islands = [];
@@ -67,6 +122,12 @@
     const keys = {};
     window.addEventListener('keydown', e => keys[e.key.toLowerCase()] = true);
     window.addEventListener('keyup', e => keys[e.key.toLowerCase()] = false);
+
+    // Gum-Gum arm state
+    let armCharging = false;
+    let armCharge = 0; // 0..1
+    let armState = 'idle'; // idle, charging, shooting
+    const projectiles = [];
 
     // Simple physics params
     const GRAVITY = -20;
@@ -140,6 +201,71 @@
                 speed = 9;
                 setTimeout(() => speed = 5, 4000);
                 showMessage('Fruit collected! Speed boosted');
+            }
+        }
+
+        // Gum-Gum input: start charging while K held, release to shoot
+        if (keys['k'] && armState === 'idle'){
+            armState = 'charging';
+            armCharging = true;
+            armCharge = 0;
+        }
+        if (!keys['k'] && armCharging && armState === 'charging'){
+            armState = 'shooting';
+            armCharging = false;
+        }
+
+        // Arm charging animation
+        const armMesh = player.userData && player.userData.arm;
+        if (armState === 'charging' && armMesh){
+            armCharge = Math.min(1, armCharge + dt * 1.2);
+            armMesh.scale.set(1, 1, 1 + armCharge * 2);
+            armMesh.position.x = 0.6 + (-0.5 * armCharge);
+        }
+
+        // Shooting: spawn a projectile forward based on camera direction
+        if (armState === 'shooting'){
+            const dir = new THREE.Vector3();
+            camera.getWorldDirection(dir);
+            dir.y = Math.max(-0.1, dir.y);
+            dir.normalize();
+            const speedFactor = 18 + armCharge * 30;
+            const projGeo = new THREE.CylinderGeometry(0.08,0.08,1,8);
+            const projMat = new THREE.MeshStandardMaterial({color:0xffd27f});
+            const proj = new THREE.Mesh(projGeo, projMat);
+            proj.geometry.translate(0, -0.5, 0);
+            proj.position.copy(player.position).add(new THREE.Vector3(0,1.2,0)).add(dir.clone().multiplyScalar(1));
+            proj.userData = { vel: dir.clone().multiplyScalar(speedFactor), life: 1.2 };
+            scene.add(proj);
+            projectiles.push(proj);
+            // reset arm visual
+            if (armMesh){
+                armMesh.scale.set(1,1,1);
+                armMesh.position.set(0.6,1.2,0);
+            }
+            armCharge = 0;
+            armState = 'idle';
+        }
+
+        // Update projectiles
+        for (let i = projectiles.length-1; i>=0; i--){
+            const p = projectiles[i];
+            p.position.add(p.userData.vel.clone().multiplyScalar(dt));
+            p.userData.life -= dt;
+            // check fruit collision
+            for (let f of fruits){
+                if (f.userData.collected) continue;
+                if (p.position.distanceTo(f.position) < 0.8){
+                    f.userData.collected = true;
+                    scene.remove(f);
+                    fruitCount++;
+                    fruitCountEl.textContent = fruitCount;
+                    showMessage('Fruit knocked away!');
+                }
+            }
+            if (p.userData.life <= 0){
+                scene.remove(p);
+                projectiles.splice(i,1);
             }
         }
 
