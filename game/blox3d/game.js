@@ -41,9 +41,39 @@
     dir.position.set(5, 10, 7);
     scene.add(dir);
 
-    // Ground
+    // Ground with grid texture for visibility
     const groundGeo = new THREE.PlaneGeometry(200, 200);
-    const groundMat = new THREE.MeshStandardMaterial({ color: 0x228B22 });
+    
+    // Create canvas-based grid texture
+    const gridCanvas = document.createElement('canvas');
+    gridCanvas.width = gridCanvas.height = 512;
+    const gridCtx = gridCanvas.getContext('2d');
+    gridCtx.fillStyle = '#228B22';
+    gridCtx.fillRect(0, 0, 512, 512);
+    gridCtx.strokeStyle = '#1a6b1a';
+    gridCtx.lineWidth = 2;
+    const gridSize = 64;
+    for (let i = 0; i <= 512; i += gridSize) {
+        gridCtx.beginPath();
+        gridCtx.moveTo(i, 0);
+        gridCtx.lineTo(i, 512);
+        gridCtx.stroke();
+        gridCtx.beginPath();
+        gridCtx.moveTo(0, i);
+        gridCtx.lineTo(512, i);
+        gridCtx.stroke();
+    }
+    gridCtx.strokeStyle = '#0d3d0d';
+    gridCtx.lineWidth = 4;
+    gridCtx.strokeRect(0, 0, 512, 512);
+    
+    const gridTexture = new THREE.CanvasTexture(gridCanvas);
+    gridTexture.magFilter = THREE.NearestFilter;
+    gridTexture.minFilter = THREE.NearestFilter;
+    gridTexture.repeat.set(4, 4);
+    gridTexture.wrapS = gridTexture.wrapT = THREE.RepeatWrapping;
+    
+    const groundMat = new THREE.MeshStandardMaterial({ map: gridTexture, roughness: 0.8, metalness: 0.0 });
     const ground = new THREE.Mesh(groundGeo, groundMat);
     ground.rotation.x = -Math.PI / 2;
     ground.position.y = -1;
@@ -197,7 +227,7 @@
     addIsland(6, 2, -4);
     addIsland(-6, 3, 0);
 
-    // Fruits (pickups)
+    // Fruits (pickups) - MORE FRUITS FOR EASY COLLECTION
     const fruits = [];
     function spawnFruit(x, y, z, color) {
         const g = new THREE.SphereGeometry(0.35, 12, 12);
@@ -208,9 +238,38 @@
         scene.add(mesh);
         fruits.push(mesh);
     }
+    // Original fruits on islands
     spawnFruit(6, 3.5, -4, 0xff0000);
     spawnFruit(-6, 3.5, 0, 0x00ffcc);
     spawnFruit(0, 0.6, -8, 0xffff00);
+    // Extra fruits on ground level for easy access
+    spawnFruit(2, 0.8, 0, 0xff6600);
+    spawnFruit(-2, 0.8, 2, 0xff00ff);
+    spawnFruit(0, 0.8, -3, 0x00ff00);
+    spawnFruit(4, 0.8, 4, 0xffff00);
+    spawnFruit(-4, 0.8, -4, 0x00ffff);
+
+    // Enemies
+    const enemies = [];
+    function spawnEnemy(x, y, z) {
+        const g = new THREE.BoxGeometry(0.6, 1.0, 0.6);
+        const m = new THREE.MeshStandardMaterial({ color: 0x882200 });
+        const mesh = new THREE.Mesh(g, m);
+        mesh.position.set(x, y, z);
+        mesh.userData = { 
+            vel: new THREE.Vector3(2 + Math.random() * 2, 0, 0),
+            life: 100,
+            direction: 1
+        };
+        scene.add(mesh);
+        enemies.push(mesh);
+    }
+    // Spawn enemies around the map
+    spawnEnemy(8, 1.0, 4);
+    spawnEnemy(-8, 1.0, -4);
+    spawnEnemy(10, 0.5, 0);
+    spawnEnemy(-10, 0.5, 8);
+    spawnEnemy(0, 0.5, 10);
 
     // UI
     const fruitCountEl = document.getElementById('fruitCount');
@@ -484,6 +543,28 @@
             }
         }
 
+        // Arm collision with enemies (punch detection)
+        if (armState === 'shooting' && armMesh && armMesh.userData.fired) {
+            const armTip = new THREE.Vector3().copy(player.position).add(new THREE.Vector3(0, 1.2, 0)).add(frontDir.clone().multiplyScalar(armMesh.scale.z * 0.5));
+            for (let i = enemies.length - 1; i >= 0; i--) {
+                const enemy = enemies[i];
+                const dist = armTip.distanceTo(enemy.position);
+                if (dist < 1.5) {
+                    enemy.userData.life -= 25;
+                    if (enemy.userData.life <= 0) {
+                        scene.remove(enemy);
+                        enemies.splice(i, 1);
+                        showMessage('⭐ Enemy defeated!');
+                    } else {
+                        const knockDir = new THREE.Vector3().subVectors(enemy.position, armTip).normalize();
+                        enemy.position.add(knockDir.multiplyScalar(3));
+                        showMessage('💥 Punch hit!');
+                    }
+                    break;
+                }
+            }
+        }
+
         // Gear 3 inflation animation (arm to mouth, then inflate)
         if (gearLevel === 3 && gear3InflationTimer > 0 && armMesh) {
             gear3InflationTimer -= dt;
@@ -538,6 +619,29 @@
         // Simple floating islands bob
         const t = performance.now() * 0.001;
         islands.forEach((isl, i) => isl.position.y += Math.sin(t + i) * 0.0005);
+
+        // Update enemies - patrol and bounce off edges
+        for (let enemy of enemies) {
+            // Simple patrol movement
+            enemy.position.x += enemy.userData.vel.x * enemy.userData.direction * dt;
+            enemy.position.z += (Math.sin(t + enemies.indexOf(enemy)) * 1.5) * dt;
+
+            // Bounce off edges
+            if (Math.abs(enemy.position.x) > 15) {
+                enemy.userData.direction *= -1;
+            }
+            if (Math.abs(enemy.position.z) > 15) {
+                enemy.position.z = Math.sign(enemy.position.z) * 14;
+            }
+
+            // Simple enemy-player collision (push player back)
+            const dist = player.position.distanceTo(enemy.position);
+            if (dist < 2) {
+                const pushDir = new THREE.Vector3().subVectors(player.position, enemy.position).normalize();
+                player.position.add(pushDir.multiplyScalar(0.5 * dt));
+                showMessage('💥 Hit by enemy!');
+            }
+        }
 
         updateCamera();
         renderer.render(scene, camera);
