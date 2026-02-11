@@ -232,14 +232,14 @@
         // Gear switching
         if (key === '2') {
             gearLevel = gearLevel === 2 ? 1 : 2;
-            gearSpeedMult = gearLevel === 2 ? 500000 : 1.0;
+            gearSpeedMult = gearLevel === 2 ? 100000000 : 1.0;
             gearLevelEl.textContent = gearLevel;
             if (gearLevel === 2) {
                 // Gear 2: Light pink color
                 if (player.userData && player.userData.bodyMat) {
                     player.userData.bodyMat.color.setHex(0xff99cc);
                 }
-                showMessage('⚡ GEAR 2! SPEED x500000 - LIGHTNING FAST!');
+                showMessage('⚡ GEAR 2! SPEED x100000000 - HYPERSONIC!');
             } else {
                 // Back to normal red
                 if (player.userData && player.userData.bodyMat) {
@@ -409,7 +409,8 @@
         if (!keys['k'] && armCharging && armState === 'charging') {
             armState = 'shooting';
             armCharging = false;
-            armShootTimer = armShootDuration;
+            const adjustedShootDuration = gearLevel === 2 ? armShootDuration / 50 : armShootDuration;
+            armShootTimer = adjustedShootDuration;
         }
 
         // Make player face the camera (yaw)
@@ -429,8 +430,11 @@
         const behindDir = aimDir.clone().multiplyScalar(-1); // opposite of aim direction (back)
         const frontDir = aimDir.clone(); // aim direction (forward)
 
+        // Arm charge speed multiplier based on gear
+        const armChargeSpeedMult = gearLevel === 2 ? 50 : 1.0;
+
         if (armState === 'charging' && armMesh) {
-            armCharge = Math.min(1, armCharge + dt * 1.4);
+            armCharge = Math.min(1, armCharge + dt * 1.4 * armChargeSpeedMult);
             // Stretch arm straight back (pull back away from aim direction)
             const backDistance = 0.6 + armCharge * 2.0;
             const backTarget = shoulderWorld.clone().add(behindDir.clone().multiplyScalar(backDistance));
@@ -440,8 +444,9 @@
 
         // Shooting animation: teleport arm from back to aim direction instantly, then retract
         if (armState === 'shooting' && armMesh) {
+            const adjustedShootDuration = gearLevel === 2 ? armShootDuration / 50 : armShootDuration;
             armShootTimer -= dt;
-            const t = Math.min(1, 1 - Math.max(0, armShootTimer) / armShootDuration); // 0->1 through animation
+            const t = Math.min(1, 1 - Math.max(0, armShootTimer) / adjustedShootDuration); // 0->1 through animation
 
             // Teleport: if t < 0.1, go to forward; if t > 0.9, retract
             if (t < 0.1) {
