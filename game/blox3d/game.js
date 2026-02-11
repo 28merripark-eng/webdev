@@ -342,7 +342,7 @@
                 fruitCountEl.textContent = fruitCount;
                 // simple effect: increase speed briefly
                 speed = 9;
-                setTimeout(() => speed = 5, 4000);
+                setTimeout(() => speed = 100, 4000);
                 showMessage('Fruit collected! Speed boosted');
             }
         }
