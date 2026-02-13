@@ -31,6 +31,12 @@ function spawnEnemy(level = 1) {
 // Start first enemy
 spawnEnemy(1);
 
+// Player state
+state.player = { hp: 100, maxHp: 100, inv: 0 };
+
+// Enemy attack behavior: every second enemy may attack player when alive
+let enemyAttackTimer = 0;
+
 const shopDefs = [
     { id: 'luffy', name: 'Recruit Luffy', cost: 50, cps: 1, description: 'Gum-Gum enthusiasm (+1 cps)' },
     { id: 'zoro', name: 'Recruit Zoro', cost: 250, cps: 6, description: 'Swords + steady damage (+6 cps)' },
@@ -78,10 +84,18 @@ const enemyHpFill = document.getElementById('enemyHpFill');
 const enemyHpText = document.getElementById('enemyHpText');
 const defeatedEl = document.getElementById('defeated');
 const enemySprite = document.getElementById('enemySprite');
+const playerSprite = document.getElementById('playerSprite');
+const playerHpFill = document.getElementById('playerHpFill');
+const playerHpText = document.getElementById('playerHpText');
 // prefer user-supplied luffy.png in the clicker folder, fall back to images/luffy.svg
 if (enemySprite) {
-    enemySprite.src = 'luffy.png';
-    enemySprite.onerror = () => { enemySprite.onerror = null; enemySprite.src = 'images/luffy.svg'; };
+    // enemy uses our bandit sprite
+    enemySprite.src = 'images/bandit.svg';
+}
+// player sprite prefers user-supplied luffy.png
+if (playerSprite) {
+    playerSprite.src = 'luffy.png';
+    playerSprite.onerror = () => { playerSprite.onerror = null; playerSprite.src = 'images/luffy.svg'; };
 }
 function updateEnemyUI() {
     if (!state.enemy) {
@@ -97,6 +111,12 @@ function updateEnemyUI() {
         enemyHpText.textContent = `HP: ${Math.max(0, state.enemy.hp)} / ${state.enemy.maxHp}`;
     }
     if (defeatedEl) defeatedEl.textContent = String(state.banditsDefeated || 0);
+    // update player HP display
+    if (playerHpFill) {
+        const pPct = Math.max(0, (state.player.hp / state.player.maxHp) * 100);
+        playerHpFill.style.width = pPct + '%';
+    }
+    if (playerHpText) playerHpText.textContent = `HP: ${Math.max(0, state.player.hp)} / ${state.player.maxHp}`;
 }
 
 clickBtn.addEventListener('click', () => {
@@ -111,9 +131,16 @@ clickBtn.addEventListener('click', () => {
             state.berries += state.enemy.reward;
             // count defeated bandits
             state.banditsDefeated = (state.banditsDefeated || 0) + 1;
-            // spawn next enemy (increase level)
-            const nextLv = state.enemy.level + 1;
-            spawnEnemy(nextLv);
+            // play enemy flash and fallen animation then spawn next after short delay
+            if (enemySprite) enemySprite.classList.add('flash');
+            setTimeout(() => {
+                if (enemySprite) { enemySprite.classList.remove('flash'); enemySprite.classList.add('fallen'); }
+            }, 120);
+            setTimeout(() => {
+                if (enemySprite) enemySprite.classList.remove('fallen');
+                const nextLv = state.enemy.level + 1;
+                spawnEnemy(nextLv);
+            }, 900);
         }
         updateUI();
         return;
@@ -144,6 +171,44 @@ setInterval(() => {
     state.berries += state.cps;
     updateUI();
 }, 1000);
+
+// enemy attack/logic tick (runs every 200ms)
+setInterval(() => {
+    // decrement invulns
+    if (state.player.inv > 0) state.player.inv -= 1;
+    if (!state.enemy) return;
+    enemyAttackTimer += 200;
+    if (enemyAttackTimer >= 900) {
+        enemyAttackTimer = 0;
+        // simple chance to attack
+        if (Math.random() < 0.85) {
+            // enemy deals damage relative to its level
+            const dmg = Math.max(1, Math.round(2 * Math.pow(1.15, state.enemy.level - 1)));
+            if (state.player.inv <= 0) {
+                state.player.hp -= dmg;
+                state.player.inv = 6; // short inv frames (6 ticks @200ms = 1.2s)
+                // hit flash
+                if (playerSprite) {
+                    playerSprite.classList.add('flash');
+                    setTimeout(() => playerSprite.classList.remove('flash'), 300);
+                }
+            }
+            // if player dies, play fallen animation and revive after delay
+            if (state.player.hp <= 0) {
+                state.player.hp = 0;
+                if (playerSprite) playerSprite.classList.add('flash');
+                if (playerSprite) setTimeout(() => { if (playerSprite) playerSprite.classList.add('fallen'); }, 120);
+                // revive after 2.2s
+                setTimeout(() => {
+                    if (playerSprite) { playerSprite.classList.remove('fallen'); playerSprite.classList.remove('flash'); }
+                    state.player.hp = state.player.maxHp;
+                    updateUI();
+                }, 2200);
+            }
+            updateUI();
+        }
+    }
+}, 200);
 
 // Save / Load
 function save() {
