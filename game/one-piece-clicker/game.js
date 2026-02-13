@@ -18,6 +18,8 @@ let state = {
 state.banditsDefeated = 0;
 // damage upgrade level
 state.upgradeDamageLevel = 0;
+// health upgrade level
+state.upgradeHealthLevel = 0;
 
 // Enemy battle state
 state.enemy = null; // will be { level, hp, maxHp, reward, name }
@@ -87,11 +89,19 @@ function updateUI() {
         const cost = getUpgradeCost(state.upgradeDamageLevel || 0);
         if (upgradeCostEl) upgradeCostEl.textContent = format(cost);
         if (upgradeLevelEl) upgradeLevelEl.textContent = String(state.upgradeDamageLevel || 0);
+        // health upgrade UI
+        const hcost = getUpgradeHealthCost(state.upgradeHealthLevel || 0);
+        if (upgradeHealthCostEl) upgradeHealthCostEl.textContent = format(hcost);
+        if (upgradeHealthLevelEl) upgradeHealthLevelEl.textContent = String(state.upgradeHealthLevel || 0);
     } catch (e) { }
 }
 
 function getUpgradeCost(level) {
     return Math.round(20 * Math.pow(2, level));
+}
+
+function getUpgradeHealthCost(level) {
+    return Math.round(30 * Math.pow(2, level));
 }
 
 // Enemy UI helpers
@@ -113,6 +123,9 @@ const redhawkCooldownEl = document.getElementById('redhawkCooldown');
 const upgradeBtn = document.getElementById('upgradeDamageBtn');
 const upgradeCostEl = document.getElementById('upgradeCost');
 const upgradeLevelEl = document.getElementById('upgradeLevel');
+const upgradeHealthBtn = document.getElementById('upgradeHealthBtn');
+const upgradeHealthCostEl = document.getElementById('upgradeHealthCost');
+const upgradeHealthLevelEl = document.getElementById('upgradeHealthLevel');
 const consoleEl = document.getElementById('gameConsole');
 // Ensure enemy bandit sprite shows up
 if (enemySprite) {
@@ -415,6 +428,24 @@ if (redhawkBtn) {
     });
 }
 
+// Health upgrade: increases player's max HP and fully heals
+if (upgradeHealthBtn) {
+    upgradeHealthBtn.addEventListener('click', () => {
+        const lvl = state.upgradeHealthLevel || 0;
+        const cost = getUpgradeHealthCost(lvl);
+        if (state.berries < cost) return alert('Not enough Berries to upgrade health');
+        state.berries -= cost;
+        state.upgradeHealthLevel = lvl + 1;
+        // increase max HP (base + scaling)
+        const increase = Math.round(25 * Math.pow(1.12, lvl));
+        state.player.maxHp = (state.player.maxHp || 100) + increase;
+        // fully heal on upgrade
+        state.player.hp = state.player.maxHp;
+        addConsoleMessage(`Luffy's max HP increased by ${increase} and is fully healed.`);
+        updateUI();
+    });
+}
+
 // Upgrade Damage handler
 if (upgradeBtn) {
     upgradeBtn.addEventListener('click', () => {
@@ -512,6 +543,7 @@ function reset() {
         items: [],
         banditsDefeated: 0,
         upgradeDamageLevel: 0,
+        upgradeHealthLevel: 0,
         player: { hp: 100, maxHp: 100, inv: 0 },
         enemy: null
     };
