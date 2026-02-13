@@ -87,7 +87,7 @@ function updateUI() {
         const cost = getUpgradeCost(state.upgradeDamageLevel || 0);
         if (upgradeCostEl) upgradeCostEl.textContent = format(cost);
         if (upgradeLevelEl) upgradeLevelEl.textContent = String(state.upgradeDamageLevel || 0);
-    } catch (e) {}
+    } catch (e) { }
 }
 
 function getUpgradeCost(level) {
