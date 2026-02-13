@@ -15,6 +15,20 @@ let state = {
     items: []
 };
 
+// Enemy battle state
+state.enemy = null; // will be { level, hp, maxHp, reward, name }
+
+function spawnEnemy(level = 1) {
+    const baseHp = 20;
+    const hp = Math.round(baseHp * Math.pow(1.28, level - 1));
+    const reward = Math.round(5 * Math.pow(1.5, level - 1));
+    state.enemy = { level, hp, maxHp: hp, reward, name: level === 1 ? 'Bandit' : `Bandit Lv.${level}` };
+    updateEnemyUI();
+}
+
+// Start first enemy
+spawnEnemy(1);
+
 const shopDefs = [
     { id: 'luffy', name: 'Recruit Luffy', cost: 50, cps: 1, description: 'Gum-Gum enthusiasm (+1 cps)' },
     { id: 'zoro', name: 'Recruit Zoro', cost: 250, cps: 6, description: 'Swords + steady damage (+6 cps)' },
@@ -52,9 +66,40 @@ function updateUI() {
     berriesEl.textContent = format(state.berries);
     perClickEl.textContent = format(state.perClick);
     cpsEl.textContent = format(state.cps);
+    updateEnemyUI();
+}
+
+// Enemy UI helpers
+const enemyNameEl = document.getElementById('enemyName');
+const enemyLevelEl = document.getElementById('enemyLevel');
+const enemyHpFill = document.getElementById('enemyHpFill');
+const enemyHpText = document.getElementById('enemyHpText');
+function updateEnemyUI(){
+    if(!state.enemy){ enemyNameEl.textContent = ''; enemyLevelEl.textContent = ''; enemyHpFill.style.width = '0%'; enemyHpText.textContent=''; return }
+    enemyNameEl.textContent = state.enemy.name;
+    enemyLevelEl.textContent = `Lv. ${state.enemy.level}`;
+    const pct = Math.max(0, (state.enemy.hp / state.enemy.maxHp) * 100);
+    enemyHpFill.style.width = pct + '%';
+    enemyHpText.textContent = `HP: ${Math.max(0, state.enemy.hp)} / ${state.enemy.maxHp}`;
 }
 
 clickBtn.addEventListener('click', () => {
+    // If an enemy exists, attack it instead of just collecting
+    if(state.enemy){
+        state.enemy.hp -= state.perClick;
+        // small hit flash
+        clickBtn.style.transform = 'scale(0.97)';
+        setTimeout(()=>clickBtn.style.transform='',80);
+        if(state.enemy.hp <= 0){
+            // reward player
+            state.berries += state.enemy.reward;
+            // spawn next enemy (increase level)
+            const nextLv = state.enemy.level + 1;
+            spawnEnemy(nextLv);
+        }
+        updateUI();
+        return;
+    }
     state.berries += state.perClick;
     // small pop animation
     clickBtn.style.transform = 'scale(0.97)';
