@@ -24,7 +24,12 @@ function spawnEnemy(level = 1) {
     const baseHp = 20;
     const hp = Math.round(baseHp * Math.pow(1.28, level - 1));
     const reward = Math.round(5 * Math.pow(1.5, level - 1));
-    state.enemy = { level, hp, maxHp: hp, reward, name: level === 1 ? 'Bandit' : `Bandit Lv.${level}` };
+    // choose a bandit variant sprite based on level
+    const variant = ((level - 1) % 3) + 1; // 1..3
+    const name = level === 1 ? 'Bandit' : `Bandit Lv.${level}`;
+    state.enemy = { level, hp, maxHp: hp, reward, name, variant };
+    // set sprite src
+    if (enemySprite) enemySprite.src = `images/bandit${variant}.svg`;
     updateEnemyUI();
 }
 
@@ -94,13 +99,13 @@ if (enemySprite) {
 
 // Player sprite: try several likely One-Piece images from the workspace then fallback to svg
 if (playerSprite) {
-    // preference order: local luffy.png, shared 2d image, resume luffy, fallback svg
+    // preference order: local packaged SVG first (guaranteed), then other fallbacks
     const candidates = [
+        'images/luffy.svg',
         'luffy.png',
         '../one-piece-2d/images/16bitluffy.jpg',
         '../one-piece-2d/images/Screenshot 2026-01-30 100317.png',
-        '../resume/images/luffy.jpg',
-        'images/luffy.svg'
+        '../resume/images/luffy.jpg'
     ];
     let idx = 0;
     function tryNext() {
