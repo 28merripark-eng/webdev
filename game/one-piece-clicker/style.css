@@ -152,6 +152,29 @@ header {
     transform: scale(.97)
 }
 
+.small-btn {
+    font-size: 16px;
+    padding: 10px 14px;
+    border-radius: 8px;
+    border: 2px solid #333;
+    background: linear-gradient(#ffe, #ffd2);
+    cursor: pointer;
+    width: 100%;
+    margin-top: 8px;
+}
+
+.small-btn:disabled {
+    opacity: 0.5;
+    cursor: default;
+}
+
+.cooldown {
+    display: inline-block;
+    margin-left: 8px;
+    font-size: 13px;
+    color: #333;
+}
+
 #shop {
     background: #fff;
     border-radius: 6px;

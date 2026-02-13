@@ -92,6 +92,8 @@ const enemySprite = document.getElementById('enemySprite');
 const playerSprite = document.getElementById('playerSprite');
 const playerHpFill = document.getElementById('playerHpFill');
 const playerHpText = document.getElementById('playerHpText');
+const bazookaBtn = document.getElementById('bazookaBtn');
+const bazookaCooldownEl = document.getElementById('bazookaCooldown');
 // Ensure enemy bandit sprite shows up
 if (enemySprite) {
     enemySprite.src = 'images/bandit.svg';
@@ -136,6 +138,11 @@ function updateEnemyUI() {
         playerHpFill.style.width = pPct + '%';
     }
     if (playerHpText) playerHpText.textContent = `HP: ${Math.max(0, state.player.hp)} / ${state.player.maxHp}`;
+    // bazooka cooldown UI
+    if (bazookaBtn) {
+        bazookaBtn.disabled = !!bazookaBtn.dataset.cooldown;
+    }
+    if (bazookaCooldownEl) bazookaCooldownEl.textContent = '';
 }
 
 clickBtn.addEventListener('click', () => {
@@ -170,6 +177,58 @@ clickBtn.addEventListener('click', () => {
     setTimeout(() => clickBtn.style.transform = '', 80);
     updateUI();
 });
+
+// Bazooka special: 100 damage, 15s cooldown
+const BAZOOKA_DAMAGE = 100;
+const BAZOOKA_COOLDOWN_MS = 15000;
+let bazookaTimer = null;
+
+function startBazookaCooldown() {
+    if (!bazookaBtn) return;
+    const ms = BAZOOKA_COOLDOWN_MS;
+    const end = Date.now() + ms;
+    bazookaBtn.dataset.cooldown = '1';
+    bazookaBtn.disabled = true;
+    if (bazookaCooldownEl) bazookaCooldownEl.textContent = Math.ceil(ms / 1000) + 's';
+    bazookaTimer = setInterval(() => {
+        const remaining = Math.max(0, end - Date.now());
+        if (bazookaCooldownEl) bazookaCooldownEl.textContent = remaining > 0 ? Math.ceil(remaining / 1000) + 's' : '';
+        if (remaining <= 0) {
+            clearInterval(bazookaTimer); bazookaTimer = null;
+            delete bazookaBtn.dataset.cooldown;
+            bazookaBtn.disabled = false;
+            if (bazookaCooldownEl) bazookaCooldownEl.textContent = '';
+        }
+    }, 250);
+}
+
+if (bazookaBtn) {
+    bazookaBtn.addEventListener('click', () => {
+        if (!state.enemy) return alert('No enemy to use Bazooka on');
+        if (bazookaBtn.dataset.cooldown) return; // still cooling down
+        // apply big damage
+        state.enemy.hp -= BAZOOKA_DAMAGE;
+        // big attack visual: brief scale on button
+        bazookaBtn.style.transform = 'scale(0.96)';
+        setTimeout(() => bazookaBtn.style.transform = '', 120);
+
+        if (state.enemy.hp <= 0) {
+            state.berries += state.enemy.reward;
+            state.banditsDefeated = (state.banditsDefeated || 0) + 1;
+            if (enemySprite) enemySprite.classList.add('flash');
+            setTimeout(() => {
+                if (enemySprite) { enemySprite.classList.remove('flash'); enemySprite.classList.add('fallen'); }
+            }, 120);
+            setTimeout(() => {
+                if (enemySprite) enemySprite.classList.remove('fallen');
+                const nextLv = state.enemy.level + 1;
+                spawnEnemy(nextLv);
+            }, 900);
+        }
+        updateUI();
+        startBazookaCooldown();
+    });
+}
 
 shopList.addEventListener('click', (ev) => {
     const btn = ev.target.closest('button[data-id]');
