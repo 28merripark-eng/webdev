@@ -87,15 +87,29 @@ const enemySprite = document.getElementById('enemySprite');
 const playerSprite = document.getElementById('playerSprite');
 const playerHpFill = document.getElementById('playerHpFill');
 const playerHpText = document.getElementById('playerHpText');
-// prefer user-supplied luffy.png in the clicker folder, fall back to images/luffy.svg
+// Ensure enemy bandit sprite shows up
 if (enemySprite) {
-    // enemy uses our bandit sprite
     enemySprite.src = 'images/bandit.svg';
 }
-// player sprite prefers user-supplied luffy.png
+
+// Player sprite: try several likely One-Piece images from the workspace then fallback to svg
 if (playerSprite) {
-    playerSprite.src = 'luffy.png';
-    playerSprite.onerror = () => { playerSprite.onerror = null; playerSprite.src = 'images/luffy.svg'; };
+    // preference order: local luffy.png, shared 2d image, resume luffy, fallback svg
+    const candidates = [
+        'luffy.png',
+        '../one-piece-2d/images/16bitluffy.jpg',
+        '../one-piece-2d/images/Screenshot 2026-01-30 100317.png',
+        '../resume/images/luffy.jpg',
+        'images/luffy.svg'
+    ];
+    let idx = 0;
+    function tryNext() {
+        if (idx >= candidates.length) return;
+        const p = candidates[idx++];
+        playerSprite.src = p;
+    }
+    playerSprite.onerror = () => { tryNext(); };
+    tryNext();
 }
 function updateEnemyUI() {
     if (!state.enemy) {
