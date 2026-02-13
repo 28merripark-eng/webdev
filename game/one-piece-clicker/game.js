@@ -74,8 +74,8 @@ const enemyNameEl = document.getElementById('enemyName');
 const enemyLevelEl = document.getElementById('enemyLevel');
 const enemyHpFill = document.getElementById('enemyHpFill');
 const enemyHpText = document.getElementById('enemyHpText');
-function updateEnemyUI(){
-    if(!state.enemy){ enemyNameEl.textContent = ''; enemyLevelEl.textContent = ''; enemyHpFill.style.width = '0%'; enemyHpText.textContent=''; return }
+function updateEnemyUI() {
+    if (!state.enemy) { enemyNameEl.textContent = ''; enemyLevelEl.textContent = ''; enemyHpFill.style.width = '0%'; enemyHpText.textContent = ''; return }
     enemyNameEl.textContent = state.enemy.name;
     enemyLevelEl.textContent = `Lv. ${state.enemy.level}`;
     const pct = Math.max(0, (state.enemy.hp / state.enemy.maxHp) * 100);
@@ -85,12 +85,12 @@ function updateEnemyUI(){
 
 clickBtn.addEventListener('click', () => {
     // If an enemy exists, attack it instead of just collecting
-    if(state.enemy){
+    if (state.enemy) {
         state.enemy.hp -= state.perClick;
         // small hit flash
         clickBtn.style.transform = 'scale(0.97)';
-        setTimeout(()=>clickBtn.style.transform='',80);
-        if(state.enemy.hp <= 0){
+        setTimeout(() => clickBtn.style.transform = '', 80);
+        if (state.enemy.hp <= 0) {
             // reward player
             state.berries += state.enemy.reward;
             // spawn next enemy (increase level)
