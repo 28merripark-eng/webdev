@@ -16,6 +16,8 @@ let state = {
 };
 // track how many bandits defeated
 state.banditsDefeated = 0;
+// damage upgrade level
+state.upgradeDamageLevel = 0;
 
 // Enemy battle state
 state.enemy = null; // will be { level, hp, maxHp, reward, name }
@@ -80,6 +82,16 @@ function updateUI() {
     perClickEl.textContent = format(state.perClick);
     cpsEl.textContent = format(state.cps);
     updateEnemyUI();
+    // upgrade UI
+    try {
+        const cost = getUpgradeCost(state.upgradeDamageLevel || 0);
+        if (upgradeCostEl) upgradeCostEl.textContent = format(cost);
+        if (upgradeLevelEl) upgradeLevelEl.textContent = String(state.upgradeDamageLevel || 0);
+    } catch (e) {}
+}
+
+function getUpgradeCost(level) {
+    return Math.round(20 * Math.pow(2, level));
 }
 
 // Enemy UI helpers
@@ -98,6 +110,9 @@ const gatlingBtn = document.getElementById('gatlingBtn');
 const gatlingCooldownEl = document.getElementById('gatlingCooldown');
 const redhawkBtn = document.getElementById('redhawkBtn');
 const redhawkCooldownEl = document.getElementById('redhawkCooldown');
+const upgradeBtn = document.getElementById('upgradeDamageBtn');
+const upgradeCostEl = document.getElementById('upgradeCost');
+const upgradeLevelEl = document.getElementById('upgradeLevel');
 // Ensure enemy bandit sprite shows up
 if (enemySprite) {
     enemySprite.src = 'images/bandit.svg';
@@ -348,6 +363,21 @@ if (redhawkBtn) {
     });
 }
 
+// Upgrade Damage handler
+if (upgradeBtn) {
+    upgradeBtn.addEventListener('click', () => {
+        const level = state.upgradeDamageLevel || 0;
+        const cost = getUpgradeCost(level);
+        if (state.berries < cost) return alert('Not enough Berries to upgrade damage');
+        state.berries -= cost;
+        state.upgradeDamageLevel = level + 1;
+        // increase per-click damage: base +1 per level, with small scaling
+        const incr = Math.ceil(1 * Math.pow(1.2, level));
+        state.perClick = (state.perClick || 1) + incr;
+        updateUI();
+    });
+}
+
 shopList.addEventListener('click', (ev) => {
     const btn = ev.target.closest('button[data-id]');
     if (!btn) return;
@@ -429,6 +459,7 @@ function reset() {
         cps: 0,
         items: [],
         banditsDefeated: 0,
+        upgradeDamageLevel: 0,
         player: { hp: 100, maxHp: 100, inv: 0 },
         enemy: null
     };
