@@ -1,0 +1,17 @@
+*{box-sizing:border-box;margin:0;padding:0;font-family:Segoe UI, Arial, sans-serif}
+body{background:linear-gradient(#e6f7ff,#ffffff);display:flex;min-height:100vh;align-items:center;justify-content:center}
+main{width:960px;padding:18px}
+header{text-align:center;margin-bottom:12px}
+.subtitle{color:#334;border-radius:4px}
+#game-area{background:#fff;border:2px solid #ccc;padding:18px;border-radius:8px;display:grid;grid-template-columns:1fr 320px;gap:18px;align-items:start}
+#scoreboard{background:#f7fbff;border-radius:6px;padding:10px;margin-bottom:8px;display:flex;flex-direction:column;gap:6px}
+.big-btn{font-size:22px;padding:20px;border-radius:10px;border:2px solid #333;background:linear-gradient(#ffd,#f7b);cursor:pointer;width:100%;transition:transform .08s}
+.big-btn:active{transform:scale(.97)}
+#shop{background:#fff;border-radius:6px;padding:10px;border:1px solid #eee}
+.shop-item{display:flex;justify-content:space-between;align-items:center;padding:8px;border-bottom:1px dashed #eee}
+.shop-item:last-child{border-bottom:none}
+.shop-item button{padding:6px 10px;border-radius:6px;border:1px solid #666;background:#ffd}
+#controls{grid-column:1/3;display:flex;gap:8px;justify-content:center;margin-top:8px}
+#controls button{padding:8px 12px;border-radius:6px;border:1px solid #666;background:#eee}
+footer{text-align:center;margin-top:12px;color:#666}
+@media(max-width:980px){main{width:100%;padding:10px}#game-area{grid-template-columns:1fr;}}
