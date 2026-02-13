@@ -246,8 +246,19 @@ function load() {
 }
 function reset() {
     if (!confirm('Reset your progress?')) return;
-    state = { berries: 0, perClick: 1, cps: 0, items: [], banditsDefeated: 0 };
-    updateUI(); renderShop();
+    state = {
+        berries: 0,
+        perClick: 1,
+        cps: 0,
+        items: [],
+        banditsDefeated: 0,
+        player: { hp: 100, maxHp: 100, inv: 0 },
+        enemy: null
+    };
+    // respawn starting enemy and refresh UI
+    spawnEnemy(1);
+    updateUI();
+    renderShop();
 }
 
 saveBtn.addEventListener('click', save);
