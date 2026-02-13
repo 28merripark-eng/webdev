@@ -94,6 +94,10 @@ const playerHpFill = document.getElementById('playerHpFill');
 const playerHpText = document.getElementById('playerHpText');
 const bazookaBtn = document.getElementById('bazookaBtn');
 const bazookaCooldownEl = document.getElementById('bazookaCooldown');
+const gatlingBtn = document.getElementById('gatlingBtn');
+const gatlingCooldownEl = document.getElementById('gatlingCooldown');
+const redhawkBtn = document.getElementById('redhawkBtn');
+const redhawkCooldownEl = document.getElementById('redhawkCooldown');
 // Ensure enemy bandit sprite shows up
 if (enemySprite) {
     enemySprite.src = 'images/bandit.svg';
@@ -138,11 +142,10 @@ function updateEnemyUI() {
         playerHpFill.style.width = pPct + '%';
     }
     if (playerHpText) playerHpText.textContent = `HP: ${Math.max(0, state.player.hp)} / ${state.player.maxHp}`;
-    // bazooka cooldown UI
-    if (bazookaBtn) {
-        bazookaBtn.disabled = !!bazookaBtn.dataset.cooldown;
-    }
-    if (bazookaCooldownEl) bazookaCooldownEl.textContent = '';
+    // cooldown UI for special attacks
+    if (bazookaBtn) bazookaBtn.disabled = !!bazookaBtn.dataset.cooldown;
+    if (gatlingBtn) gatlingBtn.disabled = !!gatlingBtn.dataset.cooldown;
+    if (redhawkBtn) redhawkBtn.disabled = !!redhawkBtn.dataset.cooldown;
 }
 
 clickBtn.addEventListener('click', () => {
@@ -227,6 +230,121 @@ if (bazookaBtn) {
         }
         updateUI();
         startBazookaCooldown();
+    });
+}
+
+// Gatling: up to 10 hit attempts, 25 damage per hit, 8s cooldown
+const GATLING_HITS = 10;
+const GATLING_HIT_PROB = 0.6; // per-hit chance
+const GATLING_DMG_PER_HIT = 25; // 10 * 25 = 250 if all land
+const GATLING_COOLDOWN_MS = 8000;
+let gatlingTimer = null;
+
+function startGatlingCooldown() {
+    if (!gatlingBtn) return;
+    const ms = GATLING_COOLDOWN_MS;
+    const end = Date.now() + ms;
+    gatlingBtn.dataset.cooldown = '1';
+    gatlingBtn.disabled = true;
+    if (gatlingCooldownEl) gatlingCooldownEl.textContent = Math.ceil(ms / 1000) + 's';
+    gatlingTimer = setInterval(() => {
+        const remaining = Math.max(0, end - Date.now());
+        if (gatlingCooldownEl) gatlingCooldownEl.textContent = remaining > 0 ? Math.ceil(remaining / 1000) + 's' : '';
+        if (remaining <= 0) {
+            clearInterval(gatlingTimer); gatlingTimer = null;
+            delete gatlingBtn.dataset.cooldown;
+            gatlingBtn.disabled = false;
+            if (gatlingCooldownEl) gatlingCooldownEl.textContent = '';
+        }
+    }, 250);
+}
+
+if (gatlingBtn) {
+    gatlingBtn.addEventListener('click', () => {
+        if (!state.enemy) return alert('No enemy to use Gatling on');
+        if (gatlingBtn.dataset.cooldown) return; // still cooling down
+        // perform up to 10 hit attempts
+        let hits = 0;
+        for (let i = 0; i < GATLING_HITS; i++) {
+            if (Math.random() < GATLING_HIT_PROB) hits += 1;
+        }
+        const totalDmg = hits * GATLING_DMG_PER_HIT;
+        state.enemy.hp -= totalDmg;
+        // small visual touch
+        if (enemySprite) enemySprite.classList.add('flash');
+        setTimeout(() => { if (enemySprite) enemySprite.classList.remove('flash'); }, 200);
+        // if perfect chain (all hits) - special flash
+        if (hits === GATLING_HITS && enemySprite) {
+            enemySprite.classList.add('fallen');
+            setTimeout(() => { if (enemySprite) enemySprite.classList.remove('fallen'); }, 700);
+        }
+        if (state.enemy.hp <= 0) {
+            state.berries += state.enemy.reward;
+            state.banditsDefeated = (state.banditsDefeated || 0) + 1;
+            if (enemySprite) enemySprite.classList.add('flash');
+            setTimeout(() => {
+                if (enemySprite) { enemySprite.classList.remove('flash'); enemySprite.classList.add('fallen'); }
+            }, 120);
+            setTimeout(() => {
+                if (enemySprite) enemySprite.classList.remove('fallen');
+                const nextLv = state.enemy.level + 1;
+                spawnEnemy(nextLv);
+            }, 900);
+        }
+        updateUI();
+        startGatlingCooldown();
+    });
+}
+
+// Red Hawk: heavy single hit, 350 damage, 20s cooldown
+const REDHAWK_DAMAGE = 350;
+const REDHAWK_COOLDOWN_MS = 20000;
+let redhawkTimer = null;
+
+function startRedhawkCooldown() {
+    if (!redhawkBtn) return;
+    const ms = REDHAWK_COOLDOWN_MS;
+    const end = Date.now() + ms;
+    redhawkBtn.dataset.cooldown = '1';
+    redhawkBtn.disabled = true;
+    if (redhawkCooldownEl) redhawkCooldownEl.textContent = Math.ceil(ms / 1000) + 's';
+    redhawkTimer = setInterval(() => {
+        const remaining = Math.max(0, end - Date.now());
+        if (redhawkCooldownEl) redhawkCooldownEl.textContent = remaining > 0 ? Math.ceil(remaining / 1000) + 's' : '';
+        if (remaining <= 0) {
+            clearInterval(redhawkTimer); redhawkTimer = null;
+            delete redhawkBtn.dataset.cooldown;
+            redhawkBtn.disabled = false;
+            if (redhawkCooldownEl) redhawkCooldownEl.textContent = '';
+        }
+    }, 250);
+}
+
+if (redhawkBtn) {
+    redhawkBtn.addEventListener('click', () => {
+        if (!state.enemy) return alert('No enemy to use Red Hawk on');
+        if (redhawkBtn.dataset.cooldown) return; // still cooling down
+        state.enemy.hp -= REDHAWK_DAMAGE;
+        // fierce visual
+        if (enemySprite) {
+            enemySprite.classList.add('flash');
+            setTimeout(() => { if (enemySprite) enemySprite.classList.remove('flash'); }, 350);
+        }
+        if (state.enemy.hp <= 0) {
+            state.berries += state.enemy.reward;
+            state.banditsDefeated = (state.banditsDefeated || 0) + 1;
+            if (enemySprite) enemySprite.classList.add('flash');
+            setTimeout(() => {
+                if (enemySprite) { enemySprite.classList.remove('flash'); enemySprite.classList.add('fallen'); }
+            }, 120);
+            setTimeout(() => {
+                if (enemySprite) enemySprite.classList.remove('fallen');
+                const nextLv = state.enemy.level + 1;
+                spawnEnemy(nextLv);
+            }, 900);
+        }
+        updateUI();
+        startRedhawkCooldown();
     });
 }
 
