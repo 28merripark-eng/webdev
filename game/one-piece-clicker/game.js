@@ -221,6 +221,12 @@ const BAZOOKA_DAMAGE = 100;
 const BAZOOKA_COOLDOWN_MS = 15000;
 let bazookaTimer = null;
 
+function getBazookaDamage() {
+    const lvl = (state.upgradeDamageLevel || 0);
+    // scale by 15% per upgrade level
+    return Math.max(1, Math.round(BAZOOKA_DAMAGE * (1 + 0.15 * lvl)));
+}
+
 function startBazookaCooldown() {
     if (!bazookaBtn) return;
     const ms = BAZOOKA_COOLDOWN_MS;
@@ -246,8 +252,9 @@ if (bazookaBtn) {
         if (bazookaBtn.dataset.cooldown) return; // still cooling down
         // apply big damage
         const beforeHp = state.enemy.hp;
-        state.enemy.hp -= BAZOOKA_DAMAGE;
-        const dmg = Math.min(beforeHp, BAZOOKA_DAMAGE);
+        const bazDmg = getBazookaDamage();
+        state.enemy.hp -= bazDmg;
+        const dmg = Math.min(beforeHp, bazDmg);
         addConsoleMessage(`Luffy fires Gum-Gum Bazooka and deals ${dmg} damage to ${state.enemy.name}.`);
         // big attack visual: brief scale on button
         bazookaBtn.style.transform = 'scale(0.96)';
@@ -276,9 +283,15 @@ if (bazookaBtn) {
 // Gatling: up to 10 hit attempts, 25 damage per hit, 8s cooldown
 const GATLING_HITS = 10;
 const GATLING_HIT_PROB = 0.6; // per-hit chance
-const GATLING_DMG_PER_HIT = 25; // 10 * 25 = 250 if all land
+const GATLING_DMG_PER_HIT = 25; // base per-hit
 const GATLING_COOLDOWN_MS = 8000;
 let gatlingTimer = null;
+
+function getGatlingDamagePerHit() {
+    const lvl = (state.upgradeDamageLevel || 0);
+    // scale by 12% per upgrade level
+    return Math.max(1, Math.round(GATLING_DMG_PER_HIT * (1 + 0.12 * lvl)));
+}
 
 function startGatlingCooldown() {
     if (!gatlingBtn) return;
@@ -308,7 +321,8 @@ if (gatlingBtn) {
         for (let i = 0; i < GATLING_HITS; i++) {
             if (Math.random() < GATLING_HIT_PROB) hits += 1;
         }
-        const totalDmg = hits * GATLING_DMG_PER_HIT;
+        const perHit = getGatlingDamagePerHit();
+        const totalDmg = hits * perHit;
         const beforeHp = state.enemy.hp;
         state.enemy.hp -= totalDmg;
         const actual = Math.min(beforeHp, totalDmg);
@@ -344,6 +358,12 @@ const REDHAWK_DAMAGE = 350;
 const REDHAWK_COOLDOWN_MS = 20000;
 let redhawkTimer = null;
 
+function getRedhawkDamage() {
+    const lvl = (state.upgradeDamageLevel || 0);
+    // scale by 18% per upgrade level
+    return Math.max(1, Math.round(REDHAWK_DAMAGE * (1 + 0.18 * lvl)));
+}
+
 function startRedhawkCooldown() {
     if (!redhawkBtn) return;
     const ms = REDHAWK_COOLDOWN_MS;
@@ -368,8 +388,9 @@ if (redhawkBtn) {
         if (!state.enemy) return alert('No enemy to use Red Hawk on');
         if (redhawkBtn.dataset.cooldown) return; // still cooling down
         const beforeHp = state.enemy.hp;
-        state.enemy.hp -= REDHAWK_DAMAGE;
-        const dmg = Math.min(beforeHp, REDHAWK_DAMAGE);
+        const redDmg = getRedhawkDamage();
+        state.enemy.hp -= redDmg;
+        const dmg = Math.min(beforeHp, redDmg);
         addConsoleMessage(`Luffy unleashes Red Hawk and scorches ${state.enemy.name} for ${dmg} damage.`);
         // fierce visual
         if (enemySprite) {
