@@ -13,9 +13,9 @@ function makeContext() {
     const ctx = {
         imageSmoothingEnabled: false,
         fillStyle: '#000', strokeStyle: '#000', lineWidth: 1, font: '12px sans-serif',
-        clearRect(){}, fillRect(){}, strokeRect(){}, fillText(){}, stroke(){}, beginPath(){}, arc(){}, fill(){},
-        translate(){}, save(){}, restore(){}, scale(){}, rotate(){}, drawImage(){}, putImageData(){}, getImageData(){ return { data: new Uint8ClampedArray(4) }; },
-        measureText(){ return { width: 0 }; }
+        clearRect() { }, fillRect() { }, strokeRect() { }, fillText() { }, stroke() { }, beginPath() { }, arc() { }, fill() { },
+        translate() { }, save() { }, restore() { }, scale() { }, rotate() { }, drawImage() { }, putImageData() { }, getImageData() { return { data: new Uint8ClampedArray(4) }; },
+        measureText() { return { width: 0 }; }
     };
     return ctx;
 }
@@ -30,18 +30,18 @@ function makeCanvas() {
 // Minimal document mock
 global.document = {
     _elems: {},
-    getElementById(id){
+    getElementById(id) {
         if (!this._elems[id]) {
             if (id === 'game') this._elems[id] = makeCanvas();
-            else this._elems[id] = { textContent: '', _listeners:{}, addEventListener(name, fn){ this._listeners[name] = this._listeners[name] || []; this._listeners[name].push(fn); }, click(){ (this._listeners['click']||[]).forEach(f=>f({})); }, style: {}, value: '', files: null };
+            else this._elems[id] = { textContent: '', _listeners: {}, addEventListener(name, fn) { this._listeners[name] = this._listeners[name] || []; this._listeners[name].push(fn); }, click() { (this._listeners['click'] || []).forEach(f => f({})); }, style: {}, value: '', files: null };
         }
         return this._elems[id];
     },
-    createElement(tag){
+    createElement(tag) {
         if (tag === 'canvas') return makeCanvas();
-        return { getContext: makeContext, _listeners:{}, addEventListener(name, fn){ this._listeners[name] = this._listeners[name] || []; this._listeners[name].push(fn); }, dispatch(name, ev){ (this._listeners[name]||[]).forEach(f=>f(ev||{})); }, style: {}, value: '', files: null };
+        return { getContext: makeContext, _listeners: {}, addEventListener(name, fn) { this._listeners[name] = this._listeners[name] || []; this._listeners[name].push(fn); }, dispatch(name, ev) { (this._listeners[name] || []).forEach(f => f(ev || {})); }, style: {}, value: '', files: null };
     },
-    addEventListener(name, fn){ this._globalListeners = this._globalListeners || {}; this._globalListeners[name] = this._globalListeners[name] || []; this._globalListeners[name].push(fn); },
+    addEventListener(name, fn) { this._globalListeners = this._globalListeners || {}; this._globalListeners[name] = this._globalListeners[name] || []; this._globalListeners[name].push(fn); },
 }
 global.window = global;
 process.on('uncaughtException', (err) => { console.error('UNCAUGHT', err && err.stack || err); process.exit(1); });
