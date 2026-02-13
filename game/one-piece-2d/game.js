@@ -783,10 +783,14 @@ function update() {
 // Draw an 8-bit style character and arm-stretch animation
 function drawPlayer(ctx, p) {
     ctx.save();
-    // draw at top-left world coords (so feet align with platform y)
-    ctx.translate(Math.round(p.x), Math.round(p.y));
+    // draw at world coords but adjust vertical offset so the sprite's feet align with player.y + player.h
     const S = 3; // larger pixel scale for a chunkier 16-bit look
     const pxw = 16, pxh = 28;
+    // visual sprite height in pixels
+    const visualH = pxh * S;
+    // compute translate Y so that visual bottom aligns with p.y + p.h (feet on player bottom)
+    const translateY = Math.round(p.y + p.h - visualH);
+    ctx.translate(Math.round(p.x), translateY);
     if (p.facing < 0) {
         ctx.scale(-1, 1);
         // when mirrored, translate so drawing still uses positive coordinates
