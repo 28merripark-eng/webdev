@@ -1658,3 +1658,17 @@ document.addEventListener('keydown', e => {
     const id = map[e.key];
     if (id) { applyCharacter(id); gamePaused = false }
 });
+
+// Expose debug hooks when running in a test/headless environment
+try {
+    if (typeof window !== 'undefined') {
+        window._debug = window._debug || {};
+        window._debug.player = player;
+        window._debug.platforms = platforms;
+        window._debug.enemies = enemies;
+        window._debug.hands = hands;
+        window._debug.boaSnake = boaSnake;
+        window._debug.gamePaused = () => gamePaused;
+        window._debug.gameStarted = () => gameStarted;
+    }
+} catch (e) { /* ignore */ }

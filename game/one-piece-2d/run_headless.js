@@ -50,8 +50,17 @@ process.on('unhandledRejection', (err) => { console.error('UNHANDLEDREJ', err &&
 try {
     require('./game.js');
     console.log('game.js loaded without throwing during initial run');
-    // allow a short timeout for any async errors
-    setTimeout(() => { console.log('done'); process.exit(0); }, 200);
+    // allow a short timeout for any async errors then dump diagnostics
+    setTimeout(() => {
+        try {
+            const d = global._debug || {};
+            console.log('DIAG player', d.player ? { x: d.player.x, y: d.player.y, w: d.player.w, h: d.player.h, onGround: d.player.onGround, hp: d.player.hp, charId: d.player.charId } : null);
+            console.log('DIAG platforms0', d.platforms && d.platforms[0] ? { y: d.platforms[0].y, h: d.platforms[0].h } : null);
+            console.log('DIAG enemies', d.enemies ? d.enemies.length : 0);
+            console.log('gameStarted', typeof d.gameStarted === 'function' ? d.gameStarted() : null, 'gamePaused', typeof d.gamePaused === 'function' ? d.gamePaused() : null);
+        } catch (e) { console.error('DIAG_ERR', e && e.stack || e); }
+        console.log('done'); process.exit(0);
+    }, 200);
 } catch (err) {
     console.error('LOAD_ERROR', err && err.stack || err);
     process.exit(1);
