@@ -113,6 +113,7 @@ const redhawkCooldownEl = document.getElementById('redhawkCooldown');
 const upgradeBtn = document.getElementById('upgradeDamageBtn');
 const upgradeCostEl = document.getElementById('upgradeCost');
 const upgradeLevelEl = document.getElementById('upgradeLevel');
+const consoleEl = document.getElementById('gameConsole');
 // Ensure enemy bandit sprite shows up
 if (enemySprite) {
     enemySprite.src = 'images/bandit.svg';
@@ -163,18 +164,37 @@ function updateEnemyUI() {
     if (redhawkBtn) redhawkBtn.disabled = !!redhawkBtn.dataset.cooldown;
 }
 
+function addConsoleMessage(text) {
+    try {
+        if (!consoleEl) return;
+        const line = document.createElement('div');
+        line.className = 'line';
+        line.textContent = text;
+        consoleEl.appendChild(line);
+        // limit to last 8 messages
+        while (consoleEl.children.length > 8) consoleEl.removeChild(consoleEl.firstChild);
+        consoleEl.scrollTop = consoleEl.scrollHeight;
+    } catch (e) { /* ignore */ }
+}
+
 clickBtn.addEventListener('click', () => {
     // If an enemy exists, attack it instead of just collecting
     if (state.enemy) {
+        const beforeHp = state.enemy.hp;
         state.enemy.hp -= state.perClick;
+        const dmg = Math.min(beforeHp, state.perClick);
+        addConsoleMessage(`Luffy attacks ${state.enemy.name} for ${dmg} damage.`);
         // small hit flash
         clickBtn.style.transform = 'scale(0.97)';
         setTimeout(() => clickBtn.style.transform = '', 80);
         if (state.enemy.hp <= 0) {
+            const name = state.enemy.name;
+            const reward = state.enemy.reward;
             // reward player
-            state.berries += state.enemy.reward;
+            state.berries += reward;
             // count defeated bandits
             state.banditsDefeated = (state.banditsDefeated || 0) + 1;
+            addConsoleMessage(`${name} was defeated; you gained ${reward} Berries.`);
             // play enemy flash and fallen animation then spawn next after short delay
             if (enemySprite) enemySprite.classList.add('flash');
             setTimeout(() => {
@@ -225,14 +245,19 @@ if (bazookaBtn) {
         if (!state.enemy) return alert('No enemy to use Bazooka on');
         if (bazookaBtn.dataset.cooldown) return; // still cooling down
         // apply big damage
+        const beforeHp = state.enemy.hp;
         state.enemy.hp -= BAZOOKA_DAMAGE;
+        const dmg = Math.min(beforeHp, BAZOOKA_DAMAGE);
+        addConsoleMessage(`Luffy fires Gum-Gum Bazooka and deals ${dmg} damage to ${state.enemy.name}.`);
         // big attack visual: brief scale on button
         bazookaBtn.style.transform = 'scale(0.96)';
         setTimeout(() => bazookaBtn.style.transform = '', 120);
-
         if (state.enemy.hp <= 0) {
-            state.berries += state.enemy.reward;
+            const name = state.enemy.name;
+            const reward = state.enemy.reward;
+            state.berries += reward;
             state.banditsDefeated = (state.banditsDefeated || 0) + 1;
+            addConsoleMessage(`${name} was defeated; you gained ${reward} Berries.`);
             if (enemySprite) enemySprite.classList.add('flash');
             setTimeout(() => {
                 if (enemySprite) { enemySprite.classList.remove('flash'); enemySprite.classList.add('fallen'); }
@@ -284,7 +309,10 @@ if (gatlingBtn) {
             if (Math.random() < GATLING_HIT_PROB) hits += 1;
         }
         const totalDmg = hits * GATLING_DMG_PER_HIT;
+        const beforeHp = state.enemy.hp;
         state.enemy.hp -= totalDmg;
+        const actual = Math.min(beforeHp, totalDmg);
+        addConsoleMessage(`Luffy's Gatling hits ${hits}/${GATLING_HITS} times for ${actual} damage.`);
         // small visual touch
         if (enemySprite) enemySprite.classList.add('flash');
         setTimeout(() => { if (enemySprite) enemySprite.classList.remove('flash'); }, 200);
@@ -339,7 +367,10 @@ if (redhawkBtn) {
     redhawkBtn.addEventListener('click', () => {
         if (!state.enemy) return alert('No enemy to use Red Hawk on');
         if (redhawkBtn.dataset.cooldown) return; // still cooling down
+        const beforeHp = state.enemy.hp;
         state.enemy.hp -= REDHAWK_DAMAGE;
+        const dmg = Math.min(beforeHp, REDHAWK_DAMAGE);
+        addConsoleMessage(`Luffy unleashes Red Hawk and scorches ${state.enemy.name} for ${dmg} damage.`);
         // fierce visual
         if (enemySprite) {
             enemySprite.classList.add('flash');

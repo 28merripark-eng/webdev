@@ -175,6 +175,26 @@ header {
     color: #333;
 }
 
+/* Event console */
+.console {
+    margin-top: 12px;
+    background: #0d0f14;
+    color: #e6eef8;
+    padding: 8px;
+    border-radius: 6px;
+    height: 110px;
+    overflow-y: auto;
+    font-size: 13px;
+    line-height: 1.3;
+    border: 1px solid rgba(255,255,255,0.04);
+}
+.console .line {
+    padding: 4px 6px;
+    margin-bottom: 4px;
+    background: rgba(255,255,255,0.02);
+    border-radius: 4px;
+}
+
 #shop {
     background: #fff;
     border-radius: 6px;
