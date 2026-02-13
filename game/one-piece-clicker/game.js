@@ -33,8 +33,8 @@ function spawnEnemy(level = 1) {
     updateEnemyUI();
 }
 
-// Start first enemy
-spawnEnemy(1);
+// NOTE: don't start the first enemy here — DOM elements used by updateEnemyUI
+// are initialized later. Initial spawn happens after DOM lookups below.
 
 // Player state
 state.player = { hp: 100, maxHp: 100, inv: 0 };
@@ -267,6 +267,9 @@ resetBtn.addEventListener('click', reset);
 
 // auto-save every 10s
 setInterval(() => { localStorage.setItem('opc_save', JSON.stringify(state)); }, 10000);
+
+// spawn starting enemy now that DOM elements are ready
+spawnEnemy(1);
 
 // initial render
 renderShop(); updateUI();
