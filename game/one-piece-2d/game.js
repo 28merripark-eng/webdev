@@ -1363,9 +1363,34 @@ function draw() {
                     ctx.save();
                     ctx.drawImage(img, 0, 0, frameW, frameH, spriteDrawX, spriteDrawY, frameW * spriteScale * 1.2, frameH * spriteScale);
                     ctx.restore();
+                    // Also animate targets while snapping so enemies fly when sprites are enabled
+                    for (let ti = 0; ti < (a.targets || []).length; ti++) {
+                        const idx = a.targets[ti]; const st = a.targetsState[ti];
+                        const e = enemies[idx];
+                        if (!e) continue;
+                        if (!st.started && p > 0.35) { st.started = true; st.t = 0; }
+                        if (st.started) {
+                            st.t++;
+                            const ep = Math.min(1, st.t / a.durEnemyFly);
+                            const targetX = st.targetX;
+                            e.x = lerp(st.origX, targetX, ep);
+                            const peak = Math.max(80, Math.abs(targetX - st.origX) * 0.08);
+                            e.y = st.origY + Math.sin(ep * Math.PI) * -peak;
+                            if (st.t === 1 || st.t === 2) {
+                                const bx = Math.round((st.origX + targetX) / 2 - camX);
+                                const by = Math.round(st.origY - 8);
+                                ctx.fillStyle = '#ffd86b'; ctx.fillRect(bx - 4, by - 2, 3, 3);
+                                ctx.fillStyle = '#ff8a00'; ctx.fillRect(bx + 2, by + 2, 4, 2);
+                            }
+                            if (ep >= 1) { e.alive = false; e.removedTimer = 30; }
+                        }
+                    }
                     if (p >= 1) { a.phase = 'enemyFlight'; a.t = 0; }
                 } else if (a.phase === 'enemyFlight') {
-                    // Animation complete
+                    // Ensure targets are finalized then complete animation
+                    for (let ti = 0; ti < (a.targets || []).length; ti++) {
+                        const idx = a.targets[ti]; const e = enemies[idx]; if (e) { e.alive = false; e.removedTimer = 30; }
+                    }
                     delete player._bazookaAnim; player._bazookaAnim = null; player._chooseHeavy = false; player.attacking = false; gamePaused = false;
                 }
             } catch (err) {
