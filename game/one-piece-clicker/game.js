@@ -14,6 +14,8 @@ let state = {
     cps: 0,
     items: []
 };
+// track how many bandits defeated
+state.banditsDefeated = 0;
 
 // Enemy battle state
 state.enemy = null; // will be { level, hp, maxHp, reward, name }
@@ -74,13 +76,27 @@ const enemyNameEl = document.getElementById('enemyName');
 const enemyLevelEl = document.getElementById('enemyLevel');
 const enemyHpFill = document.getElementById('enemyHpFill');
 const enemyHpText = document.getElementById('enemyHpText');
+const defeatedEl = document.getElementById('defeated');
+const enemySprite = document.getElementById('enemySprite');
+// prefer user-supplied luffy.png in the clicker folder, fall back to images/luffy.svg
+if (enemySprite) {
+    enemySprite.src = 'luffy.png';
+    enemySprite.onerror = () => { enemySprite.onerror = null; enemySprite.src = 'images/luffy.svg'; };
+}
 function updateEnemyUI() {
-    if (!state.enemy) { enemyNameEl.textContent = ''; enemyLevelEl.textContent = ''; enemyHpFill.style.width = '0%'; enemyHpText.textContent = ''; return }
-    enemyNameEl.textContent = state.enemy.name;
-    enemyLevelEl.textContent = `Lv. ${state.enemy.level}`;
-    const pct = Math.max(0, (state.enemy.hp / state.enemy.maxHp) * 100);
-    enemyHpFill.style.width = pct + '%';
-    enemyHpText.textContent = `HP: ${Math.max(0, state.enemy.hp)} / ${state.enemy.maxHp}`;
+    if (!state.enemy) {
+        enemyNameEl.textContent = '';
+        enemyLevelEl.textContent = '';
+        enemyHpFill.style.width = '0%';
+        enemyHpText.textContent = '';
+    } else {
+        enemyNameEl.textContent = state.enemy.name;
+        enemyLevelEl.textContent = `Lv. ${state.enemy.level}`;
+        const pct = Math.max(0, (state.enemy.hp / state.enemy.maxHp) * 100);
+        enemyHpFill.style.width = pct + '%';
+        enemyHpText.textContent = `HP: ${Math.max(0, state.enemy.hp)} / ${state.enemy.maxHp}`;
+    }
+    if (defeatedEl) defeatedEl.textContent = String(state.banditsDefeated || 0);
 }
 
 clickBtn.addEventListener('click', () => {
@@ -93,6 +109,8 @@ clickBtn.addEventListener('click', () => {
         if (state.enemy.hp <= 0) {
             // reward player
             state.berries += state.enemy.reward;
+            // count defeated bandits
+            state.banditsDefeated = (state.banditsDefeated || 0) + 1;
             // spawn next enemy (increase level)
             const nextLv = state.enemy.level + 1;
             spawnEnemy(nextLv);
@@ -144,7 +162,7 @@ function load() {
 }
 function reset() {
     if (!confirm('Reset your progress?')) return;
-    state = { berries: 0, perClick: 1, cps: 0, items: [] };
+    state = { berries: 0, perClick: 1, cps: 0, items: [], banditsDefeated: 0 };
     updateUI(); renderShop();
 }
 
