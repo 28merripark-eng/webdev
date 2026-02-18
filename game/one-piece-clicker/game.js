@@ -190,6 +190,7 @@ function updateEnemyUI() {
     if (bazookaBtn) bazookaBtn.disabled = !!bazookaBtn.dataset.cooldown;
     if (gatlingBtn) gatlingBtn.disabled = !!gatlingBtn.dataset.cooldown;
     if (redhawkBtn) redhawkBtn.disabled = !!redhawkBtn.dataset.cooldown;
+    if (gear3Btn) gear3Btn.disabled = !!gear3Btn.dataset.cooldown;
     // Gear 2 visual indicator: show active status with lighter pink
     if (state.player.gear2Active && playerSprite) {
         playerSprite.style.filter = 'hue-rotate(-30deg) brightness(1.3) saturate(1.2)';
@@ -544,6 +545,75 @@ function startGear2Cooldown() {
 
 if (gear2Btn) {
     gear2Btn.addEventListener('click', startGear2);
+}
+
+// Gear 3: Kills 15 enemies and skips ahead 15 levels, 180s cooldown
+const GEAR3_COOLDOWN_MS = 180000; // 3 minutes
+
+function startGear3() {
+    if (!state.enemy) return alert('No enemy to activate Gear 3 on');
+    if (gear3Btn.dataset.cooldown) return; // still cooling down
+    
+    // Display epic story message
+    const storyMessages = [
+        '💪 Luffy\'s body begins to expand and grow immense!',
+        '💪 "GEAR THIRD!!!"',
+        '💪 With mighty fists, Luffy shatters through 15 enemies like they\'re nothing!',
+        '💪 The battlefield trembles from the sheer power!',
+        '💪 Luffy has grown 15 levels stronger...'
+    ];
+    
+    storyMessages.forEach((msg, idx) => {
+        setTimeout(() => {
+            addConsoleMessage(msg);
+        }, idx * 300);
+    });
+    
+    // Get rewards from 15 defeated enemies
+    let totalRewards = 0;
+    for (let i = 0; i < 15; i++) {
+        const currentLevel = state.enemy.level + i;
+        const baseReward = 5;
+        const reward = Math.round(baseReward * Math.pow(1.35, currentLevel - 1));
+        totalRewards += reward;
+        state.banditsDefeated = (state.banditsDefeated || 0) + 1;
+    }
+    
+    state.berries += totalRewards;
+    addConsoleMessage(`${totalRewards} Berries collected from 15 defeated enemies!`);
+    
+    // Skip ahead 15 levels
+    const oldLevel = state.enemy.level;
+    const newLevel = oldLevel + 15;
+    addConsoleMessage(`⬆️ Jumped from Lv.${oldLevel} to Lv.${newLevel}!`);
+    
+    // Spawn enemy at new level
+    spawnEnemy(newLevel);
+    updateUI();
+    startGear3Cooldown();
+}
+
+function startGear3Cooldown() {
+    if (!gear3Btn) return;
+    const ms = GEAR3_COOLDOWN_MS;
+    const end = Date.now() + ms;
+    gear3Btn.dataset.cooldown = '1';
+    gear3Btn.disabled = true;
+    if (gear3CooldownEl) gear3CooldownEl.textContent = Math.ceil(ms / 1000) + 's';
+    gear3CooldownTimer = setInterval(() => {
+        const remaining = Math.max(0, end - Date.now());
+        if (gear3CooldownEl) gear3CooldownEl.textContent = remaining > 0 ? Math.ceil(remaining / 1000) + 's' : '';
+        if (remaining <= 0) {
+            clearInterval(gear3CooldownTimer); gear3CooldownTimer = null;
+            delete gear3Btn.dataset.cooldown;
+            gear3Btn.disabled = false;
+            if (gear3CooldownEl) gear3CooldownEl.textContent = '';
+        }
+    }, 250);
+}
+
+if (gear3Btn) {
+    gear3Btn.addEventListener('click', startGear3);
 }
 
 // Health upgrade: increases player's max HP and fully heals
