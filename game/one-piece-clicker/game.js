@@ -763,7 +763,7 @@ function performReset() {
         clearInterval(gear3CooldownTimer);
         gear3CooldownTimer = null;
     }
-    
+
     // Clear any sprite classes and effects
     if (playerSprite) {
         playerSprite.classList.remove('flash');
@@ -774,7 +774,7 @@ function performReset() {
         enemySprite.classList.remove('flash');
         enemySprite.classList.remove('fallen');
     }
-    
+
     // Clear button cooldown states
     if (bazookaBtn) {
         delete bazookaBtn.dataset.cooldown;
@@ -796,14 +796,14 @@ function performReset() {
         delete gear3Btn.dataset.cooldown;
         gear3Btn.disabled = false;
     }
-    
+
     // Clear cooldown text
     if (bazookaCooldownEl) bazookaCooldownEl.textContent = '';
     if (gatlingCooldownEl) gatlingCooldownEl.textContent = '';
     if (redhawkCooldownEl) redhawkCooldownEl.textContent = '';
     if (gear2CooldownEl) gear2CooldownEl.textContent = '';
     if (gear3CooldownEl) gear3CooldownEl.textContent = '';
-    
+
     state = {
         berries: 0,
         perClick: 1,
