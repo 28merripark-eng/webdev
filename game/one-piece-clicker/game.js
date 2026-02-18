@@ -77,9 +77,22 @@ function spawnEnemy(level = 1) {
     const baseHp = 20;
     const hp = baseHp + (level - 1) * 2;
 
-    // Reduced reward for balanced money system (0.75x multiplier)
+    // Reduced reward for balanced money system (base 2, 1.20x multiplier)
     const baseReward = 2;
     const reward = Math.round(baseReward * Math.pow(1.20, level - 1));
+    
+    // Create the regular bandit enemy
+    const variant = (level % 3) + 1; // variations 1-3
+    state.enemy = {
+        level,
+        hp: hp,
+        maxHp: hp,
+        reward: reward,
+        name: `Bandit (Lv.${level})`,
+        isBoss: false,
+        variant: variant
+    };
+    
     if (enemySprite) enemySprite.src = `images/bandit${variant}.svg`;
     updateEnemyUI();
 }
