@@ -47,10 +47,12 @@ function spawnEnemy(level = 1) {
 // are initialized later. Initial spawn happens after DOM lookups below.
 
 // Player state
-state.player = { hp: 100, maxHp: 100, inv: 0 };
+state.player = { hp: 100, maxHp: 100, inv: 0, gear2Active: false, gear2TimeLeft: 0 };
 
 // Enemy attack behavior: every second enemy may attack player when alive
 let enemyAttackTimer = 0;
+let gear2Timer = null;
+let gear3CooldownTimer = null;
 
 const shopDefs = [
     { id: 'luffy', name: 'Recruit Luffy', cost: 50, cps: 1, description: 'Gum-Gum enthusiasm (+1 cps)' },
@@ -129,6 +131,10 @@ const gatlingBtn = document.getElementById('gatlingBtn');
 const gatlingCooldownEl = document.getElementById('gatlingCooldown');
 const redhawkBtn = document.getElementById('redhawkBtn');
 const redhawkCooldownEl = document.getElementById('redhawkCooldown');
+const gear2Btn = document.getElementById('gear2Btn');
+const gear2CooldownEl = document.getElementById('gear2Cooldown');
+const gear3Btn = document.getElementById('gear3Btn');
+const gear3CooldownEl = document.getElementById('gear3Cooldown');
 const upgradeBtn = document.getElementById('upgradeDamageBtn');
 const upgradeCostEl = document.getElementById('upgradeCost');
 const upgradeLevelEl = document.getElementById('upgradeLevel');
@@ -184,6 +190,12 @@ function updateEnemyUI() {
     if (bazookaBtn) bazookaBtn.disabled = !!bazookaBtn.dataset.cooldown;
     if (gatlingBtn) gatlingBtn.disabled = !!gatlingBtn.dataset.cooldown;
     if (redhawkBtn) redhawkBtn.disabled = !!redhawkBtn.dataset.cooldown;
+    // Gear 2 visual indicator: show active status with lighter pink
+    if (state.player.gear2Active && playerSprite) {
+        playerSprite.style.filter = 'hue-rotate(-30deg) brightness(1.3) saturate(1.2)';
+    } else if (playerSprite) {
+        playerSprite.style.filter = '';
+    }
 }
 
 function addConsoleMessage(text) {
@@ -202,6 +214,11 @@ function addConsoleMessage(text) {
 clickBtn.addEventListener('click', () => {
     // If an enemy exists, attack it instead of just collecting
     if (state.enemy) {
+        // Gear 2 one-shots: instantly kill enemy if Gear 2 is active
+        if (state.player.gear2Active) {
+            state.enemy.hp = -1; // instant kill
+        }
+        
         const beforeHp = state.enemy.hp;
         state.enemy.hp -= state.perClick;
         const dmg = Math.min(beforeHp, state.perClick);
@@ -273,6 +290,10 @@ if (bazookaBtn) {
     bazookaBtn.addEventListener('click', () => {
         if (!state.enemy) return alert('No enemy to use Bazooka on');
         if (bazookaBtn.dataset.cooldown) return; // still cooling down
+        // Gear 2 one-shots: instantly kill enemy if Gear 2 is active
+        if (state.player.gear2Active) {
+            state.enemy.hp = -1; // instant kill
+        }
         // apply big damage
         const beforeHp = state.enemy.hp;
         const bazDmg = getBazookaDamage();
@@ -339,6 +360,10 @@ if (gatlingBtn) {
     gatlingBtn.addEventListener('click', () => {
         if (!state.enemy) return alert('No enemy to use Gatling on');
         if (gatlingBtn.dataset.cooldown) return; // still cooling down
+        // Gear 2 one-shots: instantly kill enemy if Gear 2 is active
+        if (state.player.gear2Active) {
+            state.enemy.hp = -1; // instant kill
+        }
         // perform up to 10 hit attempts
         let hits = 0;
         for (let i = 0; i < GATLING_HITS; i++) {
@@ -410,6 +435,10 @@ if (redhawkBtn) {
     redhawkBtn.addEventListener('click', () => {
         if (!state.enemy) return alert('No enemy to use Red Hawk on');
         if (redhawkBtn.dataset.cooldown) return; // still cooling down
+        // Gear 2 one-shots: instantly kill enemy if Gear 2 is active
+        if (state.player.gear2Active) {
+            state.enemy.hp = -1; // instant kill
+        }
         const beforeHp = state.enemy.hp;
         const redDmg = getRedhawkDamage();
         state.enemy.hp -= redDmg;
@@ -436,6 +465,85 @@ if (redhawkBtn) {
         updateUI();
         startRedhawkCooldown();
     });
+}
+
+// Gear 2: One-shots any enemy, lasts 1 min 30 sec (90 seconds), 120s cooldown
+const GEAR2_DURATION_MS = 90000; // 1 min 30 seconds
+const GEAR2_COOLDOWN_MS = 120000; // 2 minutes
+let gear2CooldownTimer = null;
+
+function startGear2() {
+    if (!state.enemy) return alert('No enemy to activate Gear 2 on');
+    if (gear2Btn.dataset.cooldown) return; // still cooling down
+    
+    // Activate Gear 2
+    state.player.gear2Active = true;
+    state.player.gear2TimeLeft = GEAR2_DURATION_MS;
+    addConsoleMessage('⚡ Luffy activates Gear 2!');
+    
+    // Immediately one-shot the current enemy
+    const name = state.enemy.name;
+    const reward = state.enemy.reward;
+    state.berries += reward;
+    state.banditsDefeated = (state.banditsDefeated || 0) + 1;
+    addConsoleMessage(`${name} was obliterated! Gained ${reward} Berries.`);
+    
+    // Enemy defeated animation
+    if (enemySprite) enemySprite.classList.add('flash');
+    setTimeout(() => {
+        if (enemySprite) { enemySprite.classList.remove('flash'); enemySprite.classList.add('fallen'); }
+    }, 120);
+    setTimeout(() => {
+        if (enemySprite) enemySprite.classList.remove('fallen');
+        const nextLv = state.enemy.level + 1;
+        spawnEnemy(nextLv);
+    }, 900);
+    
+    updateUI();
+    startGear2Cooldown();
+    
+    // Countdown timer for Gear 2 duration
+    const end = Date.now() + GEAR2_DURATION_MS;
+    const durTimer = setInterval(() => {
+        const remaining = Math.max(0, end - Date.now());
+        state.player.gear2TimeLeft = remaining;
+        
+        if (gear2CooldownEl && remaining > 0) {
+            gear2CooldownEl.textContent = Math.ceil(remaining / 1000) + 's (active)';
+        }
+        
+        if (remaining <= 0) {
+            clearInterval(durTimer);
+            state.player.gear2Active = false;
+            state.player.gear2TimeLeft = 0;
+            if (gear2CooldownEl) gear2CooldownEl.textContent = '';
+            addConsoleMessage('⚡ Gear 2 deactivated.');
+            updateUI();
+        }
+    }, 250);
+}
+
+function startGear2Cooldown() {
+    if (!gear2Btn) return;
+    const ms = GEAR2_COOLDOWN_MS;
+    const end = Date.now() + ms;
+    gear2Btn.dataset.cooldown = '1';
+    gear2Btn.disabled = true;
+    if (gear2CooldownEl) gear2CooldownEl.textContent = Math.ceil(ms / 1000) + 's';
+    gear2CooldownTimer = setInterval(() => {
+        const remaining = Math.max(0, end - Date.now());
+        if (gear2CooldownEl) gear2CooldownEl.textContent = remaining > 0 ? Math.ceil(remaining / 1000) + 's' : '';
+        if (remaining <= 0) {
+            clearInterval(gear2CooldownTimer); gear2CooldownTimer = null;
+            delete gear2Btn.dataset.cooldown;
+            gear2Btn.disabled = false;
+            if (gear2CooldownEl) gear2CooldownEl.textContent = '';
+        }
+    }, 250);
+}
+
+if (gear2Btn) {
+    gear2Btn.addEventListener('click', startGear2);
 }
 
 // Health upgrade: increases player's max HP and fully heals
@@ -564,7 +672,7 @@ function reset() {
         banditsDefeated: 0,
         upgradeDamageLevel: 0,
         upgradeHealthLevel: 0,
-        player: { hp: 100, maxHp: 100, inv: 0 },
+        player: { hp: 100, maxHp: 100, inv: 0, gear2Active: false, gear2TimeLeft: 0 },
         enemy: null
     };
     // respawn starting enemy and refresh UI
