@@ -218,7 +218,7 @@ clickBtn.addEventListener('click', () => {
         if (state.player.gear2Active) {
             state.enemy.hp = -1; // instant kill
         }
-        
+
         const beforeHp = state.enemy.hp;
         state.enemy.hp -= state.perClick;
         const dmg = Math.min(beforeHp, state.perClick);
@@ -475,19 +475,19 @@ let gear2CooldownTimer = null;
 function startGear2() {
     if (!state.enemy) return alert('No enemy to activate Gear 2 on');
     if (gear2Btn.dataset.cooldown) return; // still cooling down
-    
+
     // Activate Gear 2
     state.player.gear2Active = true;
     state.player.gear2TimeLeft = GEAR2_DURATION_MS;
     addConsoleMessage('⚡ Luffy activates Gear 2!');
-    
+
     // Immediately one-shot the current enemy
     const name = state.enemy.name;
     const reward = state.enemy.reward;
     state.berries += reward;
     state.banditsDefeated = (state.banditsDefeated || 0) + 1;
     addConsoleMessage(`${name} was obliterated! Gained ${reward} Berries.`);
-    
+
     // Enemy defeated animation
     if (enemySprite) enemySprite.classList.add('flash');
     setTimeout(() => {
@@ -498,20 +498,20 @@ function startGear2() {
         const nextLv = state.enemy.level + 1;
         spawnEnemy(nextLv);
     }, 900);
-    
+
     updateUI();
     startGear2Cooldown();
-    
+
     // Countdown timer for Gear 2 duration
     const end = Date.now() + GEAR2_DURATION_MS;
     const durTimer = setInterval(() => {
         const remaining = Math.max(0, end - Date.now());
         state.player.gear2TimeLeft = remaining;
-        
+
         if (gear2CooldownEl && remaining > 0) {
             gear2CooldownEl.textContent = Math.ceil(remaining / 1000) + 's (active)';
         }
-        
+
         if (remaining <= 0) {
             clearInterval(durTimer);
             state.player.gear2Active = false;
