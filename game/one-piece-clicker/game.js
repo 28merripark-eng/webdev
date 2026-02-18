@@ -20,11 +20,52 @@ state.banditsDefeated = 0;
 state.upgradeDamageLevel = 0;
 // health upgrade level
 state.upgradeHealthLevel = 0;
+// bounty system
+state.bounty = 0;
+state.bossesDefeated = 0;
+state.bluenoBossDefeated = false; // track if Blueno (Gear 2 unlock) has been defeated
+state.kaidoCycles = 0; // track how many times we've cycled past Kaido
+
+// Boss definitions in order (cycles back to Crocodile after Kaido)
+// Bounty increases based on Kaido cycles
+const bosses = [
+    { name: 'Crocodile', baseBounty: 80000000 },
+    { name: 'Enel', baseBounty: 200000000 },
+    { name: 'Blueno', baseBounty: 280000000 }, // NEW - gates Gear 2 unlock
+    { name: 'Lucci', baseBounty: 380000000 },
+    { name: 'Moria', baseBounty: 550000000 },
+    { name: 'Akainu', baseBounty: 950000000 },
+    { name: 'Caesar Clown', baseBounty: 1050000000 }, // NEW
+    { name: 'Doflamingo', baseBounty: 1400000000 },
+    { name: 'Katakuri', baseBounty: 1600000000 },
+    { name: 'Kaido', baseBounty: 2200000000 }
+];
 
 // Enemy battle state
 state.enemy = null; // will be { level, hp, maxHp, reward, name }
 
 function spawnEnemy(level = 1) {
+    // Check if this is a boss level (every 10 levels)
+    if (level % 10 === 0) {
+        // Boss encounter
+        const bossIndex = ((level / 10) - 1) % bosses.length;
+        const boss = bosses[bossIndex];
+        const bossHp = 100 + (level * 15); // Bosses have much more HP
+        state.enemy = { 
+            level, 
+            hp: bossHp, 
+            maxHp: bossHp, 
+            reward: boss.bounty, 
+            name: boss.name,
+            isBoss: true,
+            variant: 1
+        };
+        if (enemySprite) enemySprite.src = `images/bandit.svg`; // placeholder
+        updateEnemyUI();
+        return;
+    }
+    
+    // Regular bandit
     // Linear HP scaling: +2 HP per level
     // Level 1: 20 HP, Level 2: 22 HP, Level 3: 24 HP, etc.
     const baseHp = 20;
@@ -37,7 +78,7 @@ function spawnEnemy(level = 1) {
     // choose a bandit variant sprite based on level
     const variant = ((level - 1) % 3) + 1; // 1..3
     const name = level === 1 ? 'Bandit' : `Bandit Lv.${level}`;
-    state.enemy = { level, hp, maxHp: hp, reward, name, variant };
+    state.enemy = { level, hp, maxHp: hp, reward, name, variant, isBoss: false };
     // set sprite src
     if (enemySprite) enemySprite.src = `images/bandit${variant}.svg`;
     updateEnemyUI();
@@ -91,6 +132,8 @@ function updateUI() {
     berriesEl.textContent = format(state.berries);
     perClickEl.textContent = format(state.perClick);
     cpsEl.textContent = format(state.cps);
+    if (bountyEl) bountyEl.textContent = format(state.bounty || 0);
+    if (bossesDefeatedEl) bossesDefeatedEl.textContent = String(state.bossesDefeated || 0);
     updateEnemyUI();
     // upgrade UI
     try {
@@ -121,6 +164,8 @@ const enemyLevelEl = document.getElementById('enemyLevel');
 const enemyHpFill = document.getElementById('enemyHpFill');
 const enemyHpText = document.getElementById('enemyHpText');
 const defeatedEl = document.getElementById('defeated');
+const bountyEl = document.getElementById('bounty');
+const bossesDefeatedEl = document.getElementById('bossesDefeated');
 const enemySprite = document.getElementById('enemySprite');
 const playerSprite = document.getElementById('playerSprite');
 const playerHpFill = document.getElementById('playerHpFill');
@@ -173,11 +218,21 @@ function updateEnemyUI() {
         enemyHpFill.style.width = '0%';
         enemyHpText.textContent = '';
     } else {
-        enemyNameEl.textContent = state.enemy.name;
+        // Display boss indicator
+        const bossLabel = state.enemy.isBoss ? '👑 BOSS: ' : '';
+        enemyNameEl.textContent = bossLabel + state.enemy.name;
         enemyLevelEl.textContent = `Lv. ${state.enemy.level}`;
         const pct = Math.max(0, (state.enemy.hp / state.enemy.maxHp) * 100);
         enemyHpFill.style.width = pct + '%';
         enemyHpText.textContent = `HP: ${Math.max(0, state.enemy.hp)} / ${state.enemy.maxHp}`;
+        // Change HP bar color for bosses
+        if (state.enemy.isBoss) {
+            enemyHpFill.style.backgroundColor = '#ff6b6b';
+            enemyHpFill.style.boxShadow = '0 0 10px #ff6b6b';
+        } else {
+            enemyHpFill.style.backgroundColor = '';
+            enemyHpFill.style.boxShadow = '';
+        }
     }
     if (defeatedEl) defeatedEl.textContent = String(state.banditsDefeated || 0);
     // update player HP display
@@ -234,7 +289,16 @@ clickBtn.addEventListener('click', () => {
             state.berries += reward;
             // count defeated bandits
             state.banditsDefeated = (state.banditsDefeated || 0) + 1;
-            addConsoleMessage(`${name} was defeated; you gained ${reward} Berries.`);
+            
+            // Handle boss defeat
+            if (state.enemy.isBoss) {
+                state.bounty += reward;
+                state.bossesDefeated = (state.bossesDefeated || 0) + 1;
+                addConsoleMessage(`🏆 BOSS DEFEATED! ${name} Bounty: ${format(reward)}`);
+            } else {
+                addConsoleMessage(`${name} was defeated; you gained ${reward} Berries.`);
+            }
+            
             // play enemy flash and fallen animation then spawn next after short delay
             if (enemySprite) enemySprite.classList.add('flash');
             setTimeout(() => {
@@ -309,7 +373,13 @@ if (bazookaBtn) {
             const reward = state.enemy.reward;
             state.berries += reward;
             state.banditsDefeated = (state.banditsDefeated || 0) + 1;
-            addConsoleMessage(`${name} was defeated; you gained ${reward} Berries.`);
+            if (state.enemy.isBoss) {
+                state.bounty += reward;
+                state.bossesDefeated = (state.bossesDefeated || 0) + 1;
+                addConsoleMessage(`🏆 BOSS DEFEATED! ${name} Bounty: ${format(reward)}`);
+            } else {
+                addConsoleMessage(`${name} was defeated; you gained ${reward} Berries.`);
+            }
             if (enemySprite) enemySprite.classList.add('flash');
             setTimeout(() => {
                 if (enemySprite) { enemySprite.classList.remove('flash'); enemySprite.classList.add('fallen'); }
@@ -385,8 +455,17 @@ if (gatlingBtn) {
             setTimeout(() => { if (enemySprite) enemySprite.classList.remove('fallen'); }, 700);
         }
         if (state.enemy.hp <= 0) {
-            state.berries += state.enemy.reward;
+            const name = state.enemy.name;
+            const reward = state.enemy.reward;
+            state.berries += reward;
             state.banditsDefeated = (state.banditsDefeated || 0) + 1;
+            if (state.enemy.isBoss) {
+                state.bounty += reward;
+                state.bossesDefeated = (state.bossesDefeated || 0) + 1;
+                addConsoleMessage(`🏆 BOSS DEFEATED! ${name} Bounty: ${format(reward)}`);
+            } else {
+                addConsoleMessage(`${name} was defeated; you gained ${reward} Berries.`);
+            }
             if (enemySprite) enemySprite.classList.add('flash');
             setTimeout(() => {
                 if (enemySprite) { enemySprite.classList.remove('flash'); enemySprite.classList.add('fallen'); }
@@ -451,8 +530,17 @@ if (redhawkBtn) {
             setTimeout(() => { if (enemySprite) enemySprite.classList.remove('flash'); }, 350);
         }
         if (state.enemy.hp <= 0) {
-            state.berries += state.enemy.reward;
+            const name = state.enemy.name;
+            const reward = state.enemy.reward;
+            state.berries += reward;
             state.banditsDefeated = (state.banditsDefeated || 0) + 1;
+            if (state.enemy.isBoss) {
+                state.bounty += reward;
+                state.bossesDefeated = (state.bossesDefeated || 0) + 1;
+                addConsoleMessage(`🏆 BOSS DEFEATED! ${name} Bounty: ${format(reward)}`);
+            } else {
+                addConsoleMessage(`${name} was defeated; you gained ${reward} Berries.`);
+            }
             if (enemySprite) enemySprite.classList.add('flash');
             setTimeout(() => {
                 if (enemySprite) { enemySprite.classList.remove('flash'); enemySprite.classList.add('fallen'); }
@@ -571,16 +659,33 @@ function startGear3() {
 
     // Get rewards from 15 defeated enemies
     let totalRewards = 0;
+    let totalBounty = 0;
     for (let i = 0; i < 15; i++) {
         const currentLevel = state.enemy.level + i;
-        const baseReward = 5;
-        const reward = Math.round(baseReward * Math.pow(1.35, currentLevel - 1));
-        totalRewards += reward;
+        
+        // Check if this level has a boss
+        if (currentLevel % 10 === 0) {
+            const bossIndex = ((currentLevel / 10) - 1) % bosses.length;
+            const boss = bosses[bossIndex];
+            totalRewards += boss.bounty;
+            totalBounty += boss.bounty;
+            state.bossesDefeated = (state.bossesDefeated || 0) + 1;
+        } else {
+            const baseReward = 5;
+            const reward = Math.round(baseReward * Math.pow(1.35, currentLevel - 1));
+            totalRewards += reward;
+        }
+        
         state.banditsDefeated = (state.banditsDefeated || 0) + 1;
     }
 
     state.berries += totalRewards;
-    addConsoleMessage(`${totalRewards} Berries collected from 15 defeated enemies!`);
+    if (totalBounty > 0) {
+        state.bounty += totalBounty;
+        addConsoleMessage(`${totalRewards} Berries collected from 15 defeated enemies! (Including ${totalBounty} bounty)`);
+    } else {
+        addConsoleMessage(`${totalRewards} Berries collected from 15 defeated enemies!`);
+    }
 
     // Skip ahead 15 levels
     const oldLevel = state.enemy.level;
@@ -810,6 +915,8 @@ function performReset() {
         cps: 0,
         items: [],
         banditsDefeated: 0,
+        bossesDefeated: 0,
+        bounty: 0,
         upgradeDamageLevel: 0,
         upgradeHealthLevel: 0,
         player: { hp: 100, maxHp: 100, inv: 0, gear2Active: false, gear2TimeLeft: 0 },
