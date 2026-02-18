@@ -553,7 +553,7 @@ const GEAR3_COOLDOWN_MS = 180000; // 3 minutes
 function startGear3() {
     if (!state.enemy) return alert('No enemy to activate Gear 3 on');
     if (gear3Btn.dataset.cooldown) return; // still cooling down
-    
+
     // Display epic story message
     const storyMessages = [
         '💪 Luffy\'s body begins to expand and grow immense!',
@@ -562,13 +562,13 @@ function startGear3() {
         '💪 The battlefield trembles from the sheer power!',
         '💪 Luffy has grown 15 levels stronger...'
     ];
-    
+
     storyMessages.forEach((msg, idx) => {
         setTimeout(() => {
             addConsoleMessage(msg);
         }, idx * 300);
     });
-    
+
     // Get rewards from 15 defeated enemies
     let totalRewards = 0;
     for (let i = 0; i < 15; i++) {
@@ -578,15 +578,15 @@ function startGear3() {
         totalRewards += reward;
         state.banditsDefeated = (state.banditsDefeated || 0) + 1;
     }
-    
+
     state.berries += totalRewards;
     addConsoleMessage(`${totalRewards} Berries collected from 15 defeated enemies!`);
-    
+
     // Skip ahead 15 levels
     const oldLevel = state.enemy.level;
     const newLevel = oldLevel + 15;
     addConsoleMessage(`⬆️ Jumped from Lv.${oldLevel} to Lv.${newLevel}!`);
-    
+
     // Spawn enemy at new level
     spawnEnemy(newLevel);
     updateUI();
@@ -734,6 +734,17 @@ function load() {
 }
 function reset() {
     if (!confirm('Reset your progress?')) return;
+    performReset();
+}
+
+function performReset() {
+    // Clear any sprite classes
+    if (playerSprite) {
+        playerSprite.classList.remove('flash');
+        playerSprite.classList.remove('fallen');
+        playerSprite.style.filter = '';
+    }
+    
     state = {
         berries: 0,
         perClick: 1,
