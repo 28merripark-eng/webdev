@@ -704,7 +704,7 @@ setInterval(() => {
                 setTimeout(() => {
                     const restart = confirm('You died! Would you like to restart the game?');
                     if (restart) {
-                        reset();
+                        performReset();
                     } else {
                         // If they don't want to restart, keep the fallen state
                         if (playerSprite) playerSprite.classList.remove('fallen');
@@ -744,7 +744,7 @@ function performReset() {
         playerSprite.classList.remove('fallen');
         playerSprite.style.filter = '';
     }
-    
+
     state = {
         berries: 0,
         perClick: 1,
