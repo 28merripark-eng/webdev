@@ -294,7 +294,7 @@ clickBtn.addEventListener('click', () => {
             if (state.enemy.isBoss) {
                 state.bounty += reward;
                 state.bossesDefeated = (state.bossesDefeated || 0) + 1;
-                
+
                 // Check for Blueno (Gear 2 unlock)
                 if (name === 'Blueno') {
                     state.bluenoBossDefeated = true;
@@ -389,7 +389,7 @@ if (bazookaBtn) {
             if (state.enemy.isBoss) {
                 state.bounty += reward;
                 state.bossesDefeated = (state.bossesDefeated || 0) + 1;
-                
+
                 // Check for Blueno (Gear 2 unlock)
                 if (name === 'Blueno') {
                     state.bluenoBossDefeated = true;
@@ -488,7 +488,7 @@ if (gatlingBtn) {
             if (state.enemy.isBoss) {
                 state.bounty += reward;
                 state.bossesDefeated = (state.bossesDefeated || 0) + 1;
-                
+
                 // Check for Blueno (Gear 2 unlock)
                 if (name === 'Blueno') {
                     state.bluenoBossDefeated = true;
@@ -576,7 +576,7 @@ if (redhawkBtn) {
             if (state.enemy.isBoss) {
                 state.bounty += reward;
                 state.bossesDefeated = (state.bossesDefeated || 0) + 1;
-                
+
                 // Check for Blueno (Gear 2 unlock)
                 if (name === 'Blueno') {
                     state.bluenoBossDefeated = true;
@@ -618,7 +618,7 @@ function startGear2() {
     if (!state.bluenoBossDefeated) {
         return alert('You must defeat Blueno first to unlock Gear 2!');
     }
-    
+
     if (!state.enemy) return alert('No enemy to activate Gear 2 on');
     if (gear2Btn.dataset.cooldown) return; // still cooling down
 
@@ -724,15 +724,15 @@ function startGear3() {
         if (currentLevel % 10 === 0) {
             const bossIndex = ((currentLevel / 10) - 1) % bosses.length;
             const boss = bosses[bossIndex];
-            
+
             // Calculate bounty with Kaido cycle multiplier
             const cycleMultiplier = Math.pow(1.5, state.kaidoCycles || 0);
             const adjustedBounty = Math.round(boss.baseBounty * cycleMultiplier);
-            
+
             totalRewards += adjustedBounty;
             totalBounty += adjustedBounty;
             state.bossesDefeated = (state.bossesDefeated || 0) + 1;
-            
+
             // Check if this is Kaido or Blueno
             if (boss.name === 'Kaido') {
                 state.kaidoCycles = (state.kaidoCycles || 0) + 1;
