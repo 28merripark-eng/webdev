@@ -25,16 +25,14 @@ state.upgradeHealthLevel = 0;
 state.enemy = null; // will be { level, hp, maxHp, reward, name }
 
 function spawnEnemy(level = 1) {
-    // Balanced HP scaling: starts at 20, scales more moderately
-    // Early levels: gentle curve, late levels: challenging but fair
+    // Linear HP scaling: +2 HP per level
+    // Level 1: 20 HP, Level 2: 22 HP, Level 3: 24 HP, etc.
     const baseHp = 20;
-    const hpMultiplier = Math.pow(1.20, level - 1); // reduced from 1.28 for less brutal scaling
-    const hp = Math.round(baseHp * hpMultiplier);
+    const hp = baseHp + (level - 1) * 2;
 
-    // Reward scaling matches difficulty: players should earn enough to progress
+    // Reward scaling matches difficulty
     const baseReward = 5;
-    const rewardMultiplier = Math.pow(1.35, level - 1); // slightly reduced from 1.5
-    const reward = Math.round(baseReward * rewardMultiplier);
+    const reward = Math.round(baseReward * Math.pow(1.35, level - 1));
 
     // choose a bandit variant sprite based on level
     const variant = ((level - 1) % 3) + 1; // 1..3
@@ -507,9 +505,9 @@ setInterval(() => {
         enemyAttackTimer = 0;
         // simple chance to attack
         if (Math.random() < 0.85) {
-            // enemy deals damage: scales more gently with level
-            // Base 2 damage, 12% per level (reduced from 15% for fairness)
-            const dmg = Math.max(1, Math.round(2 * Math.pow(1.12, state.enemy.level - 1)));
+            // enemy deals damage: Linear scaling +2 damage per level
+            // Level 1: 2 damage, Level 2: 4 damage, Level 3: 6 damage, etc.
+            const dmg = Math.max(1, 2 * state.enemy.level);
             if (state.player.inv <= 0) {
                 state.player.hp -= dmg;
                 state.player.inv = 6; // short inv frames (6 ticks @200ms = 1.2s)
@@ -519,16 +517,21 @@ setInterval(() => {
                     setTimeout(() => playerSprite.classList.remove('flash'), 300);
                 }
             }
-            // if player dies, play fallen animation and revive after delay
+            // if player dies, ask to restart instead of auto-reviving
             if (state.player.hp <= 0) {
                 state.player.hp = 0;
                 if (playerSprite) playerSprite.classList.add('flash');
                 if (playerSprite) setTimeout(() => { if (playerSprite) playerSprite.classList.add('fallen'); }, 120);
-                // revive after 2.2s
+                // After animation, ask player if they want to restart
                 setTimeout(() => {
-                    if (playerSprite) { playerSprite.classList.remove('fallen'); playerSprite.classList.remove('flash'); }
-                    state.player.hp = state.player.maxHp;
-                    updateUI();
+                    const restart = confirm('You died! Would you like to restart the game?');
+                    if (restart) {
+                        reset();
+                    } else {
+                        // If they don't want to restart, keep the fallen state
+                        if (playerSprite) playerSprite.classList.remove('fallen');
+                        state.player.hp = 0;
+                    }
                 }, 2200);
             }
             updateUI();
