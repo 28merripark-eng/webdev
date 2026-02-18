@@ -51,11 +51,11 @@ function spawnEnemy(level = 1) {
         const bossIndex = ((level / 10) - 1) % bosses.length;
         const boss = bosses[bossIndex];
         const bossHp = 100 + (level * 15); // Bosses have much more HP
-        state.enemy = { 
-            level, 
-            hp: bossHp, 
-            maxHp: bossHp, 
-            reward: boss.bounty, 
+        state.enemy = {
+            level,
+            hp: bossHp,
+            maxHp: bossHp,
+            reward: boss.bounty,
             name: boss.name,
             isBoss: true,
             variant: 1
@@ -64,7 +64,7 @@ function spawnEnemy(level = 1) {
         updateEnemyUI();
         return;
     }
-    
+
     // Regular bandit
     // Linear HP scaling: +2 HP per level
     // Level 1: 20 HP, Level 2: 22 HP, Level 3: 24 HP, etc.
@@ -289,7 +289,7 @@ clickBtn.addEventListener('click', () => {
             state.berries += reward;
             // count defeated bandits
             state.banditsDefeated = (state.banditsDefeated || 0) + 1;
-            
+
             // Handle boss defeat
             if (state.enemy.isBoss) {
                 state.bounty += reward;
@@ -298,7 +298,7 @@ clickBtn.addEventListener('click', () => {
             } else {
                 addConsoleMessage(`${name} was defeated; you gained ${reward} Berries.`);
             }
-            
+
             // play enemy flash and fallen animation then spawn next after short delay
             if (enemySprite) enemySprite.classList.add('flash');
             setTimeout(() => {
@@ -662,7 +662,7 @@ function startGear3() {
     let totalBounty = 0;
     for (let i = 0; i < 15; i++) {
         const currentLevel = state.enemy.level + i;
-        
+
         // Check if this level has a boss
         if (currentLevel % 10 === 0) {
             const bossIndex = ((currentLevel / 10) - 1) % bosses.length;
@@ -675,7 +675,7 @@ function startGear3() {
             const reward = Math.round(baseReward * Math.pow(1.35, currentLevel - 1));
             totalRewards += reward;
         }
-        
+
         state.banditsDefeated = (state.banditsDefeated || 0) + 1;
     }
 
