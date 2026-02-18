@@ -50,15 +50,22 @@ function spawnEnemy(level = 1) {
         // Boss encounter
         const bossIndex = ((level / 10) - 1) % bosses.length;
         const boss = bosses[bossIndex];
+
+        // Calculate bounty with Kaido cycle multiplier
+        // Each time you pass Kaido, all bounties increase by 50%
+        const cycleMultiplier = Math.pow(1.5, state.kaidoCycles || 0);
+        const adjustedBounty = Math.round(boss.baseBounty * cycleMultiplier);
+
         const bossHp = 100 + (level * 15); // Bosses have much more HP
         state.enemy = {
             level,
             hp: bossHp,
             maxHp: bossHp,
-            reward: boss.bounty,
+            reward: adjustedBounty,
             name: boss.name,
             isBoss: true,
-            variant: 1
+            variant: 1,
+            isKaido: boss.name === 'Kaido'
         };
         if (enemySprite) enemySprite.src = `images/bandit.svg`; // placeholder
         updateEnemyUI();
@@ -67,19 +74,12 @@ function spawnEnemy(level = 1) {
 
     // Regular bandit
     // Linear HP scaling: +2 HP per level
-    // Level 1: 20 HP, Level 2: 22 HP, Level 3: 24 HP, etc.
     const baseHp = 20;
     const hp = baseHp + (level - 1) * 2;
 
-    // Reward scaling matches difficulty
-    const baseReward = 5;
-    const reward = Math.round(baseReward * Math.pow(1.35, level - 1));
-
-    // choose a bandit variant sprite based on level
-    const variant = ((level - 1) % 3) + 1; // 1..3
-    const name = level === 1 ? 'Bandit' : `Bandit Lv.${level}`;
-    state.enemy = { level, hp, maxHp: hp, reward, name, variant, isBoss: false };
-    // set sprite src
+    // Reduced reward for balanced money system (0.75x multiplier)
+    const baseReward = 2;
+    const reward = Math.round(baseReward * Math.pow(1.20, level - 1));
     if (enemySprite) enemySprite.src = `images/bandit${variant}.svg`;
     updateEnemyUI();
 }
