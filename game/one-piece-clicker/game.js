@@ -738,13 +738,72 @@ function reset() {
 }
 
 function performReset() {
-    // Clear any sprite classes
+    // Clear any ongoing timers
+    if (bazookaTimer) {
+        clearInterval(bazookaTimer);
+        bazookaTimer = null;
+    }
+    if (gatlingTimer) {
+        clearInterval(gatlingTimer);
+        gatlingTimer = null;
+    }
+    if (redhawkTimer) {
+        clearInterval(redhawkTimer);
+        redhawkTimer = null;
+    }
+    if (gear2Timer) {
+        clearInterval(gear2Timer);
+        gear2Timer = null;
+    }
+    if (gear2CooldownTimer) {
+        clearInterval(gear2CooldownTimer);
+        gear2CooldownTimer = null;
+    }
+    if (gear3CooldownTimer) {
+        clearInterval(gear3CooldownTimer);
+        gear3CooldownTimer = null;
+    }
+    
+    // Clear any sprite classes and effects
     if (playerSprite) {
         playerSprite.classList.remove('flash');
         playerSprite.classList.remove('fallen');
         playerSprite.style.filter = '';
     }
-
+    if (enemySprite) {
+        enemySprite.classList.remove('flash');
+        enemySprite.classList.remove('fallen');
+    }
+    
+    // Clear button cooldown states
+    if (bazookaBtn) {
+        delete bazookaBtn.dataset.cooldown;
+        bazookaBtn.disabled = false;
+    }
+    if (gatlingBtn) {
+        delete gatlingBtn.dataset.cooldown;
+        gatlingBtn.disabled = false;
+    }
+    if (redhawkBtn) {
+        delete redhawkBtn.dataset.cooldown;
+        redhawkBtn.disabled = false;
+    }
+    if (gear2Btn) {
+        delete gear2Btn.dataset.cooldown;
+        gear2Btn.disabled = false;
+    }
+    if (gear3Btn) {
+        delete gear3Btn.dataset.cooldown;
+        gear3Btn.disabled = false;
+    }
+    
+    // Clear cooldown text
+    if (bazookaCooldownEl) bazookaCooldownEl.textContent = '';
+    if (gatlingCooldownEl) gatlingCooldownEl.textContent = '';
+    if (redhawkCooldownEl) redhawkCooldownEl.textContent = '';
+    if (gear2CooldownEl) gear2CooldownEl.textContent = '';
+    if (gear3CooldownEl) gear3CooldownEl.textContent = '';
+    
     state = {
         berries: 0,
         perClick: 1,
