@@ -25,9 +25,17 @@ state.upgradeHealthLevel = 0;
 state.enemy = null; // will be { level, hp, maxHp, reward, name }
 
 function spawnEnemy(level = 1) {
+    // Balanced HP scaling: starts at 20, scales more moderately
+    // Early levels: gentle curve, late levels: challenging but fair
     const baseHp = 20;
-    const hp = Math.round(baseHp * Math.pow(1.28, level - 1));
-    const reward = Math.round(5 * Math.pow(1.5, level - 1));
+    const hpMultiplier = Math.pow(1.20, level - 1); // reduced from 1.28 for less brutal scaling
+    const hp = Math.round(baseHp * hpMultiplier);
+    
+    // Reward scaling matches difficulty: players should earn enough to progress
+    const baseReward = 5;
+    const rewardMultiplier = Math.pow(1.35, level - 1); // slightly reduced from 1.5
+    const reward = Math.round(baseReward * rewardMultiplier);
+    
     // choose a bandit variant sprite based on level
     const variant = ((level - 1) % 3) + 1; // 1..3
     const name = level === 1 ? 'Bandit' : `Bandit Lv.${level}`;
@@ -97,11 +105,14 @@ function updateUI() {
 }
 
 function getUpgradeCost(level) {
-    return Math.round(20 * Math.pow(2, level));
+    // Costs scale more reasonably: 20 -> 40 -> 80 -> 160 instead of exponential spike
+    // Balance: early upgrades are affordable, late game still requires grind
+    return Math.round(20 * Math.pow(1.8, level));
 }
 
 function getUpgradeHealthCost(level) {
-    return Math.round(30 * Math.pow(2, level));
+    // Health upgrades slightly cheaper than damage to encourage balance
+    return Math.round(25 * Math.pow(1.75, level));
 }
 
 // Enemy UI helpers
@@ -236,8 +247,9 @@ let bazookaTimer = null;
 
 function getBazookaDamage() {
     const lvl = (state.upgradeDamageLevel || 0);
-    // scale by 15% per upgrade level
-    return Math.max(1, Math.round(BAZOOKA_DAMAGE * (1 + 0.15 * lvl)));
+    // Increased scaling to 20% per upgrade level (from 15%)
+    // Makes special attacks scale better with progression
+    return Math.max(1, Math.round(BAZOOKA_DAMAGE * (1 + 0.20 * lvl)));
 }
 
 function startBazookaCooldown() {
@@ -295,15 +307,15 @@ if (bazookaBtn) {
 
 // Gatling: up to 10 hit attempts, 25 damage per hit, 8s cooldown
 const GATLING_HITS = 10;
-const GATLING_HIT_PROB = 0.6; // per-hit chance
+const GATLING_HIT_PROB = 0.65; // slightly increased from 0.6 for more consistency
 const GATLING_DMG_PER_HIT = 25; // base per-hit
 const GATLING_COOLDOWN_MS = 8000;
 let gatlingTimer = null;
 
 function getGatlingDamagePerHit() {
     const lvl = (state.upgradeDamageLevel || 0);
-    // scale by 12% per upgrade level
-    return Math.max(1, Math.round(GATLING_DMG_PER_HIT * (1 + 0.12 * lvl)));
+    // Increased scaling to 16% per upgrade level (from 12%)
+    return Math.max(1, Math.round(GATLING_DMG_PER_HIT * (1 + 0.16 * lvl)));
 }
 
 function startGatlingCooldown() {
@@ -373,8 +385,8 @@ let redhawkTimer = null;
 
 function getRedhawkDamage() {
     const lvl = (state.upgradeDamageLevel || 0);
-    // scale by 18% per upgrade level
-    return Math.max(1, Math.round(REDHAWK_DAMAGE * (1 + 0.18 * lvl)));
+    // Increased scaling to 22% per upgrade level (from 18%)
+    return Math.max(1, Math.round(REDHAWK_DAMAGE * (1 + 0.22 * lvl)));
 }
 
 function startRedhawkCooldown() {
@@ -436,8 +448,9 @@ if (upgradeHealthBtn) {
         if (state.berries < cost) return alert('Not enough Berries to upgrade health');
         state.berries -= cost;
         state.upgradeHealthLevel = lvl + 1;
-        // increase max HP (base + scaling)
-        const increase = Math.round(25 * Math.pow(1.12, lvl));
+        // increase max HP: scale more aggressively to keep pace with enemy damage
+        // Provides steady health progression throughout game
+        const increase = Math.round(30 * Math.pow(1.18, lvl));
         state.player.maxHp = (state.player.maxHp || 100) + increase;
         // fully heal on upgrade
         state.player.hp = state.player.maxHp;
@@ -454,9 +467,12 @@ if (upgradeBtn) {
         if (state.berries < cost) return alert('Not enough Berries to upgrade damage');
         state.berries -= cost;
         state.upgradeDamageLevel = level + 1;
-        // increase per-click damage: base +1 per level, with small scaling
-        const incr = Math.ceil(1 * Math.pow(1.2, level));
+        // Increase per-click damage with better scaling:
+        // Level 1: +2, Level 2: +2.4, Level 3: +2.9, etc.
+        // Ensures damage upgrades remain relevant throughout game
+        const incr = Math.ceil(2 * Math.pow(1.2, level));
         state.perClick = (state.perClick || 1) + incr;
+        addConsoleMessage(`Luffy's attack power increased by ${incr}!`);
         updateUI();
     });
 }
@@ -491,8 +507,9 @@ setInterval(() => {
         enemyAttackTimer = 0;
         // simple chance to attack
         if (Math.random() < 0.85) {
-            // enemy deals damage relative to its level
-            const dmg = Math.max(1, Math.round(2 * Math.pow(1.15, state.enemy.level - 1)));
+            // enemy deals damage: scales more gently with level
+            // Base 2 damage, 12% per level (reduced from 15% for fairness)
+            const dmg = Math.max(1, Math.round(2 * Math.pow(1.12, state.enemy.level - 1)));
             if (state.player.inv <= 0) {
                 state.player.hp -= dmg;
                 state.player.inv = 6; // short inv frames (6 ticks @200ms = 1.2s)
