@@ -30,12 +30,12 @@ function spawnEnemy(level = 1) {
     const baseHp = 20;
     const hpMultiplier = Math.pow(1.20, level - 1); // reduced from 1.28 for less brutal scaling
     const hp = Math.round(baseHp * hpMultiplier);
-    
+
     // Reward scaling matches difficulty: players should earn enough to progress
     const baseReward = 5;
     const rewardMultiplier = Math.pow(1.35, level - 1); // slightly reduced from 1.5
     const reward = Math.round(baseReward * rewardMultiplier);
-    
+
     // choose a bandit variant sprite based on level
     const variant = ((level - 1) % 3) + 1; // 1..3
     const name = level === 1 ? 'Bandit' : `Bandit Lv.${level}`;
