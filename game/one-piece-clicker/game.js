@@ -294,7 +294,20 @@ clickBtn.addEventListener('click', () => {
             if (state.enemy.isBoss) {
                 state.bounty += reward;
                 state.bossesDefeated = (state.bossesDefeated || 0) + 1;
-                addConsoleMessage(`🏆 BOSS DEFEATED! ${name} Bounty: ${format(reward)}`);
+                
+                // Check for Blueno (Gear 2 unlock)
+                if (name === 'Blueno') {
+                    state.bluenoBossDefeated = true;
+                    addConsoleMessage(`🏆 BOSS DEFEATED! ${name} Bounty: ${format(reward)}`);
+                    addConsoleMessage(`⚡ You have unlocked GEAR 2!`);
+                } else if (state.enemy.isKaido) {
+                    // Kaido defeated - increment cycle for bounty scaling
+                    state.kaidoCycles = (state.kaidoCycles || 0) + 1;
+                    addConsoleMessage(`🏆 BOSS DEFEATED! ${name} Bounty: ${format(reward)}`);
+                    addConsoleMessage(`🔄 Kaido cycle increased to ${state.kaidoCycles}! All bosses' bounties will be stronger next cycle.`);
+                } else {
+                    addConsoleMessage(`🏆 BOSS DEFEATED! ${name} Bounty: ${format(reward)}`);
+                }
             } else {
                 addConsoleMessage(`${name} was defeated; you gained ${reward} Berries.`);
             }
@@ -376,7 +389,20 @@ if (bazookaBtn) {
             if (state.enemy.isBoss) {
                 state.bounty += reward;
                 state.bossesDefeated = (state.bossesDefeated || 0) + 1;
-                addConsoleMessage(`🏆 BOSS DEFEATED! ${name} Bounty: ${format(reward)}`);
+                
+                // Check for Blueno (Gear 2 unlock)
+                if (name === 'Blueno') {
+                    state.bluenoBossDefeated = true;
+                    addConsoleMessage(`🏆 BOSS DEFEATED! ${name} Bounty: ${format(reward)}`);
+                    addConsoleMessage(`⚡ You have unlocked GEAR 2!`);
+                } else if (state.enemy.isKaido) {
+                    // Kaido defeated - increment cycle for bounty scaling
+                    state.kaidoCycles = (state.kaidoCycles || 0) + 1;
+                    addConsoleMessage(`🏆 BOSS DEFEATED! ${name} Bounty: ${format(reward)}`);
+                    addConsoleMessage(`🔄 Kaido cycle increased to ${state.kaidoCycles}! All bosses' bounties will be stronger next cycle.`);
+                } else {
+                    addConsoleMessage(`🏆 BOSS DEFEATED! ${name} Bounty: ${format(reward)}`);
+                }
             } else {
                 addConsoleMessage(`${name} was defeated; you gained ${reward} Berries.`);
             }
@@ -462,7 +488,20 @@ if (gatlingBtn) {
             if (state.enemy.isBoss) {
                 state.bounty += reward;
                 state.bossesDefeated = (state.bossesDefeated || 0) + 1;
-                addConsoleMessage(`🏆 BOSS DEFEATED! ${name} Bounty: ${format(reward)}`);
+                
+                // Check for Blueno (Gear 2 unlock)
+                if (name === 'Blueno') {
+                    state.bluenoBossDefeated = true;
+                    addConsoleMessage(`🏆 BOSS DEFEATED! ${name} Bounty: ${format(reward)}`);
+                    addConsoleMessage(`⚡ You have unlocked GEAR 2!`);
+                } else if (state.enemy.isKaido) {
+                    // Kaido defeated - increment cycle for bounty scaling
+                    state.kaidoCycles = (state.kaidoCycles || 0) + 1;
+                    addConsoleMessage(`🏆 BOSS DEFEATED! ${name} Bounty: ${format(reward)}`);
+                    addConsoleMessage(`🔄 Kaido cycle increased to ${state.kaidoCycles}! All bosses' bounties will be stronger next cycle.`);
+                } else {
+                    addConsoleMessage(`🏆 BOSS DEFEATED! ${name} Bounty: ${format(reward)}`);
+                }
             } else {
                 addConsoleMessage(`${name} was defeated; you gained ${reward} Berries.`);
             }
@@ -537,7 +576,20 @@ if (redhawkBtn) {
             if (state.enemy.isBoss) {
                 state.bounty += reward;
                 state.bossesDefeated = (state.bossesDefeated || 0) + 1;
-                addConsoleMessage(`🏆 BOSS DEFEATED! ${name} Bounty: ${format(reward)}`);
+                
+                // Check for Blueno (Gear 2 unlock)
+                if (name === 'Blueno') {
+                    state.bluenoBossDefeated = true;
+                    addConsoleMessage(`🏆 BOSS DEFEATED! ${name} Bounty: ${format(reward)}`);
+                    addConsoleMessage(`⚡ You have unlocked GEAR 2!`);
+                } else if (state.enemy.isKaido) {
+                    // Kaido defeated - increment cycle for bounty scaling
+                    state.kaidoCycles = (state.kaidoCycles || 0) + 1;
+                    addConsoleMessage(`🏆 BOSS DEFEATED! ${name} Bounty: ${format(reward)}`);
+                    addConsoleMessage(`🔄 Kaido cycle increased to ${state.kaidoCycles}! All bosses' bounties will be stronger next cycle.`);
+                } else {
+                    addConsoleMessage(`🏆 BOSS DEFEATED! ${name} Bounty: ${format(reward)}`);
+                }
             } else {
                 addConsoleMessage(`${name} was defeated; you gained ${reward} Berries.`);
             }
@@ -562,6 +614,11 @@ const GEAR2_COOLDOWN_MS = 120000; // 2 minutes
 let gear2CooldownTimer = null;
 
 function startGear2() {
+    // Check if Blueno has been defeated (Gear 2 unlock requirement)
+    if (!state.bluenoBossDefeated) {
+        return alert('You must defeat Blueno first to unlock Gear 2!');
+    }
+    
     if (!state.enemy) return alert('No enemy to activate Gear 2 on');
     if (gear2Btn.dataset.cooldown) return; // still cooling down
 
@@ -667,12 +724,24 @@ function startGear3() {
         if (currentLevel % 10 === 0) {
             const bossIndex = ((currentLevel / 10) - 1) % bosses.length;
             const boss = bosses[bossIndex];
-            totalRewards += boss.bounty;
-            totalBounty += boss.bounty;
+            
+            // Calculate bounty with Kaido cycle multiplier
+            const cycleMultiplier = Math.pow(1.5, state.kaidoCycles || 0);
+            const adjustedBounty = Math.round(boss.baseBounty * cycleMultiplier);
+            
+            totalRewards += adjustedBounty;
+            totalBounty += adjustedBounty;
             state.bossesDefeated = (state.bossesDefeated || 0) + 1;
+            
+            // Check if this is Kaido or Blueno
+            if (boss.name === 'Kaido') {
+                state.kaidoCycles = (state.kaidoCycles || 0) + 1;
+            } else if (boss.name === 'Blueno') {
+                state.bluenoBossDefeated = true;
+            }
         } else {
-            const baseReward = 5;
-            const reward = Math.round(baseReward * Math.pow(1.35, currentLevel - 1));
+            const baseReward = 2;
+            const reward = Math.round(baseReward * Math.pow(1.20, currentLevel - 1));
             totalRewards += reward;
         }
 
@@ -682,7 +751,7 @@ function startGear3() {
     state.berries += totalRewards;
     if (totalBounty > 0) {
         state.bounty += totalBounty;
-        addConsoleMessage(`${totalRewards} Berries collected from 15 defeated enemies! (Including ${totalBounty} bounty)`);
+        addConsoleMessage(`${totalRewards} Berries collected from 15 defeated enemies! (Including ${format(totalBounty)} bounty)`);
     } else {
         addConsoleMessage(`${totalRewards} Berries collected from 15 defeated enemies!`);
     }
@@ -917,6 +986,8 @@ function performReset() {
         banditsDefeated: 0,
         bossesDefeated: 0,
         bounty: 0,
+        bluenoBossDefeated: false,
+        kaidoCycles: 0,
         upgradeDamageLevel: 0,
         upgradeHealthLevel: 0,
         player: { hp: 100, maxHp: 100, inv: 0, gear2Active: false, gear2TimeLeft: 0 },
