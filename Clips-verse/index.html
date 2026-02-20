@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html>
 <head>
@@ -30,9 +31,7 @@ body{
   font-size:16px;
   cursor:pointer;
 }
-.sidebar button:hover{
-  background:#333;
-}
+.sidebar button:hover{background:#333;}
 
 .main{
   margin-left:210px;
@@ -86,12 +85,10 @@ button.primary{
 
 <div id="auth">
   <h1>Clips Verse</h1>
-  <input id="username" placeholder="Username">
-  <input id="password" type="password" placeholder="Password">
+  <input id="username" placeholder="Create Username (required)">
+  <input id="password" type="password" placeholder="Create Password">
   <button class="primary" onclick="signup()">Sign Up</button>
   <button class="primary" onclick="login()">Login</button>
-  <hr>
-  <button onclick="googleLogin()">Login with Google (Demo)</button>
 </div>
 
 <div id="app">
@@ -122,7 +119,7 @@ button.primary{
     </div>
 
     <div id="profileSection" class="hidden">
-      <h2>Your Profile</h2>
+      <h2 id="profileTitle"></h2>
       <div id="profilePosts"></div>
     </div>
 
@@ -132,33 +129,77 @@ button.primary{
 <script>
 let currentUser = null;
 
+/* ---------- SAFE STORAGE SYSTEM ---------- */
+
+if(!localStorage.getItem("clipsverse_data")){
+  localStorage.setItem("clipsverse_data", JSON.stringify({
+    users:{},
+    posts:[],
+    messages:[]
+  }));
+}
+
+function getData(){
+  return JSON.parse(localStorage.getItem("clipsverse_data"));
+}
+
+function saveData(data){
+  localStorage.setItem("clipsverse_data", JSON.stringify(data));
+}
+
+/* ---------- AUTH ---------- */
+
 function signup(){
-  let user = username.value;
-  let pass = password.value;
-  if(!user || !pass) return alert("Fill fields");
+  let user = username.value.trim();
+  let pass = password.value.trim();
 
-  let users = JSON.parse(localStorage.getItem("users")) || {};
-  if(users[user]) return alert("User exists");
+  if(!user) return alert("Username required!");
+  if(user.length < 3) return alert("Username must be at least 3 characters.");
 
-  users[user] = {password:pass};
-  localStorage.setItem("users", JSON.stringify(users));
+  let data = getData();
+
+  if(data.users[user]){
+    alert("Username already taken.");
+    return;
+  }
+
+  data.users[user] = {
+    password:pass,
+    joined:new Date().toLocaleDateString()
+  };
+
+  saveData(data);
   alert("Account created!");
 }
 
 function login(){
-  let user = username.value;
-  let pass = password.value;
-  let users = JSON.parse(localStorage.getItem("users")) || {};
-  if(users[user] && users[user].password === pass){
+  let user = username.value.trim();
+  let pass = password.value.trim();
+  let data = getData();
+
+  if(data.users[user] && data.users[user].password === pass){
     currentUser = user;
+    localStorage.setItem("clipsverse_session", user);
     startApp();
-  } else alert("Wrong login");
+  } else {
+    alert("Invalid login");
+  }
 }
 
-function googleLogin(){
-  currentUser = "GoogleUser_" + Math.floor(Math.random()*1000);
-  startApp();
+function logout(){
+  localStorage.removeItem("clipsverse_session");
+  location.reload();
 }
+
+function autoLogin(){
+  let savedUser = localStorage.getItem("clipsverse_session");
+  if(savedUser){
+    currentUser = savedUser;
+    startApp();
+  }
+}
+
+/* ---------- APP ---------- */
 
 function startApp(){
   document.getElementById("auth").style.display="none";
@@ -166,40 +207,36 @@ function startApp(){
   loadFeed();
 }
 
-function logout(){
-  currentUser=null;
-  location.reload();
-}
-
 function createPost(){
   let text = postText.value;
   let img = imageURL.value;
   let videoFile = videoUpload.files[0];
 
-  if(!text && !videoFile && !img) return alert("Add something!");
+  if(!text && !img && !videoFile) return alert("Add something!");
 
   if(videoFile){
     let reader = new FileReader();
     reader.onload = function(e){
-      savePost(text, img, e.target.result);
+      savePost(text,img,e.target.result);
     }
     reader.readAsDataURL(videoFile);
   } else {
-    savePost(text, img, null);
+    savePost(text,img,null);
   }
 }
 
-function savePost(text, img, video){
-  let posts = JSON.parse(localStorage.getItem("posts")) || [];
-  posts.unshift({
+function savePost(text,img,video){
+  let data = getData();
+  data.posts.unshift({
     user:currentUser,
     text:text,
     img:img,
     video:video,
-    likes:0
+    likes:0,
+    time:Date.now()
   });
 
-  localStorage.setItem("posts", JSON.stringify(posts));
+  saveData(data);
   postText.value="";
   imageURL.value="";
   videoUpload.value="";
@@ -207,9 +244,10 @@ function savePost(text, img, video){
 }
 
 function loadFeed(){
-  let posts = JSON.parse(localStorage.getItem("posts")) || [];
+  let data = getData();
   feed.innerHTML="";
-  posts.forEach((post,index)=>{
+
+  data.posts.forEach((post,index)=>{
     feed.innerHTML+=`
       <div class="post">
         <h4>@${post.user}</h4>
@@ -223,9 +261,9 @@ function loadFeed(){
 }
 
 function likePost(index){
-  let posts = JSON.parse(localStorage.getItem("posts"));
-  posts[index].likes++;
-  localStorage.setItem("posts", JSON.stringify(posts));
+  let data = getData();
+  data.posts[index].likes++;
+  saveData(data);
   loadFeed();
 }
 
@@ -233,7 +271,6 @@ function showHome(){
   homeSection.classList.remove("hidden");
   messagesSection.classList.add("hidden");
   profileSection.classList.add("hidden");
-  loadFeed();
 }
 
 function showMessages(){
@@ -248,17 +285,21 @@ function showProfile(){
   messagesSection.classList.add("hidden");
   profileSection.classList.remove("hidden");
 
-  let posts = JSON.parse(localStorage.getItem("posts")) || [];
+  profileTitle.innerText = currentUser + "'s Profile";
+
+  let data = getData();
   profilePosts.innerHTML="";
-  posts.filter(p=>p.user===currentUser)
-       .forEach(p=>{
-         profilePosts.innerHTML+=`
-           <div class="post">
-             <p>${p.text}</p>
-             ${p.img?`<img src="${p.img}">`:""}
-             ${p.video?`<video controls src="${p.video}"></video>`:""}
-           </div>`;
-       });
+
+  data.posts.filter(p=>p.user===currentUser)
+            .forEach(p=>{
+              profilePosts.innerHTML+=`
+                <div class="post">
+                  <p>${p.text}</p>
+                  ${p.img?`<img src="${p.img}">`:""}
+                  ${p.video?`<video controls src="${p.video}"></video>`:""}
+                </div>
+              `;
+            });
 }
 
 function sendMessage(){
@@ -266,30 +307,43 @@ function sendMessage(){
   let text = msgText.value;
   if(!to || !text) return;
 
-  let messages = JSON.parse(localStorage.getItem("messages")) || [];
-  messages.push({
+  let data = getData();
+
+  if(!data.users[to]){
+    alert("User does not exist.");
+    return;
+  }
+
+  data.messages.push({
     from:currentUser,
     to:to,
-    text:text
+    text:text,
+    time:Date.now()
   });
 
-  localStorage.setItem("messages", JSON.stringify(messages));
+  saveData(data);
   msgText.value="";
   loadMessages();
 }
 
 function loadMessages(){
-  let messages = JSON.parse(localStorage.getItem("messages")) || [];
+  let data = getData();
   messageBox.innerHTML="";
-  messages.filter(m=>m.from===currentUser || m.to===currentUser)
-          .forEach(m=>{
-            messageBox.innerHTML+=`
-              <div class="post">
-                <b>${m.from} ➜ ${m.to}</b>
-                <p>${m.text}</p>
-              </div>`;
-          });
+
+  data.messages
+      .filter(m=>m.from===currentUser || m.to===currentUser)
+      .forEach(m=>{
+        messageBox.innerHTML+=`
+          <div class="post">
+            <b>${m.from} ➜ ${m.to}</b>
+            <p>${m.text}</p>
+          </div>
+        `;
+      });
 }
+
+/* ---------- AUTO LOGIN ON LOAD ---------- */
+autoLogin();
 </script>
 
 </body>
