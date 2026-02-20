@@ -1,188 +1,252 @@
-
 <!DOCTYPE html>
 <html>
 <head>
 <meta charset="UTF-8">
 <title>Clips Verse</title>
+
 <style>
 body{
   margin:0;
-  font-family:Arial, sans-serif;
-  background:#121212;
+  font-family:'Segoe UI', Roboto, Arial, sans-serif;
+  background:#f1f3f4;
+}
+
+#auth{
+  text-align:center;
+  margin-top:80px;
+}
+
+#auth input{
+  width:260px;
+  padding:10px;
+  margin:6px;
+  border-radius:8px;
+  border:1px solid #dadce0;
+}
+
+button.primary{
+  background:#1a73e8;
   color:white;
+  border:none;
+  padding:10px 18px;
+  border-radius:20px;
+  cursor:pointer;
+  margin:5px;
+}
+
+button.primary:hover{
+  background:#1558c0;
 }
 
 #app{display:none;}
-.sidebar{
-  width:200px;
-  height:100vh;
-  background:#1e1e1e;
+
+.topbar{
+  background:white;
+  height:60px;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  padding:0 20px;
+  box-shadow:0 1px 3px rgba(0,0,0,0.1);
   position:fixed;
-  padding-top:20px;
+  width:100%;
 }
-.sidebar button{
-  display:block;
-  width:90%;
-  margin:10px auto;
-  padding:10px;
+
+.logo{
+  font-size:20px;
+  font-weight:bold;
+  color:#1a73e8;
+}
+
+.nav-buttons button{
+  margin:0 5px;
   background:none;
   border:none;
-  color:white;
-  font-size:16px;
+  font-size:15px;
   cursor:pointer;
 }
-.sidebar button:hover{background:#333;}
 
 .main{
-  margin-left:210px;
-  padding:20px;
+  margin-top:80px;
+  max-width:600px;
+  margin-left:auto;
+  margin-right:auto;
 }
 
-.post{
-  background:#1f1f1f;
+.card{
+  background:white;
   padding:15px;
+  border-radius:12px;
   margin-bottom:20px;
-  border-radius:10px;
+  box-shadow:0 1px 3px rgba(0,0,0,0.1);
 }
 
-.post img, .post video{
+.card img, .card video{
   width:100%;
   border-radius:10px;
   margin-top:10px;
 }
 
-.like-btn{
-  cursor:pointer;
-  color:#ff4d6d;
+.profile-pic{
+  width:40px;
+  height:40px;
+  border-radius:50%;
+  object-fit:cover;
+  margin-right:10px;
 }
 
-input, textarea{
+.post-header{
+  display:flex;
+  align-items:center;
+}
+
+textarea, input{
   width:100%;
-  padding:8px;
-  margin:5px 0;
-  border-radius:5px;
-  border:none;
-}
-
-button.primary{
-  background:#ff4d6d;
-  border:none;
   padding:10px;
-  color:white;
-  border-radius:5px;
-  cursor:pointer;
+  margin:6px 0;
+  border-radius:8px;
+  border:1px solid #dadce0;
 }
 
-#auth{
-  text-align:center;
-  margin-top:100px;
+.like{
+  color:#e91e63;
+  cursor:pointer;
 }
 
 .hidden{display:none;}
+.small{
+  font-size:13px;
+  color:gray;
+}
 </style>
 </head>
 <body>
 
 <div id="auth">
-  <h1>Clips Verse</h1>
-  <input id="username" placeholder="Create Username (required)">
-  <input id="password" type="password" placeholder="Create Password">
+  <h1 style="color:#1a73e8;">Clips Verse</h1>
+
+  <h3>Create Account</h3>
+  <input id="email" type="email" placeholder="Email">
+  <input id="username" placeholder="Username">
+  <input id="password" type="password" placeholder="Password">
+  <input id="confirmPassword" type="password" placeholder="Repeat Password">
+  <br>
   <button class="primary" onclick="signup()">Sign Up</button>
+
+  <hr style="width:300px;margin:20px auto;">
+
+  <h3>Login</h3>
+  <input id="loginEmail" type="email" placeholder="Email">
+  <input id="loginPassword" type="password" placeholder="Password">
+  <br>
   <button class="primary" onclick="login()">Login</button>
+
+  <p class="small">Usernames and emails must be unique.</p>
 </div>
 
 <div id="app">
-  <div class="sidebar">
-    <button onclick="showHome()">🏠 Home</button>
-    <button onclick="showMessages()">💬 Messages</button>
-    <button onclick="showProfile()">👤 Profile</button>
-    <button onclick="logout()">🚪 Logout</button>
+  <div class="topbar">
+    <div class="logo">Clips Verse</div>
+    <div class="nav-buttons">
+      <button onclick="showHome()">Home</button>
+      <button onclick="showProfile()">Profile</button>
+      <button onclick="logout()">Logout</button>
+    </div>
   </div>
 
   <div class="main">
-
     <div id="homeSection">
-      <h2>Home Feed</h2>
-      <textarea id="postText" placeholder="What's your clip about?"></textarea>
-      <input id="imageURL" placeholder="Image URL (optional)">
-      <input type="file" id="videoUpload" accept="video/*">
-      <button class="primary" onclick="createPost()">Post</button>
+      <div class="card">
+        <textarea id="postText" placeholder="Share something..."></textarea>
+        <input type="file" id="videoUpload" accept="video/*">
+        <button class="primary" onclick="createPost()">Post</button>
+      </div>
       <div id="feed"></div>
     </div>
 
-    <div id="messagesSection" class="hidden">
-      <h2>Private Messages</h2>
-      <input id="msgUser" placeholder="Send to (username)">
-      <textarea id="msgText" placeholder="Message"></textarea>
-      <button class="primary" onclick="sendMessage()">Send</button>
-      <div id="messageBox"></div>
-    </div>
-
     <div id="profileSection" class="hidden">
-      <h2 id="profileTitle"></h2>
+      <div class="card">
+        <h2 id="profileTitle"></h2>
+        <input type="file" id="profileUpload" accept="image/*">
+        <button class="primary" onclick="saveProfilePhoto()">Upload Profile Photo</button>
+      </div>
       <div id="profilePosts"></div>
     </div>
-
   </div>
 </div>
 
 <script>
 let currentUser = null;
 
-/* ---------- SAFE STORAGE SYSTEM ---------- */
-
 if(!localStorage.getItem("clipsverse_data")){
   localStorage.setItem("clipsverse_data", JSON.stringify({
     users:{},
-    posts:[],
-    messages:[]
+    posts:[]
   }));
 }
 
-function getData(){
-  return JSON.parse(localStorage.getItem("clipsverse_data"));
-}
+function getData(){ return JSON.parse(localStorage.getItem("clipsverse_data")); }
+function saveData(d){ localStorage.setItem("clipsverse_data", JSON.stringify(d)); }
 
-function saveData(data){
-  localStorage.setItem("clipsverse_data", JSON.stringify(data));
-}
-
-/* ---------- AUTH ---------- */
+/* SIGNUP */
 
 function signup(){
-  let user = username.value.trim();
-  let pass = password.value.trim();
+  let email = document.getElementById("email").value.trim();
+  let username = document.getElementById("username").value.trim();
+  let pass = document.getElementById("password").value;
+  let confirm = document.getElementById("confirmPassword").value;
 
-  if(!user) return alert("Username required!");
-  if(user.length < 3) return alert("Username must be at least 3 characters.");
+  if(!email || !username || !pass || !confirm)
+    return alert("All fields required.");
+
+  if(pass !== confirm)
+    return alert("Passwords do not match.");
 
   let data = getData();
 
-  if(data.users[user]){
-    alert("Username already taken.");
-    return;
+  for(let u in data.users){
+    if(data.users[u].email === email)
+      return alert("Email already registered.");
   }
 
-  data.users[user] = {
+  if(data.users[username])
+    return alert("Username already taken.");
+
+  data.users[username] = {
+    email:email,
     password:pass,
-    joined:new Date().toLocaleDateString()
+    profilePic:null
   };
 
   saveData(data);
-  alert("Account created!");
+  alert("Account created successfully!");
 }
 
+/* LOGIN */
+
 function login(){
-  let user = username.value.trim();
-  let pass = password.value.trim();
+  let email = document.getElementById("loginEmail").value.trim();
+  let pass = document.getElementById("loginPassword").value;
   let data = getData();
 
-  if(data.users[user] && data.users[user].password === pass){
-    currentUser = user;
-    localStorage.setItem("clipsverse_session", user);
+  for(let username in data.users){
+    if(data.users[username].email === email &&
+       data.users[username].password === pass){
+        currentUser = username;
+        localStorage.setItem("clipsverse_session", username);
+        startApp();
+        return;
+    }
+  }
+
+  alert("Invalid email or password.");
+}
+
+function autoLogin(){
+  let session = localStorage.getItem("clipsverse_session");
+  if(session){
+    currentUser = session;
     startApp();
-  } else {
-    alert("Invalid login");
   }
 }
 
@@ -191,15 +255,7 @@ function logout(){
   location.reload();
 }
 
-function autoLogin(){
-  let savedUser = localStorage.getItem("clipsverse_session");
-  if(savedUser){
-    currentUser = savedUser;
-    startApp();
-  }
-}
-
-/* ---------- APP ---------- */
+/* APP */
 
 function startApp(){
   document.getElementById("auth").style.display="none";
@@ -209,36 +265,28 @@ function startApp(){
 
 function createPost(){
   let text = postText.value;
-  let img = imageURL.value;
-  let videoFile = videoUpload.files[0];
+  let file = videoUpload.files[0];
+  if(!text && !file) return alert("Add something.");
 
-  if(!text && !img && !videoFile) return alert("Add something!");
-
-  if(videoFile){
+  if(file){
     let reader = new FileReader();
-    reader.onload = function(e){
-      savePost(text,img,e.target.result);
-    }
-    reader.readAsDataURL(videoFile);
+    reader.onload = e => savePost(text,e.target.result);
+    reader.readAsDataURL(file);
   } else {
-    savePost(text,img,null);
+    savePost(text,null);
   }
 }
 
-function savePost(text,img,video){
+function savePost(text,video){
   let data = getData();
   data.posts.unshift({
     user:currentUser,
     text:text,
-    img:img,
     video:video,
-    likes:0,
-    time:Date.now()
+    likes:0
   });
-
   saveData(data);
   postText.value="";
-  imageURL.value="";
   videoUpload.value="";
   loadFeed();
 }
@@ -246,103 +294,68 @@ function savePost(text,img,video){
 function loadFeed(){
   let data = getData();
   feed.innerHTML="";
-
-  data.posts.forEach((post,index)=>{
+  data.posts.forEach((p,i)=>{
+    let pic = data.users[p.user].profilePic || "https://via.placeholder.com/40";
     feed.innerHTML+=`
-      <div class="post">
-        <h4>@${post.user}</h4>
-        <p>${post.text}</p>
-        ${post.img ? `<img src="${post.img}">`:""}
-        ${post.video ? `<video controls src="${post.video}"></video>`:""}
-        <p class="like-btn" onclick="likePost(${index})">❤️ ${post.likes}</p>
+      <div class="card">
+        <div class="post-header">
+          <img class="profile-pic" src="${pic}">
+          <b>@${p.user}</b>
+        </div>
+        <p>${p.text}</p>
+        ${p.video?`<video controls src="${p.video}"></video>`:""}
+        <p class="like" onclick="likePost(${i})">❤️ ${p.likes}</p>
       </div>
     `;
   });
 }
 
-function likePost(index){
+function likePost(i){
   let data = getData();
-  data.posts[index].likes++;
+  data.posts[i].likes++;
   saveData(data);
   loadFeed();
 }
 
-function showHome(){
-  homeSection.classList.remove("hidden");
-  messagesSection.classList.add("hidden");
-  profileSection.classList.add("hidden");
-}
-
-function showMessages(){
-  homeSection.classList.add("hidden");
-  messagesSection.classList.remove("hidden");
-  profileSection.classList.add("hidden");
-  loadMessages();
-}
+/* PROFILE */
 
 function showProfile(){
   homeSection.classList.add("hidden");
-  messagesSection.classList.add("hidden");
   profileSection.classList.remove("hidden");
 
-  profileTitle.innerText = currentUser + "'s Profile";
-
+  profileTitle.innerText=currentUser+"'s Profile";
   let data = getData();
   profilePosts.innerHTML="";
 
   data.posts.filter(p=>p.user===currentUser)
             .forEach(p=>{
               profilePosts.innerHTML+=`
-                <div class="post">
-                  <p>${p.text}</p>
-                  ${p.img?`<img src="${p.img}">`:""}
-                  ${p.video?`<video controls src="${p.video}"></video>`:""}
-                </div>
-              `;
+              <div class="card">
+                <p>${p.text}</p>
+                ${p.video?`<video controls src="${p.video}"></video>`:""}
+              </div>`;
             });
 }
 
-function sendMessage(){
-  let to = msgUser.value;
-  let text = msgText.value;
-  if(!to || !text) return;
+function showHome(){
+  homeSection.classList.remove("hidden");
+  profileSection.classList.add("hidden");
+}
 
-  let data = getData();
-
-  if(!data.users[to]){
-    alert("User does not exist.");
-    return;
+function saveProfilePhoto(){
+  let file = profileUpload.files[0];
+  if(!file) return;
+  let reader = new FileReader();
+  reader.onload = e=>{
+    let data = getData();
+    data.users[currentUser].profilePic = e.target.result;
+    saveData(data);
+    alert("Profile photo saved!");
+    loadFeed();
   }
-
-  data.messages.push({
-    from:currentUser,
-    to:to,
-    text:text,
-    time:Date.now()
-  });
-
-  saveData(data);
-  msgText.value="";
-  loadMessages();
+  reader.readAsDataURL(file);
 }
 
-function loadMessages(){
-  let data = getData();
-  messageBox.innerHTML="";
-
-  data.messages
-      .filter(m=>m.from===currentUser || m.to===currentUser)
-      .forEach(m=>{
-        messageBox.innerHTML+=`
-          <div class="post">
-            <b>${m.from} ➜ ${m.to}</b>
-            <p>${m.text}</p>
-          </div>
-        `;
-      });
-}
-
-/* ---------- AUTO LOGIN ON LOAD ---------- */
 autoLogin();
 </script>
 
