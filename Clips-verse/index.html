@@ -3,113 +3,24 @@
 <head>
 <meta charset="UTF-8">
 <title>Clips Verse</title>
-
-<!-- Google Identity Services -->
 <script src="https://accounts.google.com/gsi/client" async defer></script>
-
 <style>
-body{
-margin:0;
-font-family:Arial, sans-serif;
-background:#f1f3f4;
-}
-
-header{
-background:#ffffff;
-padding:15px;
-font-size:22px;
-font-weight:bold;
-color:#1a73e8;
-box-shadow:0 2px 5px rgba(0,0,0,0.1);
-}
-
-.container{
-display:flex;
-height:100vh;
-}
-
-.sidebar{
-width:220px;
-background:#ffffff;
-padding-top:20px;
-box-shadow:2px 0 5px rgba(0,0,0,0.1);
-}
-
-.sidebar button{
-width:100%;
-padding:15px;
-border:none;
-background:none;
-text-align:left;
-cursor:pointer;
-font-size:16px;
-}
-
-.sidebar button:hover{
-background:#e8f0fe;
-}
-
-.main{
-flex:1;
-overflow-y:auto;
-padding:20px;
-display:flex;
-flex-direction:column;
-align-items:center;
-}
-
-.post{
-background:#fff;
-width:300px;
-height:325px;
-margin-bottom:20px;
-border-radius:12px;
-box-shadow:0 2px 5px rgba(0,0,0,0.1);
-padding:10px;
-display:flex;
-flex-direction:column;
-}
-
-.post img, .post video{
-width:100%;
-height:240px;
-object-fit:cover;
-border-radius:8px;
-}
-
-.actions{
-display:flex;
-justify-content:space-between;
-margin-top:5px;
-}
-
-.auth{
-max-width:400px;
-margin:60px auto;
-background:#fff;
-padding:25px;
-border-radius:12px;
-box-shadow:0 3px 8px rgba(0,0,0,0.15);
-}
-
-input{
-width:100%;
-padding:10px;
-margin:5px 0;
-}
-
-button.primary{
-background:#1a73e8;
-color:white;
-border:none;
-padding:10px;
-cursor:pointer;
-border-radius:6px;
-}
+body{margin:0;font-family:Arial,sans-serif;background:#f1f3f4;}
+header{background:#fff;padding:15px;font-size:22px;font-weight:bold;color:#1a73e8;box-shadow:0 2px 5px rgba(0,0,0,0.1);}
+.container{display:flex;height:100vh;}
+.sidebar{width:220px;background:#fff;padding-top:20px;box-shadow:2px 0 5px rgba(0,0,0,0.1);}
+.sidebar button{width:100%;padding:15px;border:none;background:none;text-align:left;cursor:pointer;font-size:16px;}
+.sidebar button:hover{background:#e8f0fe;}
+.main{flex:1;overflow-y:auto;padding:20px;display:flex;flex-direction:column;align-items:center;}
+.post{background:#fff;width:300px;height:325px;margin-bottom:20px;border-radius:12px;box-shadow:0 2px 5px rgba(0,0,0,0.1);padding:10px;display:flex;flex-direction:column;}
+.post img,.post video{width:100%;height:240px;object-fit:cover;border-radius:8px;}
+.actions{display:flex;justify-content:space-between;margin-top:5px;}
+.auth{max-width:400px;margin:60px auto;background:#fff;padding:25px;border-radius:12px;box-shadow:0 3px 8px rgba(0,0,0,0.15);}
+input{width:100%;padding:10px;margin:5px 0;}
+button.primary{background:#1a73e8;color:white;border:none;padding:10px;cursor:pointer;border-radius:6px;}
 </style>
 </head>
 <body>
-
 <header>Clips Verse</header>
 
 <div id="authSection" class="auth">
@@ -119,28 +30,25 @@ border-radius:6px;
 <input id="password" type="password" placeholder="Password">
 <input id="repeatPassword" type="password" placeholder="Repeat Password">
 <button class="primary" onclick="signup()">Sign Up</button>
-
 <hr>
-
 <h3>Login</h3>
 <input id="loginEmail" placeholder="Email">
 <input id="loginPassword" type="password" placeholder="Password">
 <button class="primary" onclick="login()">Login</button>
-
 <hr>
-
 <h3>Or Login with Google</h3>
 <div id="g_id_onload"
      data-client_id="YOUR_GOOGLE_CLIENT_ID"
+     data-context="signin"
+     data-ux_mode="popup"
+     data-auto_prompt="false"
      data-callback="handleGoogleLogin">
 </div>
 <div class="g_id_signin" data-type="standard"></div>
-
 </div>
 
 <div id="app" style="display:none;">
 <div class="container">
-
 <div class="sidebar">
 <button onclick="showHome()">Home</button>
 <button onclick="showFriends()">Friends</button>
@@ -148,218 +56,146 @@ border-radius:6px;
 <button onclick="showProfile()">Profile</button>
 <button onclick="logout()">Logout</button>
 </div>
-
 <div class="main" id="mainContent"></div>
-
 </div>
 </div>
 
 <script>
-let users = JSON.parse(localStorage.getItem("users")) || [];
-let posts = JSON.parse(localStorage.getItem("posts")) || [];
-let messages = JSON.parse(localStorage.getItem("messages")) || [];
-let currentUser = JSON.parse(localStorage.getItem("currentUser")) || null;
+// --- INITIALIZE STORAGE ---
+let storageValid = true;
+try{
+  if(!localStorage.getItem("users")) throw "No users";
+  if(!localStorage.getItem("posts")) throw "No posts";
+  if(!localStorage.getItem("messages")) throw "No messages";
+}catch(e){
+  storageValid = false;
+}
+if(!storageValid){
+  localStorage.setItem("users", JSON.stringify([]));
+  localStorage.setItem("posts", JSON.stringify([]));
+  localStorage.setItem("messages", JSON.stringify([]));
+  localStorage.setItem("currentUser", JSON.stringify(null));
+}
 
+let users = JSON.parse(localStorage.getItem("users"));
+let posts = JSON.parse(localStorage.getItem("posts"));
+let messages = JSON.parse(localStorage.getItem("messages"));
+let currentUser = JSON.parse(localStorage.getItem("currentUser"));
+
+// --- SAVE FUNCTION ---
 function saveAll(){
-localStorage.setItem("users", JSON.stringify(users));
-localStorage.setItem("posts", JSON.stringify(posts));
-localStorage.setItem("messages", JSON.stringify(messages));
-localStorage.setItem("currentUser", JSON.stringify(currentUser));
+  localStorage.setItem("users", JSON.stringify(users));
+  localStorage.setItem("posts", JSON.stringify(posts));
+  localStorage.setItem("messages", JSON.stringify(messages));
+  localStorage.setItem("currentUser", JSON.stringify(currentUser));
 }
 
+// --- GOOGLE LOGIN ---
 function handleGoogleLogin(response){
-let decoded = JSON.parse(atob(response.credential.split('.')[1]));
-let email = decoded.email;
-let username = decoded.name.replace(/\s/g,'');
+  if(!response.credential){alert("Google login failed"); return;}
+  const decoded = JSON.parse(atob(response.credential.split('.')[1]));
+  const email = decoded.email;
+  const username = decoded.name.replace(/\s/g,'');
+  const picture = decoded.picture;
 
-let existing = users.find(u => u.email === email);
-
-if(!existing){
-users.push({
-email,
-username,
-password:"GOOGLE_ACCOUNT",
-friends:[],
-profilePic:decoded.picture || ""
-});
-existing = users[users.length-1];
+  let user = users.find(u=>u.email===email);
+  if(!user){
+    user = {email, username, password:"GOOGLE_ACCOUNT", friends:[], profilePic: picture};
+    users.push(user);
+  }
+  currentUser = user;
+  saveAll();
+  startApp();
 }
 
-currentUser = existing;
-saveAll();
-startApp();
-}
-
+// --- SIGNUP ---
 function signup(){
-let email = document.getElementById("email").value;
-let username = document.getElementById("username").value;
-let password = document.getElementById("password").value;
-let repeat = document.getElementById("repeatPassword").value;
-
-if(password !== repeat){
-alert("Passwords do not match!");
-return;
+  let email = document.getElementById("email").value.trim();
+  let username = document.getElementById("username").value.trim();
+  let password = document.getElementById("password").value;
+  let repeat = document.getElementById("repeatPassword").value;
+  if(!email || !username || !password || !repeat){alert("Fill all fields"); return;}
+  if(password !== repeat){alert("Passwords do not match"); return;}
+  if(users.find(u=>u.username===username)){alert("Username taken"); return;}
+  if(users.find(u=>u.email===email)){alert("Email already registered"); return;}
+  users.push({email, username, password, friends:[], profilePic:""});
+  saveAll(); alert("Account created! You can now log in");
 }
 
-if(users.find(u => u.username === username)){
-alert("Username already taken!");
-return;
-}
-
-users.push({
-email,
-username,
-password,
-friends:[],
-profilePic:""
-});
-
-saveAll();
-alert("Account Created!");
-}
-
+// --- LOGIN ---
 function login(){
-let email = document.getElementById("loginEmail").value;
-let password = document.getElementById("loginPassword").value;
-
-let user = users.find(u => u.email === email && u.password === password);
-if(!user){
-alert("Invalid login!");
-return;
+  let email = document.getElementById("loginEmail").value.trim();
+  let password = document.getElementById("loginPassword").value;
+  let user = users.find(u=>u.email===email && u.password===password);
+  if(!user){alert("Invalid login"); return;}
+  currentUser = user;
+  saveAll();
+  startApp();
 }
 
-currentUser = user;
-saveAll();
-startApp();
-}
+// --- LOGOUT ---
+function logout(){currentUser=null; saveAll(); location.reload();}
+function startApp(){document.getElementById("authSection").style.display="none"; document.getElementById("app").style.display="block"; showHome();}
 
-function logout(){
-currentUser=null;
-saveAll();
-location.reload();
-}
-
-function startApp(){
-document.getElementById("authSection").style.display="none";
-document.getElementById("app").style.display="block";
-showHome();
-}
-
+// --- HOME POSTS ---
 function showHome(){
-let main = document.getElementById("mainContent");
-main.innerHTML=`
-<h2>Home</h2>
-<input type="file" id="upload">
-<button onclick="createPost()">Post</button>
-<hr>
-<div id="feed"></div>
-`;
-renderPosts();
+  let main = document.getElementById("mainContent");
+  main.innerHTML=`<h2>Home</h2>
+<input type="file" id="upload"><button onclick="createPost()">Post</button><hr>
+<div id="feed"></div>`;
+  renderPosts();
 }
 
 function createPost(){
-let file = document.getElementById("upload").files[0];
-if(!file) return;
-
-let reader = new FileReader();
-reader.onload = function(e){
-posts.unshift({
-user: currentUser.username,
-content: e.target.result,
-type: file.type.includes("video") ? "video" : "image",
-likes:[],
-id:Date.now()
-});
-saveAll();
-renderPosts();
-};
-reader.readAsDataURL(file);
+  let file = document.getElementById("upload").files[0];
+  if(!file){alert("Choose a file"); return;}
+  let reader = new FileReader();
+  reader.onload = function(e){
+    posts.unshift({user:currentUser.username, content:e.target.result, type:file.type.includes("video")?"video":"image", likes:[], id:Date.now()});
+    saveAll(); renderPosts();
+  };
+  reader.readAsDataURL(file);
 }
 
 function renderPosts(){
-let feed = document.getElementById("feed");
-feed.innerHTML="";
-posts.forEach(p=>{
-let div = document.createElement("div");
-div.className="post";
-div.innerHTML=`
-<b>${p.user}</b>
-${p.type==="image" ? `<img src="${p.content}">` :
-`<video controls src="${p.content}"></video>`}
+  let feed = document.getElementById("feed");
+  feed.innerHTML="";
+  posts.forEach(p=>{
+    let div = document.createElement("div"); div.className="post";
+    div.innerHTML=`<b>${p.user}</b>
+${p.type==="image"?`<img src="${p.content}">`:`<video controls src="${p.content}"></video>`}
 <div class="actions">
 <button onclick="likePost(${p.id})">❤ ${p.likes.length}</button>
 <button onclick="sharePost(${p.id})">Share</button>
-</div>
-`;
-feed.appendChild(div);
-});
+</div>`;
+    feed.appendChild(div);
+  });
 }
 
-function likePost(id){
-let post = posts.find(p=>p.id===id);
-if(!post.likes.includes(currentUser.username)){
-post.likes.push(currentUser.username);
-saveAll();
-renderPosts();
-}
-}
+function likePost(id){let post=posts.find(p=>p.id===id); if(!post.likes.includes(currentUser.username)){post.likes.push(currentUser.username); saveAll(); renderPosts();}}
+function sharePost(id){let friend=prompt("Send to which friend?"); let post=posts.find(p=>p.id===id); messages.push({from:currentUser.username,to:friend,content:post.content,type:"post"}); saveAll(); alert("Sent!");}
 
-function sharePost(id){
-let friend = prompt("Send to which friend?");
-let post = posts.find(p=>p.id===id);
-messages.push({
-from:currentUser.username,
-to:friend,
-content:post.content,
-type:"post"
-});
-saveAll();
-alert("Sent!");
-}
-
+// --- FRIENDS ---
 function showFriends(){
-let main=document.getElementById("mainContent");
-main.innerHTML=`
-<h2>Friends</h2>
-<input id="friendName" placeholder="Username">
-<button onclick="addFriend()">Add Friend</button>
-<ul>
-${currentUser.friends.map(f=>`<li>${f}</li>`).join("")}
-</ul>
-`;
+  let main=document.getElementById("mainContent");
+  main.innerHTML=`<h2>Friends</h2><input id="friendName" placeholder="Username"><button onclick="addFriend()">Add Friend</button>
+<ul>${currentUser.friends.map(f=>`<li>${f}</li>`).join("")}</ul>`;
 }
+function addFriend(){let name=document.getElementById("friendName").value.trim(); if(users.find(u=>u.username===name)){if(!currentUser.friends.includes(name)){currentUser.friends.push(name); saveAll(); showFriends();}}}
 
-function addFriend(){
-let name=document.getElementById("friendName").value;
-if(users.find(u=>u.username===name)){
-currentUser.friends.push(name);
-saveAll();
-showFriends();
-}
-}
+// --- MESSAGES ---
+function showMessages(){let main=document.getElementById("mainContent"); let myMessages=messages.filter(m=>m.to===currentUser.username); main.innerHTML="<h2>Messages</h2>"; myMessages.forEach(m=>{main.innerHTML+=`<div>${m.from} sent a post</div>`;});}
 
-function showMessages(){
-let main=document.getElementById("mainContent");
-let myMessages = messages.filter(m=>m.to===currentUser.username);
-main.innerHTML="<h2>Messages</h2>";
-myMessages.forEach(m=>{
-main.innerHTML+=`<div>${m.from} sent a post</div>`;
-});
-}
-
+// --- PROFILE ---
 function showProfile(){
-let main=document.getElementById("mainContent");
-main.innerHTML=`
-<h2>Profile</h2>
+  let main=document.getElementById("mainContent");
+  main.innerHTML=`<h2>Profile</h2>
 <img src="${currentUser.profilePic}" width="120" height="120" style="border-radius:50%;">
-<h3>${currentUser.username}</h3>
-`;
+<h3>${currentUser.username}</h3>`;
 }
 
-if(currentUser){
-startApp();
-}
+// --- AUTO LOGIN ---
+if(currentUser){startApp();}
 </script>
-
 </body>
 </html>
