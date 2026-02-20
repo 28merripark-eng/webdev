@@ -20,6 +20,9 @@ input,textarea{width:100%;padding:10px;margin:5px 0;}
 button.primary{background:#1a73e8;color:white;border:none;padding:10px;cursor:pointer;border-radius:6px;}
 .comment-section{margin-top:5px;padding-top:5px;border-top:1px solid #ddd;}
 .comment{margin-bottom:3px;}
+.stories{display:flex;overflow-x:auto;margin-bottom:15px;padding-bottom:10px;}
+.story{flex:0 0 auto;margin-right:10px;text-align:center;}
+.story img{width:60px;height:60px;border-radius:50%;border:2px solid #1a73e8;}
 </style>
 </head>
 <body>
@@ -139,15 +142,26 @@ function login(){
 function logout(){currentUser=null; saveAll(); location.reload();}
 function startApp(){document.getElementById("authSection").style.display="none"; document.getElementById("app").style.display="block"; showHome();}
 
-// --- HOME POSTS ---
+// --- HOME POSTS WITH STORIES BAR ---
 function showHome(){
   let main = document.getElementById("mainContent");
-  main.innerHTML=`<h2>Home</h2>
+
+  // STORIES BAR
+  let storiesHTML = `<div class="stories">`;
+  currentUser.friends.forEach(f=>{
+    let friendObj = users.find(u=>u.username===f);
+    let pic = friendObj?.profilePic || '';
+    storiesHTML += `<div class="story"><img src="${pic}" alt="${f}"><div>${f}</div></div>`;
+  });
+  storiesHTML += `</div>`;
+
+  main.innerHTML = storiesHTML + `<h2>Home</h2>
 <input type="file" id="upload"><button onclick="createPost()">Post</button><hr>
 <div id="feed"></div>`;
   renderPosts();
 }
 
+// --- CREATE POST ---
 function createPost(){
   let file = document.getElementById("upload").files[0];
   if(!file){alert("Choose a file"); return;}
@@ -159,6 +173,7 @@ function createPost(){
   reader.readAsDataURL(file);
 }
 
+// --- RENDER POSTS ---
 function renderPosts(){
   let feed = document.getElementById("feed");
   feed.innerHTML="";
@@ -183,11 +198,7 @@ ${commentHTML}
 
 function likePost(id){let post=posts.find(p=>p.id===id); if(!post.likes.includes(currentUser.username)){post.likes.push(currentUser.username); saveAll(); renderPosts();}}
 function sharePost(id){let friend=prompt("Send to which friend?"); let post=posts.find(p=>p.id===id); messages.push({from:currentUser.username,to:friend,content:post.content,type:"post"}); saveAll(); alert("Sent!");}
-function addComment(id){
-  let post = posts.find(p=>p.id===id);
-  let text = document.getElementById(`comment-${id}`).value.trim();
-  if(text){post.comments.push({user:currentUser.username, text}); saveAll(); renderPosts();}
-}
+function addComment(id){let post = posts.find(p=>p.id===id); let text = document.getElementById(`comment-${id}`).value.trim(); if(text){post.comments.push({user:currentUser.username, text}); saveAll(); renderPosts();}}
 
 // --- FRIENDS ---
 function showFriends(){
@@ -204,8 +215,21 @@ function showMessages(){let main=document.getElementById("mainContent"); let myM
 function showProfile(){
   let main=document.getElementById("mainContent");
   main.innerHTML=`<h2>Profile</h2>
-<img src="${currentUser.profilePic}" width="120" height="120" style="border-radius:50%;">
+<img src="${currentUser.profilePic || ''}" width="120" height="120" style="border-radius:50%;">
+<input type="file" id="profileUpload"><button onclick="updateProfilePic()">Upload Profile Picture</button>
 <h3>${currentUser.username}</h3>`;
+}
+function updateProfilePic(){
+  let file = document.getElementById("profileUpload").files[0];
+  if(!file){alert("Choose a file"); return;}
+  let reader = new FileReader();
+  reader.onload = function(e){
+    currentUser.profilePic = e.target.result;
+    let userIndex = users.findIndex(u=>u.username===currentUser.username);
+    users[userIndex].profilePic = e.target.result;
+    saveAll(); showProfile(); showHome();
+  };
+  reader.readAsDataURL(file);
 }
 
 // --- AUTO LOGIN ---
