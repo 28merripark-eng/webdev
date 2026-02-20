@@ -45,10 +45,13 @@ body{
   margin-bottom:20px;
   border-radius:10px;
 }
-.post img{
+
+.post img, .post video{
   width:100%;
   border-radius:10px;
+  margin-top:10px;
 }
+
 .like-btn{
   cursor:pointer;
   color:#ff4d6d;
@@ -105,6 +108,7 @@ button.primary{
       <h2>Home Feed</h2>
       <textarea id="postText" placeholder="What's your clip about?"></textarea>
       <input id="imageURL" placeholder="Image URL (optional)">
+      <input type="file" id="videoUpload" accept="video/*">
       <button class="primary" onclick="createPost()">Post</button>
       <div id="feed"></div>
     </div>
@@ -170,19 +174,35 @@ function logout(){
 function createPost(){
   let text = postText.value;
   let img = imageURL.value;
-  if(!text) return alert("Write something");
+  let videoFile = videoUpload.files[0];
 
+  if(!text && !videoFile && !img) return alert("Add something!");
+
+  if(videoFile){
+    let reader = new FileReader();
+    reader.onload = function(e){
+      savePost(text, img, e.target.result);
+    }
+    reader.readAsDataURL(videoFile);
+  } else {
+    savePost(text, img, null);
+  }
+}
+
+function savePost(text, img, video){
   let posts = JSON.parse(localStorage.getItem("posts")) || [];
   posts.unshift({
     user:currentUser,
     text:text,
     img:img,
+    video:video,
     likes:0
   });
 
   localStorage.setItem("posts", JSON.stringify(posts));
   postText.value="";
   imageURL.value="";
+  videoUpload.value="";
   loadFeed();
 }
 
@@ -195,6 +215,7 @@ function loadFeed(){
         <h4>@${post.user}</h4>
         <p>${post.text}</p>
         ${post.img ? `<img src="${post.img}">`:""}
+        ${post.video ? `<video controls src="${post.video}"></video>`:""}
         <p class="like-btn" onclick="likePost(${index})">❤️ ${post.likes}</p>
       </div>
     `;
@@ -235,6 +256,7 @@ function showProfile(){
            <div class="post">
              <p>${p.text}</p>
              ${p.img?`<img src="${p.img}">`:""}
+             ${p.video?`<video controls src="${p.video}"></video>`:""}
            </div>`;
        });
 }
