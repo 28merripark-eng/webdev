@@ -1,0 +1,274 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>Clips Verse</title>
+<style>
+body{
+  margin:0;
+  font-family:Arial, sans-serif;
+  background:#121212;
+  color:white;
+}
+
+#app{display:none;}
+.sidebar{
+  width:200px;
+  height:100vh;
+  background:#1e1e1e;
+  position:fixed;
+  padding-top:20px;
+}
+.sidebar button{
+  display:block;
+  width:90%;
+  margin:10px auto;
+  padding:10px;
+  background:none;
+  border:none;
+  color:white;
+  font-size:16px;
+  cursor:pointer;
+}
+.sidebar button:hover{
+  background:#333;
+}
+
+.main{
+  margin-left:210px;
+  padding:20px;
+}
+
+.post{
+  background:#1f1f1f;
+  padding:15px;
+  margin-bottom:20px;
+  border-radius:10px;
+}
+.post img{
+  width:100%;
+  border-radius:10px;
+}
+.like-btn{
+  cursor:pointer;
+  color:#ff4d6d;
+}
+
+input, textarea{
+  width:100%;
+  padding:8px;
+  margin:5px 0;
+  border-radius:5px;
+  border:none;
+}
+
+button.primary{
+  background:#ff4d6d;
+  border:none;
+  padding:10px;
+  color:white;
+  border-radius:5px;
+  cursor:pointer;
+}
+
+#auth{
+  text-align:center;
+  margin-top:100px;
+}
+
+.hidden{display:none;}
+</style>
+</head>
+<body>
+
+<div id="auth">
+  <h1>Clips Verse</h1>
+  <input id="username" placeholder="Username">
+  <input id="password" type="password" placeholder="Password">
+  <button class="primary" onclick="signup()">Sign Up</button>
+  <button class="primary" onclick="login()">Login</button>
+  <hr>
+  <button onclick="googleLogin()">Login with Google (Demo)</button>
+</div>
+
+<div id="app">
+  <div class="sidebar">
+    <button onclick="showHome()">🏠 Home</button>
+    <button onclick="showMessages()">💬 Messages</button>
+    <button onclick="showProfile()">👤 Profile</button>
+    <button onclick="logout()">🚪 Logout</button>
+  </div>
+
+  <div class="main">
+
+    <div id="homeSection">
+      <h2>Home Feed</h2>
+      <textarea id="postText" placeholder="What's your clip about?"></textarea>
+      <input id="imageURL" placeholder="Image URL (optional)">
+      <button class="primary" onclick="createPost()">Post</button>
+      <div id="feed"></div>
+    </div>
+
+    <div id="messagesSection" class="hidden">
+      <h2>Private Messages</h2>
+      <input id="msgUser" placeholder="Send to (username)">
+      <textarea id="msgText" placeholder="Message"></textarea>
+      <button class="primary" onclick="sendMessage()">Send</button>
+      <div id="messageBox"></div>
+    </div>
+
+    <div id="profileSection" class="hidden">
+      <h2>Your Profile</h2>
+      <div id="profilePosts"></div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+let currentUser = null;
+
+function signup(){
+  let user = username.value;
+  let pass = password.value;
+  if(!user || !pass) return alert("Fill fields");
+
+  let users = JSON.parse(localStorage.getItem("users")) || {};
+  if(users[user]) return alert("User exists");
+
+  users[user] = {password:pass};
+  localStorage.setItem("users", JSON.stringify(users));
+  alert("Account created!");
+}
+
+function login(){
+  let user = username.value;
+  let pass = password.value;
+  let users = JSON.parse(localStorage.getItem("users")) || {};
+  if(users[user] && users[user].password === pass){
+    currentUser = user;
+    startApp();
+  } else alert("Wrong login");
+}
+
+function googleLogin(){
+  currentUser = "GoogleUser_" + Math.floor(Math.random()*1000);
+  startApp();
+}
+
+function startApp(){
+  document.getElementById("auth").style.display="none";
+  document.getElementById("app").style.display="block";
+  loadFeed();
+}
+
+function logout(){
+  currentUser=null;
+  location.reload();
+}
+
+function createPost(){
+  let text = postText.value;
+  let img = imageURL.value;
+  if(!text) return alert("Write something");
+
+  let posts = JSON.parse(localStorage.getItem("posts")) || [];
+  posts.unshift({
+    user:currentUser,
+    text:text,
+    img:img,
+    likes:0
+  });
+
+  localStorage.setItem("posts", JSON.stringify(posts));
+  postText.value="";
+  imageURL.value="";
+  loadFeed();
+}
+
+function loadFeed(){
+  let posts = JSON.parse(localStorage.getItem("posts")) || [];
+  feed.innerHTML="";
+  posts.forEach((post,index)=>{
+    feed.innerHTML+=`
+      <div class="post">
+        <h4>@${post.user}</h4>
+        <p>${post.text}</p>
+        ${post.img ? `<img src="${post.img}">`:""}
+        <p class="like-btn" onclick="likePost(${index})">❤️ ${post.likes}</p>
+      </div>
+    `;
+  });
+}
+
+function likePost(index){
+  let posts = JSON.parse(localStorage.getItem("posts"));
+  posts[index].likes++;
+  localStorage.setItem("posts", JSON.stringify(posts));
+  loadFeed();
+}
+
+function showHome(){
+  homeSection.classList.remove("hidden");
+  messagesSection.classList.add("hidden");
+  profileSection.classList.add("hidden");
+  loadFeed();
+}
+
+function showMessages(){
+  homeSection.classList.add("hidden");
+  messagesSection.classList.remove("hidden");
+  profileSection.classList.add("hidden");
+  loadMessages();
+}
+
+function showProfile(){
+  homeSection.classList.add("hidden");
+  messagesSection.classList.add("hidden");
+  profileSection.classList.remove("hidden");
+
+  let posts = JSON.parse(localStorage.getItem("posts")) || [];
+  profilePosts.innerHTML="";
+  posts.filter(p=>p.user===currentUser)
+       .forEach(p=>{
+         profilePosts.innerHTML+=`
+           <div class="post">
+             <p>${p.text}</p>
+             ${p.img?`<img src="${p.img}">`:""}
+           </div>`;
+       });
+}
+
+function sendMessage(){
+  let to = msgUser.value;
+  let text = msgText.value;
+  if(!to || !text) return;
+
+  let messages = JSON.parse(localStorage.getItem("messages")) || [];
+  messages.push({
+    from:currentUser,
+    to:to,
+    text:text
+  });
+
+  localStorage.setItem("messages", JSON.stringify(messages));
+  msgText.value="";
+  loadMessages();
+}
+
+function loadMessages(){
+  let messages = JSON.parse(localStorage.getItem("messages")) || [];
+  messageBox.innerHTML="";
+  messages.filter(m=>m.from===currentUser || m.to===currentUser)
+          .forEach(m=>{
+            messageBox.innerHTML+=`
+              <div class="post">
+                <b>${m.from} ➜ ${m.to}</b>
+                <p>${m.text}</p>
+              </div>`;
+          });
+}
+</script>
+
+</body>
+</html>
