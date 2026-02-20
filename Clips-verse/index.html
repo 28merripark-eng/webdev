@@ -4,6 +4,9 @@
 <meta charset="UTF-8">
 <title>Clips Verse</title>
 
+<!-- Google Identity Services -->
+<script src="https://accounts.google.com/gsi/client" async defer></script>
+
 <style>
 body{
 margin:0;
@@ -50,6 +53,9 @@ background:#e8f0fe;
 flex:1;
 overflow-y:auto;
 padding:20px;
+display:flex;
+flex-direction:column;
+align-items:center;
 }
 
 .post{
@@ -69,7 +75,6 @@ width:100%;
 height:240px;
 object-fit:cover;
 border-radius:8px;
-image-rendering:auto;
 }
 
 .actions{
@@ -114,11 +119,23 @@ border-radius:6px;
 <input id="password" type="password" placeholder="Password">
 <input id="repeatPassword" type="password" placeholder="Repeat Password">
 <button class="primary" onclick="signup()">Sign Up</button>
+
 <hr>
+
 <h3>Login</h3>
 <input id="loginEmail" placeholder="Email">
 <input id="loginPassword" type="password" placeholder="Password">
 <button class="primary" onclick="login()">Login</button>
+
+<hr>
+
+<h3>Or Login with Google</h3>
+<div id="g_id_onload"
+     data-client_id="YOUR_GOOGLE_CLIENT_ID"
+     data-callback="handleGoogleLogin">
+</div>
+<div class="g_id_signin" data-type="standard"></div>
+
 </div>
 
 <div id="app" style="display:none;">
@@ -148,6 +165,29 @@ localStorage.setItem("users", JSON.stringify(users));
 localStorage.setItem("posts", JSON.stringify(posts));
 localStorage.setItem("messages", JSON.stringify(messages));
 localStorage.setItem("currentUser", JSON.stringify(currentUser));
+}
+
+function handleGoogleLogin(response){
+let decoded = JSON.parse(atob(response.credential.split('.')[1]));
+let email = decoded.email;
+let username = decoded.name.replace(/\s/g,'');
+
+let existing = users.find(u => u.email === email);
+
+if(!existing){
+users.push({
+email,
+username,
+password:"GOOGLE_ACCOUNT",
+friends:[],
+profilePic:decoded.picture || ""
+});
+existing = users[users.length-1];
+}
+
+currentUser = existing;
+saveAll();
+startApp();
 }
 
 function signup(){
@@ -214,7 +254,6 @@ main.innerHTML=`
 <hr>
 <div id="feed"></div>
 `;
-
 renderPosts();
 }
 
@@ -240,11 +279,9 @@ reader.readAsDataURL(file);
 function renderPosts(){
 let feed = document.getElementById("feed");
 feed.innerHTML="";
-
 posts.forEach(p=>{
 let div = document.createElement("div");
 div.className="post";
-
 div.innerHTML=`
 <b>${p.user}</b>
 ${p.type==="image" ? `<img src="${p.content}">` :
@@ -314,21 +351,9 @@ function showProfile(){
 let main=document.getElementById("mainContent");
 main.innerHTML=`
 <h2>Profile</h2>
-<input type="file" onchange="setProfile(event)">
-<br><br>
 <img src="${currentUser.profilePic}" width="120" height="120" style="border-radius:50%;">
 <h3>${currentUser.username}</h3>
 `;
-}
-
-function setProfile(e){
-let reader=new FileReader();
-reader.onload=function(ev){
-currentUser.profilePic=ev.target.result;
-saveAll();
-showProfile();
-};
-reader.readAsDataURL(e.target.files[0]);
 }
 
 if(currentUser){
