@@ -13,7 +13,6 @@ body{
 }
 
 /* SIDEBAR */
-
 .sidebar{
   width:220px;
   background:white;
@@ -22,12 +21,10 @@ body{
   box-shadow:1px 0 5px rgba(0,0,0,0.1);
   padding-top:30px;
 }
-
 .sidebar h2{
   text-align:center;
   color:#1a73e8;
 }
-
 .sidebar button{
   display:block;
   width:90%;
@@ -39,13 +36,11 @@ body{
   cursor:pointer;
   border-radius:8px;
 }
-
 .sidebar button:hover{
   background:#e8f0fe;
 }
 
 /* MAIN */
-
 .main{
   margin-left:240px;
   padding:30px;
@@ -78,23 +73,13 @@ button.primary{
   cursor:pointer;
 }
 
-/* HIGH QUALITY MEDIA */
-
 .media{
   width:100%;
   max-height:600px;
   border-radius:10px;
   margin-top:10px;
   object-fit:contain;
-  image-rendering: -webkit-optimize-contrast;
-  image-rendering: crisp-edges;
 }
-
-video.media{
-  background:black;
-}
-
-/* PROFILE */
 
 .profile-pic{
   width:40px;
@@ -133,12 +118,14 @@ video.media{
 
 <div id="auth">
   <h1>Create Account</h1>
-  <input id="email" type="email" placeholder="Email">
-  <input id="username" placeholder="Username">
-  <input id="password" type="password" placeholder="Password">
-  <input id="confirmPassword" type="password" placeholder="Repeat Password">
+  <input id="signupEmail" type="email" placeholder="Email">
+  <input id="signupUsername" placeholder="Username">
+  <input id="signupPassword" type="password" placeholder="Password">
+  <input id="signupConfirm" type="password" placeholder="Repeat Password">
   <button class="primary" onclick="signup()">Sign Up</button>
+
   <hr>
+
   <h2>Login</h2>
   <input id="loginEmail" type="email" placeholder="Email">
   <input id="loginPassword" type="password" placeholder="Password">
@@ -168,10 +155,9 @@ video.media{
 </div>
 
 <script>
-let currentUser=null;
+let currentUser = null;
 
-/* STORAGE */
-
+/* SAFE DATABASE INIT */
 if(!localStorage.getItem("clipsverse_data")){
   localStorage.setItem("clipsverse_data", JSON.stringify({
     users:{},
@@ -179,59 +165,69 @@ if(!localStorage.getItem("clipsverse_data")){
   }));
 }
 
-function getData(){return JSON.parse(localStorage.getItem("clipsverse_data"));}
-function saveData(d){localStorage.setItem("clipsverse_data", JSON.stringify(d));}
+function getData(){
+  return JSON.parse(localStorage.getItem("clipsverse_data"));
+}
+function saveData(data){
+  localStorage.setItem("clipsverse_data", JSON.stringify(data));
+}
 
 /* SIGNUP */
-
 function signup(){
-  let email=email.value.trim();
-  let user=username.value.trim();
-  let pass=password.value;
-  let confirm=confirmPassword.value;
+  const email = document.getElementById("signupEmail").value.trim();
+  const username = document.getElementById("signupUsername").value.trim();
+  const password = document.getElementById("signupPassword").value;
+  const confirm = document.getElementById("signupConfirm").value;
 
-  if(!email||!user||!pass||!confirm) return alert("All fields required.");
-  if(pass!==confirm) return alert("Passwords don't match.");
+  if(!email || !username || !password || !confirm)
+    return alert("All fields required.");
 
-  let data=getData();
+  if(password !== confirm)
+    return alert("Passwords do not match.");
+
+  let data = getData();
 
   for(let u in data.users){
-    if(data.users[u].email===email)
-      return alert("Email already used.");
+    if(data.users[u].email === email)
+      return alert("Email already registered.");
   }
 
-  if(data.users[user])
-    return alert("Username taken.");
+  if(data.users[username])
+    return alert("Username already taken.");
 
-  data.users[user]={email:email,password:pass,profilePic:null};
+  data.users[username] = {
+    email: email,
+    password: password,
+    profilePic: null
+  };
+
   saveData(data);
-  alert("Account created!");
+  alert("Account created successfully!");
 }
 
 /* LOGIN */
-
 function login(){
-  let emailInput=loginEmail.value.trim();
-  let pass=loginPassword.value;
-  let data=getData();
+  const email = document.getElementById("loginEmail").value.trim();
+  const password = document.getElementById("loginPassword").value;
+  let data = getData();
 
   for(let u in data.users){
-    if(data.users[u].email===emailInput &&
-       data.users[u].password===pass){
-         currentUser=u;
-         localStorage.setItem("clipsverse_session",u);
-         startApp();
-         return;
+    if(data.users[u].email === email &&
+       data.users[u].password === password){
+        currentUser = u;
+        localStorage.setItem("clipsverse_session", u);
+        startApp();
+        return;
     }
   }
 
-  alert("Invalid login.");
+  alert("Invalid email or password.");
 }
 
 function autoLogin(){
-  let s=localStorage.getItem("clipsverse_session");
-  if(s){
-    currentUser=s;
+  const session = localStorage.getItem("clipsverse_session");
+  if(session){
+    currentUser = session;
     startApp();
   }
 }
@@ -241,51 +237,54 @@ function logout(){
   location.reload();
 }
 
-/* APP */
-
+/* APP START */
 function startApp(){
   document.getElementById("auth").classList.add("hidden");
   document.getElementById("app").classList.remove("hidden");
   loadFeed();
 }
 
+/* POSTING */
 function createPost(){
-  let text=postText.value;
-  let file=mediaUpload.files[0];
-  if(!text&&!file) return alert("Add something.");
+  const text = document.getElementById("postText").value;
+  const file = document.getElementById("mediaUpload").files[0];
+
+  if(!text && !file) return alert("Add something.");
 
   if(file){
-    let reader=new FileReader();
-    reader.onload=e=>{
-      savePost(text,e.target.result,file.type);
-    }
+    const reader = new FileReader();
+    reader.onload = function(e){
+      savePost(text, e.target.result, file.type);
+    };
     reader.readAsDataURL(file);
   } else {
-    savePost(text,null,null);
+    savePost(text, null, null);
   }
 }
 
-function savePost(text,media,type){
-  let data=getData();
+function savePost(text, media, type){
+  let data = getData();
   data.posts.unshift({
-    user:currentUser,
-    text:text,
-    media:media,
-    type:type,
-    likes:0
+    user: currentUser,
+    text: text,
+    media: media,
+    type: type,
+    likes: 0
   });
   saveData(data);
-  postText.value="";
-  mediaUpload.value="";
+  document.getElementById("postText").value = "";
+  document.getElementById("mediaUpload").value = "";
   loadFeed();
 }
 
 function loadFeed(){
-  let data=getData();
-  feed.innerHTML="";
+  let data = getData();
+  const feed = document.getElementById("feed");
+  feed.innerHTML = "";
+
   data.posts.forEach((p,i)=>{
-    let pic=data.users[p.user].profilePic || "https://via.placeholder.com/40";
-    feed.innerHTML+=`
+    const pic = data.users[p.user].profilePic || "https://via.placeholder.com/40";
+    feed.innerHTML += `
       <div class="card">
         <div class="post-header">
           <img class="profile-pic" src="${pic}">
@@ -293,12 +292,11 @@ function loadFeed(){
         </div>
         <p>${p.text}</p>
         ${p.media ? (
-          p.type.startsWith("image") ?
-          `<img class="media" src="${p.media}">`
-          :
-          `<video class="media" controls preload="metadata" playsinline>
-              <source src="${p.media}" type="${p.type}">
-           </video>`
+          p.type.startsWith("image")
+          ? `<img class="media" src="${p.media}">`
+          : `<video class="media" controls>
+               <source src="${p.media}" type="${p.type}">
+             </video>`
         ) : ""}
         <p class="like" onclick="likePost(${i})">❤️ ${p.likes}</p>
       </div>
@@ -307,33 +305,34 @@ function loadFeed(){
 }
 
 function likePost(i){
-  let data=getData();
+  let data = getData();
   data.posts[i].likes++;
   saveData(data);
   loadFeed();
 }
 
 /* PROFILE */
-
 function showProfile(){
-  homeSection.classList.add("hidden");
-  profileSection.classList.remove("hidden");
-  profileTitle.innerText=currentUser+"'s Profile";
+  document.getElementById("homeSection").classList.add("hidden");
+  document.getElementById("profileSection").classList.remove("hidden");
 
-  let data=getData();
-  profilePosts.innerHTML="";
+  document.getElementById("profileTitle").innerText = currentUser + "'s Profile";
+
+  let data = getData();
+  let container = document.getElementById("profilePosts");
+  container.innerHTML = "";
+
   data.posts.filter(p=>p.user===currentUser)
             .forEach(p=>{
-              profilePosts.innerHTML+=`
+              container.innerHTML += `
                 <div class="card">
                   <p>${p.text}</p>
                   ${p.media ? (
-                    p.type.startsWith("image") ?
-                    `<img class="media" src="${p.media}">`
-                    :
-                    `<video class="media" controls>
-                       <source src="${p.media}" type="${p.type}">
-                     </video>`
+                    p.type.startsWith("image")
+                    ? `<img class="media" src="${p.media}">`
+                    : `<video class="media" controls>
+                         <source src="${p.media}" type="${p.type}">
+                       </video>`
                   ) : ""}
                 </div>
               `;
@@ -341,20 +340,21 @@ function showProfile(){
 }
 
 function showHome(){
-  homeSection.classList.remove("hidden");
-  profileSection.classList.add("hidden");
+  document.getElementById("homeSection").classList.remove("hidden");
+  document.getElementById("profileSection").classList.add("hidden");
 }
 
 function saveProfilePhoto(){
-  let file=profileUpload.files[0];
+  const file = document.getElementById("profileUpload").files[0];
   if(!file) return;
-  let reader=new FileReader();
-  reader.onload=e=>{
-    let data=getData();
-    data.users[currentUser].profilePic=e.target.result;
+
+  const reader = new FileReader();
+  reader.onload = function(e){
+    let data = getData();
+    data.users[currentUser].profilePic = e.target.result;
     saveData(data);
     loadFeed();
-  }
+  };
   reader.readAsDataURL(file);
 }
 
