@@ -5,110 +5,138 @@
 <title>Clips Verse</title>
 
 <style>
+
 body{
-    margin:0;
-    font-family:Arial;
-    background:#f1f3f4;
+margin:0;
+font-family:Arial;
+background:#f0f2f5;
 }
 
+/* AUTH */
+
 #auth{
-    display:flex;
-    justify-content:center;
-    align-items:center;
-    height:100vh;
+display:flex;
+justify-content:center;
+align-items:center;
+height:100vh;
 }
 
 .auth-box{
-    background:white;
-    padding:30px;
-    width:350px;
-    border-radius:8px;
-    box-shadow:0 3px 10px rgba(0,0,0,.1);
+background:white;
+padding:35px;
+width:360px;
+border-radius:12px;
+box-shadow:0 4px 20px rgba(0,0,0,.12);
 }
 
 .auth-box input{
-    width:100%;
-    padding:10px;
-    margin:6px 0;
+width:100%;
+padding:11px;
+margin:7px 0;
+border:1px solid #ddd;
+border-radius:6px;
 }
 
 .auth-box button{
-    width:100%;
-    padding:10px;
-    background:#4285F4;
-    border:none;
-    color:white;
-    cursor:pointer;
+width:100%;
+padding:11px;
+background:#1877f2;
+color:white;
+border:none;
+border-radius:6px;
+cursor:pointer;
+font-weight:bold;
 }
 
 /* APP */
+
 #app{
-    display:none;
+display:none;
 }
 
 .sidebar{
-    position:fixed;
-    left:0;
-    top:0;
-    width:220px;
-    height:100vh;
-    background:white;
-    padding-top:20px;
+position:fixed;
+left:0;
+top:0;
+width:230px;
+height:100vh;
+background:white;
+box-shadow:2px 0 8px rgba(0,0,0,.1);
+padding-top:25px;
 }
 
 .sidebar button{
-    width:100%;
-    padding:15px;
-    border:none;
-    background:none;
-    text-align:left;
-    cursor:pointer;
+width:100%;
+padding:16px;
+border:none;
+background:none;
+text-align:left;
+font-size:15px;
+cursor:pointer;
 }
 
 .main{
-    margin-left:220px;
-    padding:20px;
+margin-left:240px;
+padding:25px;
 }
 
-/* Profile pic */
-.profile-pic{
-    width:35px;
-    height:35px;
-    border-radius:50%;
-    object-fit:cover;
+/* Feed */
+
+.feed{
+display:flex;
+flex-direction:column;
+align-items:center;
+gap:25px;
 }
 
-/* Post */
 .post{
-    width:300px;
-    background:white;
-    padding:10px;
-    margin-bottom:20px;
-    border-radius:8px;
+width:320px;
+background:white;
+border-radius:14px;
+overflow:hidden;
+box-shadow:0 2px 12px rgba(0,0,0,.12);
+}
+
+.post-header{
+display:flex;
+align-items:center;
+padding:12px;
+gap:10px;
 }
 
 .post-media{
-    width:100%;
-    height:250px;
-    object-fit:cover;
+width:100%;
+height:260px;
+object-fit:cover;
 }
 
-.comment{
-    display:flex;
-    align-items:center;
-    font-size:12px;
-    margin-top:5px;
+.post-footer{
+padding:12px;
+font-size:13px;
 }
 
-.comment span{
-    margin-left:6px;
+.profile-pic{
+width:38px;
+height:38px;
+border-radius:50%;
+object-fit:cover;
 }
+
+textarea,input{
+width:100%;
+padding:10px;
+margin-top:6px;
+border-radius:6px;
+border:1px solid #ddd;
+}
+
 </style>
 </head>
 
 <body>
 
 <div id="auth">
+
 <div class="auth-box">
 
 <h2>Clips Verse</h2>
@@ -117,12 +145,14 @@ body{
 <input id="signupUsername" placeholder="Username">
 <input id="signupPassword" type="password" placeholder="Password">
 <input id="signupConfirm" type="password" placeholder="Confirm Password">
+
 <button onclick="signup()">Sign Up</button>
 
 <hr>
 
 <input id="loginEmail" placeholder="Login Email">
-<input id="loginPassword" type="password" placeholder="Login Password">
+<input id="loginPassword" type="password" placeholder="Password">
+
 <button onclick="login()">Login</button>
 
 </div>
@@ -141,18 +171,19 @@ body{
 <div id="homePage">
 
 <h3>Create Post</h3>
+
 <input type="file" id="postMedia">
 <button onclick="createPost()">Post</button>
 
-<h3>Feed</h3>
-<div id="feed"></div>
+<div class="feed" id="feed"></div>
 
 </div>
 
-<div id="profilePage" style="display:none;">
+<div id="profilePage" style="display:none">
+
 <h2 id="profileTitle"></h2>
 
-<img id="profilePreview" class="profile-pic" style="width:80px;height:80px;">
+<img id="profilePreview" class="profile-pic" style="width:90px;height:90px">
 
 <input type="file" id="profileUpload">
 <button onclick="setProfilePic()">Upload Profile Photo</button>
@@ -164,18 +195,22 @@ body{
 
 <script>
 
-let currentUser=null;
+/* DATABASE */
 
-/* STORAGE */
 function getUsers(){
-    return JSON.parse(localStorage.getItem("clipsUsers")) || [];
+return JSON.parse(localStorage.getItem("clipsUsers")) || [];
 }
 
 function saveUsers(users){
-    localStorage.setItem("clipsUsers",JSON.stringify(users));
+localStorage.setItem("clipsUsers",JSON.stringify(users));
 }
 
+/* SESSION */
+
+let currentUser=null;
+
 /* SIGNUP */
+
 function signup(){
 
 let email=signupEmail.value.trim();
@@ -183,22 +218,16 @@ let username=signupUsername.value.trim();
 let pass=signupPassword.value;
 let confirm=signupConfirm.value;
 
-if(!email||!username||!pass){
-alert("Fill all fields");
-return;
-}
+if(!email||!username||!pass)
+return alert("Fill all fields");
 
-if(pass!==confirm){
-alert("Passwords do not match");
-return;
-}
+if(pass!==confirm)
+return alert("Passwords do not match");
 
 let users=getUsers();
 
-if(users.some(u=>u.username===username)){
-alert("Username taken");
-return;
-}
+if(users.some(u=>u.username===username))
+return alert("Username already exists");
 
 users.push({
 email,
@@ -211,10 +240,12 @@ posts:[]
 saveUsers(users);
 
 localStorage.setItem("currentUser",username);
+
 loadUser(username);
 }
 
 /* LOGIN */
+
 function login(){
 
 let email=loginEmail.value.trim();
@@ -224,19 +255,20 @@ let users=getUsers();
 
 let found=users.find(u=>u.email===email && u.password===pass);
 
-if(!found){
-alert("Invalid login");
-return;
-}
+if(!found)
+return alert("Invalid login");
 
 localStorage.setItem("currentUser",found.username);
+
 loadUser(found.username);
 }
 
 /* LOAD USER */
+
 function loadUser(username){
 
 let users=getUsers();
+
 currentUser=users.find(u=>u.username===username);
 
 auth.style.display="none";
@@ -246,40 +278,43 @@ renderFeed();
 }
 
 /* AUTO LOGIN */
+
 window.onload=function(){
 let remember=localStorage.getItem("currentUser");
-if(remember){
-loadUser(remember);
-}
+if(remember) loadUser(remember);
 }
 
 /* LOGOUT */
+
 function logout(){
 localStorage.removeItem("currentUser");
 location.reload();
 }
 
-/* CREATE POST */
+/* POST */
+
 function createPost(){
 
 let file=postMedia.files[0];
-if(!file) return;
+if(!file) return alert("Select file");
 
 let reader=new FileReader();
 
 reader.onload=function(e){
 
-currentUser.posts.push({
+let users=getUsers();
+
+let index=users.findIndex(u=>u.username===currentUser.username);
+
+users[index].posts.unshift({
 media:e.target.result,
 type:file.type.startsWith("video")?"video":"image",
 likes:0,
 comments:[]
 });
 
-let users=getUsers();
-let index=users.findIndex(u=>u.username===currentUser.username);
+currentUser=users[index];
 
-users[index]=currentUser;
 saveUsers(users);
 
 renderFeed();
@@ -289,6 +324,7 @@ reader.readAsDataURL(file);
 }
 
 /* FEED */
+
 function renderFeed(){
 
 feed.innerHTML="";
@@ -296,38 +332,46 @@ feed.innerHTML="";
 let users=getUsers();
 
 users.forEach(user=>{
-user.posts.forEach((post,i)=>{
+user.posts.forEach((post,pIndex)=>{
 
-let div=document.createElement("div");
-div.className="post";
+let card=document.createElement("div");
+card.className="post";
 
-div.innerHTML=`
-<div>
+let header=document.createElement("div");
+header.className="post-header";
+
+header.innerHTML=`
 <img src="${user.profilePic||''}" class="profile-pic">
-${user.username}
-</div>
+<b>${user.username}</b>
 `;
 
+card.appendChild(header);
+
 if(post.type==="image"){
-div.innerHTML+=`<img src="${post.media}" class="post-media">`;
+card.innerHTML+=`<img src="${post.media}" class="post-media">`;
 }else{
-div.innerHTML+=`<video src="${post.media}" class="post-media" controls></video>`;
+card.innerHTML+=`<video src="${post.media}" class="post-media" controls></video>`;
 }
 
-div.innerHTML+=`
-<button onclick="likePost('${user.username}',${i})">
-Like (${post.likes})
+let footer=document.createElement("div");
+footer.className="post-footer";
+
+footer.innerHTML=`
+<button onclick="likePost('${user.username}',${pIndex})">
+❤️ ${post.likes}
 </button>
 `;
 
-let input=document.createElement("input");
-input.placeholder="Comment...";
-input.onkeydown=function(e){
+let commentBox=document.createElement("input");
+commentBox.placeholder="Write comment...";
+
+commentBox.onkeydown=function(e){
 if(e.key==="Enter"){
+
 post.comments.push({
 user:currentUser.username,
-text:input.value,
-pic:currentUser.profilePic
+pic:currentUser.profilePic,
+text:commentBox.value
 });
 
 saveUsers(users);
@@ -335,30 +379,34 @@ renderFeed();
 }
 };
 
-div.appendChild(input);
+footer.appendChild(commentBox);
 
 post.comments.forEach(c=>{
 let com=document.createElement("div");
-com.className="comment";
 com.innerHTML=`
 <img src="${c.pic||''}" class="profile-pic">
-<span>${c.user}: ${c.text}</span>
+${c.user}: ${c.text}
 `;
-div.appendChild(com);
+footer.appendChild(com);
 });
 
-feed.appendChild(div);
+card.appendChild(footer);
+
+feed.appendChild(card);
 
 });
 });
 }
 
 /* LIKE */
+
 function likePost(username,index){
 
 let users=getUsers();
 
 let user=users.find(u=>u.username===username);
+
+if(!user) return;
 
 user.posts[index].likes++;
 
@@ -368,7 +416,9 @@ renderFeed();
 }
 
 /* PROFILE */
+
 function showProfile(){
+
 homePage.style.display="none";
 profilePage.style.display="block";
 
@@ -384,22 +434,23 @@ profilePage.style.display="none";
 }
 
 /* PROFILE PHOTO */
+
 function setProfilePic(){
 
 let file=profileUpload.files[0];
-if(!file) return;
+if(!file) return alert("Select profile photo");
 
 let reader=new FileReader();
 
 reader.onload=function(e){
 
-currentUser.profilePic=e.target.result;
-
 let users=getUsers();
 
 let index=users.findIndex(u=>u.username===currentUser.username);
 
-users[index]=currentUser;
+users[index].profilePic=e.target.result;
+
+currentUser.profilePic=e.target.result;
 
 saveUsers(users);
 
