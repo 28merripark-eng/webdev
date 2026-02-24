@@ -7,11 +7,10 @@
 <style>
 body{
     margin:0;
-    font-family:Arial, sans-serif;
+    font-family:Arial;
     background:#f1f3f4;
 }
 
-/* AUTH */
 #auth{
     display:flex;
     justify-content:center;
@@ -24,7 +23,7 @@ body{
     padding:30px;
     width:350px;
     border-radius:8px;
-    box-shadow:0 4px 12px rgba(0,0,0,0.1);
+    box-shadow:0 3px 10px rgba(0,0,0,.1);
 }
 
 .auth-box input{
@@ -39,7 +38,6 @@ body{
     background:#4285F4;
     border:none;
     color:white;
-    font-weight:bold;
     cursor:pointer;
 }
 
@@ -56,7 +54,6 @@ body{
     height:100vh;
     background:white;
     padding-top:20px;
-    box-shadow:2px 0 5px rgba(0,0,0,0.1);
 }
 
 .sidebar button{
@@ -66,7 +63,6 @@ body{
     background:none;
     text-align:left;
     cursor:pointer;
-    font-size:16px;
 }
 
 .main{
@@ -74,19 +70,7 @@ body{
     padding:20px;
 }
 
-/* Stories */
-.stories{
-    display:flex;
-    overflow-x:auto;
-    margin-bottom:20px;
-}
-
-.story{
-    text-align:center;
-    margin-right:15px;
-    font-size:12px;
-}
-
+/* Profile pic */
 .profile-pic{
     width:35px;
     height:35px;
@@ -94,13 +78,12 @@ body{
     object-fit:cover;
 }
 
-/* Posts */
+/* Post */
 .post{
     width:300px;
-    height:325px;
     background:white;
-    margin-bottom:20px;
     padding:10px;
+    margin-bottom:20px;
     border-radius:8px;
 }
 
@@ -113,20 +96,21 @@ body{
 .comment{
     display:flex;
     align-items:center;
-    margin-top:5px;
     font-size:12px;
+    margin-top:5px;
 }
+
 .comment span{
-    margin-left:5px;
+    margin-left:6px;
 }
 </style>
 </head>
 
 <body>
 
-<!-- AUTH -->
 <div id="auth">
 <div class="auth-box">
+
 <h2>Clips Verse</h2>
 
 <input id="signupEmail" placeholder="Email">
@@ -140,11 +124,12 @@ body{
 <input id="loginEmail" placeholder="Login Email">
 <input id="loginPassword" type="password" placeholder="Login Password">
 <button onclick="login()">Login</button>
+
 </div>
 </div>
 
-<!-- APP -->
 <div id="app">
+
 <div class="sidebar">
 <button onclick="showHome()">Home</button>
 <button onclick="showProfile()">Profile</button>
@@ -154,8 +139,6 @@ body{
 <div class="main">
 
 <div id="homePage">
-<h3>Stories</h3>
-<div id="stories" class="stories"></div>
 
 <h3>Create Post</h3>
 <input type="file" id="postMedia">
@@ -163,247 +146,271 @@ body{
 
 <h3>Feed</h3>
 <div id="feed"></div>
+
 </div>
 
 <div id="profilePage" style="display:none;">
 <h2 id="profileTitle"></h2>
+
+<img id="profilePreview" class="profile-pic" style="width:80px;height:80px;">
+
 <input type="file" id="profileUpload">
-<button onclick="setProfilePic()">Set Profile Picture</button>
+<button onclick="setProfilePic()">Upload Profile Photo</button>
+
 </div>
 
 </div>
 </div>
 
 <script>
-document.addEventListener("DOMContentLoaded", function(){
 
-let currentUser = null;
+let currentUser=null;
 
 /* STORAGE */
 function getUsers(){
     return JSON.parse(localStorage.getItem("clipsUsers")) || [];
 }
+
 function saveUsers(users){
-    localStorage.setItem("clipsUsers", JSON.stringify(users));
+    localStorage.setItem("clipsUsers",JSON.stringify(users));
 }
 
 /* SIGNUP */
-window.signup = function(){
-    let email = signupEmail.value.trim();
-    let username = signupUsername.value.trim();
-    let pass = signupPassword.value;
-    let confirm = signupConfirm.value;
+function signup(){
 
-    if(!email || !username || !pass){
-        alert("Fill all fields");
-        return;
-    }
+let email=signupEmail.value.trim();
+let username=signupUsername.value.trim();
+let pass=signupPassword.value;
+let confirm=signupConfirm.value;
 
-    if(pass !== confirm){
-        alert("Passwords do not match");
-        return;
-    }
+if(!email||!username||!pass){
+alert("Fill all fields");
+return;
+}
 
-    let users = getUsers();
+if(pass!==confirm){
+alert("Passwords do not match");
+return;
+}
 
-    if(users.some(u => u.username === username)){
-        alert("Username already taken");
-        return;
-    }
+let users=getUsers();
 
-    users.push({
-        email,
-        username,
-        password:pass,
-        profilePic:"",
-        posts:[]
-    });
+if(users.some(u=>u.username===username)){
+alert("Username taken");
+return;
+}
 
-    saveUsers(users);
-    localStorage.setItem("currentUser", username);
-    loadUser(username);
-};
+users.push({
+email,
+username,
+password:pass,
+profilePic:"",
+posts:[]
+});
+
+saveUsers(users);
+
+localStorage.setItem("currentUser",username);
+loadUser(username);
+}
 
 /* LOGIN */
-window.login = function(){
-    let email = loginEmail.value.trim();
-    let pass = loginPassword.value;
+function login(){
 
-    let users = getUsers();
-    let found = users.find(u => u.email === email && u.password === pass);
+let email=loginEmail.value.trim();
+let pass=loginPassword.value;
 
-    if(!found){
-        alert("Invalid login");
-        return;
-    }
+let users=getUsers();
 
-    localStorage.setItem("currentUser", found.username);
-    loadUser(found.username);
-};
+let found=users.find(u=>u.email===email && u.password===pass);
+
+if(!found){
+alert("Invalid login");
+return;
+}
+
+localStorage.setItem("currentUser",found.username);
+loadUser(found.username);
+}
 
 /* LOAD USER */
 function loadUser(username){
-    let users = getUsers();
-    currentUser = users.find(u => u.username === username);
 
-    auth.style.display="none";
-    app.style.display="block";
+let users=getUsers();
+currentUser=users.find(u=>u.username===username);
 
-    renderFeed();
-    renderStories();
+auth.style.display="none";
+app.style.display="block";
+
+renderFeed();
 }
 
 /* AUTO LOGIN */
-let remembered = localStorage.getItem("currentUser");
-if(remembered){
-    loadUser(remembered);
+window.onload=function(){
+let remember=localStorage.getItem("currentUser");
+if(remember){
+loadUser(remember);
+}
 }
 
 /* LOGOUT */
-window.logout = function(){
-    localStorage.removeItem("currentUser");
-    location.reload();
-};
+function logout(){
+localStorage.removeItem("currentUser");
+location.reload();
+}
 
 /* CREATE POST */
-window.createPost = function(){
-    let file = postMedia.files[0];
-    if(!file) return;
+function createPost(){
 
-    let reader = new FileReader();
-    reader.onload = function(e){
+let file=postMedia.files[0];
+if(!file) return;
 
-        currentUser.posts.push({
-            media:e.target.result,
-            type:file.type.startsWith("video")?"video":"image",
-            likes:0,
-            comments:[]
-        });
+let reader=new FileReader();
 
-        let users = getUsers();
-        let index = users.findIndex(u=>u.username===currentUser.username);
-        users[index] = currentUser;
-        saveUsers(users);
+reader.onload=function(e){
 
-        renderFeed();
-    };
-    reader.readAsDataURL(file);
+currentUser.posts.push({
+media:e.target.result,
+type:file.type.startsWith("video")?"video":"image",
+likes:0,
+comments:[]
+});
+
+let users=getUsers();
+let index=users.findIndex(u=>u.username===currentUser.username);
+
+users[index]=currentUser;
+saveUsers(users);
+
+renderFeed();
 };
 
-/* RENDER FEED */
+reader.readAsDataURL(file);
+}
+
+/* FEED */
 function renderFeed(){
-    feed.innerHTML="";
-    let users = getUsers();
 
-    users.forEach(user=>{
-        user.posts.forEach((post,i)=>{
+feed.innerHTML="";
 
-            let div = document.createElement("div");
-            div.className="post";
+let users=getUsers();
 
-            div.innerHTML = `
-                <div>
-                    <img src="${user.profilePic || ''}" class="profile-pic">
-                    ${user.username}
-                </div>
-            `;
+users.forEach(user=>{
+user.posts.forEach((post,i)=>{
 
-            if(post.type==="image"){
-                div.innerHTML += `<img src="${post.media}" class="post-media">`;
-            }else{
-                div.innerHTML += `<video src="${post.media}" class="post-media" controls></video>`;
-            }
+let div=document.createElement("div");
+div.className="post";
 
-            div.innerHTML += `
-                <button onclick="likePost('${user.username}',${i})">
-                    Like (${post.likes})
-                </button>
-            `;
+div.innerHTML=`
+<div>
+<img src="${user.profilePic||''}" class="profile-pic">
+${user.username}
+</div>
+`;
 
-            let commentInput = document.createElement("input");
-            commentInput.placeholder="Comment...";
-            commentInput.onkeydown=function(e){
-                if(e.key==="Enter"){
-                    post.comments.push({
-                        user:currentUser.username,
-                        text:commentInput.value,
-                        pic:currentUser.profilePic
-                    });
-                    saveUsers(users);
-                    renderFeed();
-                }
-            };
-            div.appendChild(commentInput);
+if(post.type==="image"){
+div.innerHTML+=`<img src="${post.media}" class="post-media">`;
+}else{
+div.innerHTML+=`<video src="${post.media}" class="post-media" controls></video>`;
+}
 
-            post.comments.forEach(c=>{
-                let com = document.createElement("div");
-                com.className="comment";
-                com.innerHTML=`
-                    <img src="${c.pic||''}" class="profile-pic">
-                    <span>${c.user}: ${c.text}</span>
-                `;
-                div.appendChild(com);
-            });
+div.innerHTML+=`
+<button onclick="likePost('${user.username}',${i})">
+Like (${post.likes})
+</button>
+`;
 
-            feed.appendChild(div);
-        });
-    });
+let input=document.createElement("input");
+input.placeholder="Comment...";
+input.onkeydown=function(e){
+if(e.key==="Enter"){
+post.comments.push({
+user:currentUser.username,
+text:input.value,
+pic:currentUser.profilePic
+});
+
+saveUsers(users);
+renderFeed();
+}
+};
+
+div.appendChild(input);
+
+post.comments.forEach(c=>{
+let com=document.createElement("div");
+com.className="comment";
+com.innerHTML=`
+<img src="${c.pic||''}" class="profile-pic">
+<span>${c.user}: ${c.text}</span>
+`;
+div.appendChild(com);
+});
+
+feed.appendChild(div);
+
+});
+});
 }
 
 /* LIKE */
-window.likePost = function(username,index){
-    let users = getUsers();
-    let user = users.find(u=>u.username===username);
-    user.posts[index].likes++;
-    saveUsers(users);
-    renderFeed();
-};
+function likePost(username,index){
 
-/* PROFILE */
-window.showProfile = function(){
-    homePage.style.display="none";
-    profilePage.style.display="block";
-    profileTitle.innerText=currentUser.username;
-};
+let users=getUsers();
 
-window.showHome = function(){
-    homePage.style.display="block";
-    profilePage.style.display="none";
-};
+let user=users.find(u=>u.username===username);
 
-/* PROFILE PIC */
-window.setProfilePic = function(){
-    let file = profileUpload.files[0];
-    if(!file) return;
+user.posts[index].likes++;
 
-    let reader = new FileReader();
-    reader.onload=function(e){
-        currentUser.profilePic=e.target.result;
-        let users=getUsers();
-        let index=users.findIndex(u=>u.username===currentUser.username);
-        users[index]=currentUser;
-        saveUsers(users);
-        renderFeed();
-        renderStories();
-    };
-    reader.readAsDataURL(file);
-};
+saveUsers(users);
 
-/* STORIES */
-function renderStories(){
-    stories.innerHTML="";
-    let users=getUsers();
-    users.forEach(u=>{
-        stories.innerHTML+=`
-            <div class="story">
-                <img src="${u.profilePic||''}" class="profile-pic"><br>
-                ${u.username}
-            </div>
-        `;
-    });
+renderFeed();
 }
 
-});
+/* PROFILE */
+function showProfile(){
+homePage.style.display="none";
+profilePage.style.display="block";
+
+profileTitle.innerText=currentUser.username;
+
+if(currentUser.profilePic)
+profilePreview.src=currentUser.profilePic;
+}
+
+function showHome(){
+homePage.style.display="block";
+profilePage.style.display="none";
+}
+
+/* PROFILE PHOTO */
+function setProfilePic(){
+
+let file=profileUpload.files[0];
+if(!file) return;
+
+let reader=new FileReader();
+
+reader.onload=function(e){
+
+currentUser.profilePic=e.target.result;
+
+let users=getUsers();
+
+let index=users.findIndex(u=>u.username===currentUser.username);
+
+users[index]=currentUser;
+
+saveUsers(users);
+
+profilePreview.src=currentUser.profilePic;
+
+renderFeed();
+};
+
+reader.readAsDataURL(file);
+}
+
 </script>
 
 </body>
