@@ -3,248 +3,381 @@
 <head>
 <meta charset="UTF-8">
 <title>Clips Verse</title>
-<script src="https://accounts.google.com/gsi/client" async defer></script>
 <style>
-body{margin:0;font-family:Arial,sans-serif;background:#f1f3f4;}
-header{background:#fff;padding:15px;font-size:22px;font-weight:bold;color:#1a73e8;box-shadow:0 2px 5px rgba(0,0,0,0.1);}
-.container{display:flex;height:100vh;}
-.sidebar{width:220px;background:#fff;padding-top:20px;box-shadow:2px 0 5px rgba(0,0,0,0.1);}
-.sidebar button{width:100%;padding:15px;border:none;background:none;text-align:left;cursor:pointer;font-size:16px;}
-.sidebar button:hover{background:#e8f0fe;}
-.main{flex:1;overflow-y:auto;padding:20px;display:flex;flex-direction:column;align-items:center;}
-.post{background:#fff;width:300px;height:auto;margin-bottom:20px;border-radius:12px;box-shadow:0 2px 5px rgba(0,0,0,0.1);padding:10px;display:flex;flex-direction:column;}
-.post-header{display:flex;align-items:center;margin-bottom:5px;}
-.post-header img{width:40px;height:40px;border-radius:50%;margin-right:10px;}
-.post img,.post video{width:100%;height:240px;object-fit:cover;border-radius:8px;}
-.actions{display:flex;justify-content:space-between;margin-top:5px;}
-.auth{max-width:400px;margin:60px auto;background:#fff;padding:25px;border-radius:12px;box-shadow:0 3px 8px rgba(0,0,0,0.15);}
-input,textarea{width:100%;padding:10px;margin:5px 0;}
-button.primary{background:#1a73e8;color:white;border:none;padding:10px;cursor:pointer;border-radius:6px;}
-.comment-section{margin-top:5px;padding-top:5px;border-top:1px solid #ddd;}
-.comment{margin-bottom:3px;display:flex;align-items:center;}
-.comment img{width:30px;height:30px;border-radius:50%;margin-right:8px;}
-.stories{display:flex;overflow-x:auto;margin-bottom:15px;padding-bottom:10px;}
-.story{flex:0 0 auto;margin-right:10px;text-align:center;}
-.story img{width:60px;height:60px;border-radius:50%;border:2px solid #1a73e8;}
+body{
+    margin:0;
+    font-family:Arial, sans-serif;
+    background:#f1f3f4;
+}
+
+/* Auth Screen */
+#auth{
+    display:flex;
+    height:100vh;
+    justify-content:center;
+    align-items:center;
+}
+
+.auth-box{
+    background:white;
+    padding:30px;
+    width:350px;
+    border-radius:10px;
+    box-shadow:0 3px 10px rgba(0,0,0,0.1);
+}
+
+.auth-box input{
+    width:100%;
+    padding:10px;
+    margin:6px 0;
+}
+
+.auth-box button{
+    width:100%;
+    padding:10px;
+    background:#4285F4;
+    border:none;
+    color:white;
+    font-weight:bold;
+    cursor:pointer;
+}
+
+/* App Layout */
+#app{
+    display:none;
+}
+
+.sidebar{
+    position:fixed;
+    left:0;
+    top:0;
+    width:220px;
+    height:100vh;
+    background:white;
+    padding-top:20px;
+    box-shadow:2px 0 5px rgba(0,0,0,0.1);
+}
+
+.sidebar button{
+    width:100%;
+    padding:15px;
+    border:none;
+    background:none;
+    text-align:left;
+    cursor:pointer;
+    font-size:16px;
+}
+
+.main{
+    margin-left:220px;
+    padding:20px;
+}
+
+/* Stories */
+.stories{
+    display:flex;
+    overflow-x:auto;
+    margin-bottom:20px;
+}
+
+.story{
+    text-align:center;
+    margin-right:15px;
+}
+
+.profile-pic{
+    width:35px;
+    height:35px;
+    border-radius:50%;
+    object-fit:cover;
+}
+
+/* Post */
+.post{
+    width:300px;
+    height:325px;
+    background:white;
+    margin-bottom:20px;
+    padding:10px;
+    border-radius:8px;
+}
+
+.post-media{
+    width:100%;
+    height:250px;
+    object-fit:cover;
+}
+
+.comment{
+    display:flex;
+    align-items:center;
+    margin-top:5px;
+}
+
+.comment span{
+    margin-left:5px;
+    font-size:12px;
+}
+
 </style>
 </head>
 <body>
-<header>Clips Verse</header>
 
-<div id="authSection" class="auth">
-<h3>Sign Up</h3>
-<input id="email" placeholder="Email">
-<input id="username" placeholder="Username">
-<input id="password" type="password" placeholder="Password">
-<input id="repeatPassword" type="password" placeholder="Repeat Password">
-<button class="primary" onclick="signup()">Sign Up</button>
-<hr>
-<h3>Login</h3>
-<input id="loginEmail" placeholder="Email">
-<input id="loginPassword" type="password" placeholder="Password">
-<button class="primary" onclick="login()">Login</button>
-<hr>
-<h3>Or Login with Google</h3>
-<div id="g_id_onload"
-     data-client_id="YOUR_GOOGLE_CLIENT_ID"
-     data-context="signin"
-     data-ux_mode="popup"
-     data-auto_prompt="false"
-     data-callback="handleGoogleLogin">
-</div>
-<div class="g_id_signin" data-type="standard"></div>
+<!-- AUTH -->
+<div id="auth">
+    <div class="auth-box">
+        <h2>Clips Verse</h2>
+        <input id="email" placeholder="Email">
+        <input id="username" placeholder="Username">
+        <input id="password" type="password" placeholder="Password">
+        <input id="confirm" type="password" placeholder="Confirm Password">
+        <button onclick="signup()">Sign Up</button>
+        <hr>
+        <input id="loginEmail" placeholder="Login Email">
+        <input id="loginPass" type="password" placeholder="Login Password">
+        <button onclick="login()">Login</button>
+    </div>
 </div>
 
-<div id="app" style="display:none;">
-<div class="container">
-<div class="sidebar">
-<button onclick="showHome()">Home</button>
-<button onclick="showFriends()">Friends</button>
-<button onclick="showMessages()">Messages</button>
-<button onclick="showProfile()">Profile</button>
-<button onclick="logout()">Logout</button>
-</div>
-<div class="main" id="mainContent"></div>
-</div>
+<!-- APP -->
+<div id="app">
+    <div class="sidebar">
+        <button onclick="showHome()">Home</button>
+        <button onclick="showProfile()">Profile</button>
+        <button onclick="logout()">Logout</button>
+    </div>
+
+    <div class="main">
+        <div id="homePage">
+            <h3>Stories</h3>
+            <div class="stories" id="stories"></div>
+
+            <h3>Create Post</h3>
+            <input type="file" id="mediaInput">
+            <button onclick="createPost()">Post</button>
+
+            <h3>Feed</h3>
+            <div id="feed"></div>
+        </div>
+
+        <div id="profilePage" style="display:none;">
+            <h2 id="profileName"></h2>
+            <input type="file" id="profilePicInput">
+            <button onclick="setProfilePic()">Set Profile Picture</button>
+        </div>
+    </div>
 </div>
 
 <script>
-// --- INITIALIZE STORAGE ---
-let storageValid = true;
-try{
-  if(!localStorage.getItem("users")) throw "No users";
-  if(!localStorage.getItem("posts")) throw "No posts";
-  if(!localStorage.getItem("messages")) throw "No messages";
-}catch(e){
-  storageValid = false;
-}
-if(!storageValid){
-  localStorage.setItem("users", JSON.stringify([]));
-  localStorage.setItem("posts", JSON.stringify([]));
-  localStorage.setItem("messages", JSON.stringify([]));
-  localStorage.setItem("currentUser", JSON.stringify(null));
+let currentUser = null;
+
+/* STORAGE */
+function getUsers(){
+    return JSON.parse(localStorage.getItem("users")) || [];
 }
 
-let users = JSON.parse(localStorage.getItem("users"));
-let posts = JSON.parse(localStorage.getItem("posts"));
-let messages = JSON.parse(localStorage.getItem("messages"));
-let currentUser = JSON.parse(localStorage.getItem("currentUser"));
-
-// --- SAVE FUNCTION ---
-function saveAll(){
-  localStorage.setItem("users", JSON.stringify(users));
-  localStorage.setItem("posts", JSON.stringify(posts));
-  localStorage.setItem("messages", JSON.stringify(messages));
-  localStorage.setItem("currentUser", JSON.stringify(currentUser));
+function saveUsers(users){
+    localStorage.setItem("users", JSON.stringify(users));
 }
 
-// --- GOOGLE LOGIN ---
-function handleGoogleLogin(response){
-  if(!response.credential){alert("Google login failed"); return;}
-  const decoded = JSON.parse(atob(response.credential.split('.')[1]));
-  const email = decoded.email;
-  const username = decoded.name.replace(/\s/g,'');
-  const picture = decoded.picture;
-
-  let user = users.find(u=>u.email===email);
-  if(!user){
-    user = {email, username, password:"GOOGLE_ACCOUNT", friends:[], profilePic: picture};
-    users.push(user);
-  }
-  currentUser = user;
-  saveAll();
-  startApp();
-}
-
-// --- SIGNUP ---
+/* SIGNUP */
 function signup(){
-  let email = document.getElementById("email").value.trim();
-  let username = document.getElementById("username").value.trim();
-  let password = document.getElementById("password").value;
-  let repeat = document.getElementById("repeatPassword").value;
-  if(!email || !username || !password || !repeat){alert("Fill all fields"); return;}
-  if(password !== repeat){alert("Passwords do not match"); return;}
-  if(users.find(u=>u.username===username)){alert("Username taken"); return;}
-  if(users.find(u=>u.email===email)){alert("Email already registered"); return;}
-  users.push({email, username, password, friends:[], profilePic:""});
-  saveAll(); alert("Account created! You can now log in");
-}
+    let email = emailInput.value;
+    let username = usernameInput.value;
+    let pass = password.value;
+    let confirmPass = confirm.value;
 
-// --- LOGIN ---
-function login(){
-  let email = document.getElementById("loginEmail").value.trim();
-  let password = document.getElementById("loginPassword").value;
-  let user = users.find(u=>u.email===email && u.password===password);
-  if(!user){alert("Invalid login"); return;}
-  currentUser = user;
-  saveAll();
-  startApp();
-}
+    if(pass !== confirmPass){
+        alert("Passwords do not match");
+        return;
+    }
 
-// --- LOGOUT ---
-function logout(){currentUser=null; saveAll(); location.reload();}
-function startApp(){document.getElementById("authSection").style.display="none"; document.getElementById("app").style.display="block"; showHome();}
+    let users = getUsers();
 
-// --- HOME POSTS WITH STORIES BAR ---
-function showHome(){
-  let main = document.getElementById("mainContent");
+    if(users.some(u => u.username === username)){
+        alert("Username already taken");
+        return;
+    }
 
-  // STORIES BAR
-  let storiesHTML = `<div class="stories">`;
-  currentUser.friends.forEach(f=>{
-    let friendObj = users.find(u=>u.username===f);
-    let pic = friendObj?.profilePic || '';
-    storiesHTML += `<div class="story"><img src="${pic}" alt="${f}"><div>${f}</div></div>`;
-  });
-  storiesHTML += `</div>`;
-
-  main.innerHTML = storiesHTML + `<h2>Home</h2>
-<input type="file" id="upload"><button onclick="createPost()">Post</button><hr>
-<div id="feed"></div>`;
-  renderPosts();
-}
-
-// --- CREATE POST ---
-function createPost(){
-  let file = document.getElementById("upload").files[0];
-  if(!file){alert("Choose a file"); return;}
-  let reader = new FileReader();
-  reader.onload = function(e){
-    posts.unshift({user:currentUser.username, content:e.target.result, type:file.type.includes("video")?"video":"image", likes:[], id:Date.now(), comments:[]});
-    saveAll(); renderPosts();
-  };
-  reader.readAsDataURL(file);
-}
-
-// --- RENDER POSTS ---
-function renderPosts(){
-  let feed = document.getElementById("feed");
-  feed.innerHTML="";
-  posts.forEach(p=>{
-    let div = document.createElement("div"); div.className="post";
-    let poster = users.find(u=>u.username===p.user);
-    let profilePic = poster?.profilePic || '';
-    let commentHTML = '';
-    p.comments.forEach(c=>{
-      let commenter = users.find(u=>u.username===c.user);
-      let commentPic = commenter?.profilePic || '';
-      commentHTML+=`<div class="comment"><img src="${commentPic}" alt="${c.user}"><b>${c.user}:</b> ${c.text}</div>`;
+    users.push({
+        email,
+        username,
+        password:pass,
+        posts:[],
+        profilePic:""
     });
-    div.innerHTML=`
-<div class="post-header"><img src="${profilePic}" alt="${p.user}"><b>${p.user}</b></div>
-${p.type==="image"?`<img src="${p.content}">`:`<video controls src="${p.content}"></video>`}
-<div class="actions">
-<button onclick="likePost(${p.id})">❤ ${p.likes.length}</button>
-<button onclick="sharePost(${p.id})">Share</button>
-</div>
-<div class="comment-section">
-${commentHTML}
-<textarea id="comment-${p.id}" placeholder="Add a comment"></textarea>
-<button onclick="addComment(${p.id})">Comment</button>
-</div>`;
-    feed.appendChild(div);
-  });
+
+    saveUsers(users);
+
+    localStorage.setItem("currentUser", username);
+    loadUser(username);
 }
 
-// --- OTHER FUNCTIONS ---
-function likePost(id){let post=posts.find(p=>p.id===id); if(!post.likes.includes(currentUser.username)){post.likes.push(currentUser.username); saveAll(); renderPosts();}}
-function sharePost(id){let friend=prompt("Send to which friend?"); let post=posts.find(p=>p.id===id); messages.push({from:currentUser.username,to:friend,content:post.content,type:"post"}); saveAll(); alert("Sent!");}
-function addComment(id){let post = posts.find(p=>p.id===id); let text = document.getElementById(`comment-${id}`).value.trim(); if(text){post.comments.push({user:currentUser.username, text}); saveAll(); renderPosts();}}
+/* LOGIN */
+function login(){
+    let email = loginEmail.value;
+    let pass = loginPass.value;
 
-// --- FRIENDS ---
-function showFriends(){
-  let main=document.getElementById("mainContent");
-  main.innerHTML=`<h2>Friends</h2><input id="friendName" placeholder="Username"><button onclick="addFriend()">Add Friend</button>
-<ul>${currentUser.friends.map(f=>`<li>${f}</li>`).join("")}</ul>`;
+    let users = getUsers();
+    let found = users.find(u => u.email === email && u.password === pass);
+
+    if(!found){
+        alert("Invalid login");
+        return;
+    }
+
+    localStorage.setItem("currentUser", found.username);
+    loadUser(found.username);
 }
-function addFriend(){let name=document.getElementById("friendName").value.trim(); if(users.find(u=>u.username===name)){if(!currentUser.friends.includes(name)){currentUser.friends.push(name); saveAll(); showFriends();}}}
 
-// --- MESSAGES ---
-function showMessages(){let main=document.getElementById("mainContent"); let myMessages=messages.filter(m=>m.to===currentUser.username); main.innerHTML="<h2>Messages</h2>"; myMessages.forEach(m=>{main.innerHTML+=`<div>${m.from} sent a post</div>`;});}
+/* LOAD USER */
+function loadUser(username){
+    let users = getUsers();
+    currentUser = users.find(u => u.username === username);
 
-// --- PROFILE ---
+    auth.style.display="none";
+    app.style.display="block";
+
+    renderFeed();
+    renderStories();
+}
+
+/* AUTO LOGIN ON REFRESH */
+window.onload = function(){
+    let remembered = localStorage.getItem("currentUser");
+    if(remembered){
+        loadUser(remembered);
+    }
+}
+
+/* LOGOUT */
+function logout(){
+    localStorage.removeItem("currentUser");
+    location.reload();
+}
+
+/* CREATE POST */
+function createPost(){
+    let file = mediaInput.files[0];
+    if(!file) return;
+
+    let reader = new FileReader();
+    reader.onload = function(e){
+        currentUser.posts.push({
+            media:e.target.result,
+            type:file.type.startsWith("video")?"video":"image",
+            likes:0,
+            comments:[]
+        });
+
+        let users = getUsers();
+        let index = users.findIndex(u=>u.username===currentUser.username);
+        users[index]=currentUser;
+        saveUsers(users);
+
+        renderFeed();
+    }
+    reader.readAsDataURL(file);
+}
+
+/* RENDER FEED */
+function renderFeed(){
+    feed.innerHTML="";
+    let users = getUsers();
+
+    users.forEach(user=>{
+        user.posts.forEach(post=>{
+            let div = document.createElement("div");
+            div.className="post";
+
+            let header = document.createElement("div");
+            header.innerHTML=`<img src="${user.profilePic||''}" class="profile-pic"> ${user.username}`;
+            div.appendChild(header);
+
+            if(post.type==="image"){
+                div.innerHTML+=`<img src="${post.media}" class="post-media">`;
+            } else {
+                div.innerHTML+=`<video src="${post.media}" class="post-media" controls></video>`;
+            }
+
+            div.innerHTML+=`<button onclick="likePost('${user.username}',${user.posts.indexOf(post)})">Like (${post.likes})</button>`;
+
+            let commentInput = document.createElement("input");
+            commentInput.placeholder="Comment...";
+            commentInput.onkeydown=function(e){
+                if(e.key==="Enter"){
+                    post.comments.push({
+                        user:currentUser.username,
+                        text:commentInput.value,
+                        pic:currentUser.profilePic
+                    });
+                    saveUsers(users);
+                    renderFeed();
+                }
+            };
+            div.appendChild(commentInput);
+
+            post.comments.forEach(c=>{
+                let com = document.createElement("div");
+                com.className="comment";
+                com.innerHTML=`<img src="${c.pic||''}" class="profile-pic"><span>${c.user}: ${c.text}</span>`;
+                div.appendChild(com);
+            });
+
+            feed.appendChild(div);
+        });
+    });
+}
+
+/* LIKE */
+function likePost(username,index){
+    let users = getUsers();
+    let user = users.find(u=>u.username===username);
+    user.posts[index].likes++;
+    saveUsers(users);
+    renderFeed();
+}
+
+/* PROFILE */
 function showProfile(){
-  let main=document.getElementById("mainContent");
-  main.innerHTML=`<h2>Profile</h2>
-<img src="${currentUser.profilePic || ''}" width="120" height="120" style="border-radius:50%;">
-<input type="file" id="profileUpload"><button onclick="updateProfilePic()">Upload Profile Picture</button>
-<h3>${currentUser.username}</h3>`;
-}
-function updateProfilePic(){
-  let file = document.getElementById("profileUpload").files[0];
-  if(!file){alert("Choose a file"); return;}
-  let reader = new FileReader();
-  reader.onload = function(e){
-    currentUser.profilePic = e.target.result;
-    let userIndex = users.findIndex(u=>u.username===currentUser.username);
-    users[userIndex].profilePic = e.target.result;
-    saveAll(); showProfile(); showHome();
-  };
-  reader.readAsDataURL(file);
+    homePage.style.display="none";
+    profilePage.style.display="block";
+    profileName.innerText=currentUser.username;
 }
 
-// --- AUTO LOGIN ---
-if(currentUser){startApp();}
+function showHome(){
+    homePage.style.display="block";
+    profilePage.style.display="none";
+}
+
+function setProfilePic(){
+    let file = profilePicInput.files[0];
+    if(!file) return;
+
+    let reader = new FileReader();
+    reader.onload=function(e){
+        currentUser.profilePic=e.target.result;
+        let users=getUsers();
+        let index=users.findIndex(u=>u.username===currentUser.username);
+        users[index]=currentUser;
+        saveUsers(users);
+        renderFeed();
+    }
+    reader.readAsDataURL(file);
+}
+
+/* STORIES */
+function renderStories(){
+    stories.innerHTML="";
+    let users=getUsers();
+    users.forEach(u=>{
+        let div=document.createElement("div");
+        div.className="story";
+        div.innerHTML=`<img src="${u.profilePic||''}" class="profile-pic"><br>${u.username}`;
+        stories.appendChild(div);
+    });
+}
 </script>
+
 </body>
 </html>
