@@ -1,0 +1,14 @@
+.profile-card {
+    background-color: aqua;
+    padding: 20px;
+    margin: 20px;
+    border: 20px;
+    width: 300px;
+    border-radius: 10px;
+    font-family: arial, sans-serif;
+}
+
+h2 {
+    color: black;
+    text-align: center;
+}
