@@ -1,0 +1,306 @@
+using UnityEngine;
+using UnityEngine.AI;
+using System.Collections.Generic;
+
+public class GodWarriorGame : MonoBehaviour
+{
+    /* ================= PLAYER ================= */
+
+    public Transform playerSpawn;
+    public GameObject playerPrefab;
+
+    public float moveSpeed = 9f;
+    public float turnSpeed = 12f;
+
+    public int maxHealth = 2000;
+    public int maxEnergy = 300;
+
+    private int health;
+    private int energy;
+
+    private GameObject player;
+    private CharacterController controller;
+    private Animator animator;
+
+    /* ================= COMBAT GOD MODE ================= */
+
+    public Transform hitboxCenter;
+    public float hitRadius = 5f;
+
+    public int lightDamage = 50;
+    public int heavyDamage = 120;
+    public int ultimateDamage = 500;
+
+    private float comboTimer;
+    public float comboReset = 1.8f;
+
+    /* ================= ULTIMATE TRANSFORMATION ================= */
+
+    public KeyCode ultimateKey = KeyCode.F;
+
+    private bool isTransformed;
+
+    public float transformationDuration = 20f;
+    private float transformationTimer;
+
+    /* ================= ENEMY SWARM WARFARE ================= */
+
+    public GameObject enemyPrefab;
+    public Transform[] spawnZones;
+
+    public int maxEnemies = 1500;
+
+    private List<GameObject> enemies = new List<GameObject>();
+
+    /* ================= CAMERA ================= */
+
+    public Camera mainCamera;
+    public float cameraShakeIntensity = 0.4f;
+
+    Vector3 cameraBasePos;
+
+    void Start()
+    {
+        SpawnPlayer();
+        SpawnMassEnemyArmy();
+
+        health = maxHealth;
+        energy = maxEnergy;
+
+        cameraBasePos = mainCamera.transform.position;
+    }
+
+    void Update()
+    {
+        PlayerMovement();
+        CombatInput();
+        TransformationSystem();
+        ComboTimerUpdate();
+        CameraSystem();
+    }
+
+    /* ================= PLAYER ================= */
+
+    void SpawnPlayer()
+    {
+        player = Instantiate(
+            playerPrefab != null ?
+            playerPrefab :
+            CreatePrimitive(Color.cyan),
+            playerSpawn.position,
+            Quaternion.identity);
+
+        controller = player.AddComponent<CharacterController>();
+        animator = player.GetComponent<Animator>();
+    }
+
+    void PlayerMovement()
+    {
+        float h = Input.GetAxis("Horizontal");
+        float v = Input.GetAxis("Vertical");
+
+        Vector3 move = new Vector3(h, 0, v).normalized;
+
+        if (move.magnitude > 0.1f)
+        {
+            float angle = Mathf.Atan2(move.x, move.z) * Mathf.Rad2Deg;
+
+            player.transform.rotation = Quaternion.Slerp(
+                player.transform.rotation,
+                Quaternion.Euler(0, angle, 0),
+                Time.deltaTime * turnSpeed);
+
+            controller.Move(move * moveSpeed * Time.deltaTime);
+
+            animator?.SetBool("Run", true);
+        }
+        else
+        {
+            animator?.SetBool("Run", false);
+        }
+    }
+
+    /* ================= COMBAT ================= */
+
+    void CombatInput()
+    {
+        if (Input.GetMouseButtonDown(0))
+            LightAttack();
+
+        if (Input.GetMouseButtonDown(1))
+            HeavyAttack();
+
+        if (Input.GetKeyDown(ultimateKey))
+            UltimateAttack();
+    }
+
+    void LightAttack()
+    {
+        animator?.SetTrigger("LightAttack");
+
+        DamageArea(lightDamage);
+        CameraShake();
+        ResetCombo();
+    }
+
+    void HeavyAttack()
+    {
+        animator?.SetTrigger("HeavyAttack");
+
+        DamageArea(heavyDamage);
+        CameraShake();
+        ResetCombo();
+    }
+
+    void UltimateAttack()
+    {
+        if (!isTransformed) return;
+
+        animator?.SetTrigger("Ultimate");
+
+        DamageArea(ultimateDamage * 2);
+        CameraShake(1f);
+    }
+
+    void DamageArea(int damage)
+    {
+        Collider[] hits = Physics.OverlapSphere(
+            hitboxCenter.position,
+            hitRadius);
+
+        foreach (var col in hits)
+        {
+            EnemyWarrior brain = col.GetComponent<EnemyWarrior>();
+
+            if (brain != null)
+                brain.TakeDamage(damage);
+        }
+    }
+
+    void ResetCombo()
+    {
+        comboTimer = comboReset;
+    }
+
+    void ComboTimerUpdate()
+    {
+        comboTimer -= Time.deltaTime;
+    }
+
+    /* ================= TRANSFORMATION ================= */
+
+    void TransformationSystem()
+    {
+        if (Input.GetKeyDown(KeyCode.T))
+        {
+            isTransformed = true;
+            transformationTimer = transformationDuration;
+
+            moveSpeed *= 1.8f;
+        }
+
+        if (isTransformed)
+        {
+            transformationTimer -= Time.deltaTime;
+
+            if (transformationTimer <= 0)
+                RemoveTransformation();
+        }
+    }
+
+    void RemoveTransformation()
+    {
+        isTransformed = false;
+        moveSpeed /= 1.8f;
+    }
+
+    /* ================= ENEMY WARFARE ================= */
+
+    void SpawnMassEnemyArmy()
+    {
+        enemies.Clear();
+
+        int count = Mathf.Min(maxEnemies, 400);
+
+        for (int i = 0; i < count; i++)
+        {
+            Transform zone = spawnZones[
+                Random.Range(0, spawnZones.Length)];
+
+            GameObject enemy = Instantiate(
+                enemyPrefab != null ?
+                enemyPrefab :
+                CreatePrimitive(Color.red),
+                zone.position +
+                Random.insideUnitSphere * 20f,
+                Quaternion.identity);
+
+            enemies.Add(enemy);
+
+            enemy.AddComponent<EnemyWarrior>();
+        }
+    }
+
+    /* ================= CAMERA ================= */
+
+    void CameraSystem()
+    {
+        mainCamera.transform.position =
+            Vector3.Lerp(
+                mainCamera.transform.position,
+                cameraBasePos,
+                Time.deltaTime * 5f);
+    }
+
+    void CameraShake(float strength = 0.4f)
+    {
+        mainCamera.transform.position +=
+            Random.insideUnitSphere * strength;
+    }
+
+    GameObject CreatePrimitive(Color color)
+    {
+        GameObject obj = GameObject.CreatePrimitive(
+            Random.Range(0, 2) == 0 ?
+            PrimitiveType.Capsule :
+            PrimitiveType.Cube);
+
+        obj.GetComponent<Renderer>().material.color = color;
+
+        return obj;
+    }
+}
+
+/* ===================================================
+Enemy Warrior AI
+=================================================== */
+
+public class EnemyWarrior : MonoBehaviour
+{
+    public int health = 200;
+
+    NavMeshAgent agent;
+
+    Transform player;
+
+    void Start()
+    {
+        agent = GetComponent<NavMeshAgent>();
+        player = GameObject.FindWithTag("Player")?.transform;
+    }
+
+    void Update()
+    {
+        if (player == null) return;
+
+        agent?.SetDestination(player.position);
+    }
+
+    public void TakeDamage(int dmg)
+    {
+        health -= dmg;
+
+        if (health <= 0)
+            Destroy(gameObject);
+    }
+}
