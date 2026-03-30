@@ -1,0 +1,393 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>Ultimate One Piece Clicker</title>
+
+<style>
+    let bossProgress={
+doflamingo:false,
+kaido:false
+}
+
+body{
+background:#050505;
+color:white;
+font-family:Arial;
+text-align:center;
+}
+
+#luffy{
+width:230px;
+cursor:pointer;
+transition:0.2s;
+}
+
+.punch{ transform:scale(0.92); }
+
+.tile{
+margin:15px;
+padding:12px;
+background:rgba(255,255,255,0.04);
+border-radius:14px;
+}
+
+.islandHeader{
+font-size:22px;
+padding:12px;
+cursor:pointer;
+background:rgba(0,0,0,0.6);
+border-radius:12px;
+}
+
+.levels{ display:none; padding:10px; }
+
+.levelBtn{
+display:block;
+margin:6px auto;
+padding:8px;
+width:220px;
+}
+
+</style>
+</head>
+
+<body>
+
+<h1>🔥 One Piece Clicker RPG</h1>
+
+<h3>Berries: <span id="berries">0</span></h3>
+<h3>Power: <span id="power">1</span></h3>
+
+<p id="battleText">Select Level</p>
+
+<img id="luffy" src="download (4).jpg">
+
+<br><br>
+
+<button onclick="transformGear()">Gear Upgrade</button>
+
+<p id="awakeningText"></p>
+
+<hr>
+
+<h2>World Map</h2>
+<div id="map"></div>
+
+<script>
+
+/* ================= STATE ================= */
+
+let berries=0
+let power=1
+
+let worldProgress=0
+let raidActive=false
+
+let enemyHP=0
+
+let gearLevel=1
+
+let defeatedBosses={}
+
+let openIsland=null
+
+/* ================= WORLD DATA ================= */
+
+let islands=[
+
+{
+name:"Dressrosa",
+levels:["Toy Soldier","Grunt","Executive","Pica Guard","Doflamingo"],
+boss:"Doflamingo"
+},
+
+{
+name:"Wano",
+levels:["Beast Pirate","Headliner","Tobi Roppo","All Star","Kaido"],
+boss:"Kaido"
+}
+
+]
+
+/* ================= COMBAT ================= */
+
+const luffy=document.getElementById("luffy")
+
+luffy.onclick=function(){
+
+berries+=power
+
+luffy.classList.add("punch")
+
+setTimeout(()=>luffy.classList.remove("punch"),120)
+
+if(raidActive){
+
+let damage=power*(gearLevel>=5?6:2)
+
+enemyHP-=damage
+
+screenShake()
+
+checkRaid()
+
+}
+
+updateUI()
+
+}
+
+/* ================= LEVEL START ================= */
+
+function startLevel(islandIndex,level){
+
+if(islandIndex>worldProgress) return
+
+let island=islands[islandIndex]
+
+let boss=island.boss
+
+let levelName=island.levels[level-1]
+
+enemyHP=400+(level*250)
+
+raidActive=true
+
+document.getElementById("battleText").innerText=
+island.name+" | "+levelName+" HP:"+Math.floor(enemyHP)
+
+currentBoss=boss
+
+}
+
+/* ================= RAID CHECK ================= */
+
+if(enemyHP<=0){
+
+raidActive=false
+
+let islandName=islands[currentIsland].levels[currentLevel-1]
+
+/* Boss Unlocks */
+
+if(islandName==="Doflamingo"){
+bossProgress.doflamingo=true
+}
+
+if(islandName==="Kaido"){
+bossProgress.kaido=true
+}
+
+/* Gear Unlock Conditions */
+
+if(bossProgress.doflamingo){
+gearLevel=Math.max(gearLevel,4)
+activateGear4()
+}
+
+if(bossProgress.kaido){
+gearLevel=Math.max(gearLevel,5)
+activateGear5()
+}
+
+/* Rewards */
+
+berries+=500
+power+=10
+
+document.getElementById("battleText").innerText=
+"Stage Cleared!"
+
+renderMap()
+
+}
+/* ================= GEAR PROGRESSION ================= */
+
+function unlockGearByBoss(boss){
+
+if(boss==="Doflamingo"){
+gearUnlock4=true
+}
+
+if(boss==="Kaido"){
+gearUnlock5=true
+}
+
+}
+
+let gearUnlock4=false
+let gearUnlock5=false
+
+function transformGear(){
+
+if(gearLevel===3 && !gearUnlock4) return
+if(gearLevel===4 && !gearUnlock5) return
+
+if(berries < gearLevel*10000) return
+
+berries-=gearLevel*10000
+
+gearLevel++
+
+power+=gearLevel*30
+
+document.getElementById("awakeningText").innerText=
+"Gear "+gearLevel+" Activated!"
+
+if(gearLevel===5){
+gear5Cinematic()
+}
+
+updateUI()
+
+}
+if(gearLevel+1===4 && !bossProgress.doflamingo) return
+if(gearLevel+1===5 && !bossProgress.kaido) return
+
+/* ================= CINEMATIC ================= */
+
+function gear5Cinematic(){
+
+let flash=document.createElement("div")
+
+flash.style.position="fixed"
+flash.style.top=0
+flash.style.left=0
+flash.style.width="100%"
+flash.style.height="100%"
+flash.style.background="white"
+flash.style.opacity="0"
+flash.style.zIndex=999
+
+document.body.appendChild(flash)
+
+flash.animate([
+{opacity:0},
+{opacity:1},
+{opacity:0}
+],{duration:800})
+
+document.body.animate([
+{filter:"brightness(1)"},
+{filter:"brightness(3) blur(2px)"},
+{filter:"brightness(1)"}
+],{duration:1200})
+
+power+=150
+
+setTimeout(()=>flash.remove(),1000)
+
+}
+
+/* ================= SCREEN SHAKE ================= */
+
+function screenShake(){
+
+document.body.animate([
+{transform:"translate(0px,0px)"},
+{transform:"translate(5px,-5px)"},
+{transform:"translate(-5px,5px)"},
+{transform:"translate(0px,0px)"}
+],{duration:120})
+
+}
+
+/* ================= MAP ================= */
+
+function renderMap(){
+
+let map=document.getElementById("map")
+map.innerHTML=""
+
+islands.forEach((island,index)=>{
+
+let tile=document.createElement("div")
+
+if(index>worldProgress){
+tile.style.opacity="0.3"
+tile.style.pointerEvents="none"
+}
+
+let levels=""
+
+for(let i=1;i<=5;i++){
+
+levels+=`
+<button class="levelBtn"
+onclick="startLevel(${index},${i})">
+Level ${i} → ${island.levels[i-1]}
+</button>
+`
+
+}
+
+tile.innerHTML=`
+<div class="islandHeader">
+${island.name}
+</div>
+
+<div class="levels">
+${levels}
+</div>
+`
+
+map.appendChild(tile)
+
+})
+
+}
+
+/* ================= UI ================= */
+
+function updateUI(){
+
+document.getElementById("berries").innerText=Math.floor(berries)
+
+document.getElementById("power").innerText=
+Math.floor(power)
+
+}
+
+/* ================= SAVE ================= */
+
+setInterval(()=>{
+
+localStorage.setItem("onepiece_clicker_save",JSON.stringify({
+berries,
+power,
+worldProgress,
+gearLevel,
+defeatedBosses
+}))
+
+},4000)
+
+/* ================= LOAD ================= */
+
+function loadSave(){
+
+let data=localStorage.getItem("onepiece_clicker_save")
+
+if(!data) return
+
+let s=JSON.parse(data)
+
+berries=s.berries||0
+power=s.power||1
+worldProgress=s.worldProgress||0
+gearLevel=s.gearLevel||1
+defeatedBosses=s.defeatedBosses||{}
+
+}
+
+/* ================= INIT ================= */
+
+loadSave()
+renderMap()
+updateUI()
+
+</script>
+
+</body>
+</html>
