@@ -3,55 +3,81 @@
 <head>
 <meta charset="UTF-8">
 <title>example gAME</title>
+
 <style>
-body { margin:0; overflow:hidden; background:#0a0f1a; font-family:Arial; color:white; }
-canvas { display:block; }
+body {
+    margin: 0;
+    overflow: hidden;
+    background: #0a0f1a;
+    font-family: Arial;
+    color: white;
+}
 
-.title { position:absolute; top:40px; width:100%; text-align:center; font-size:48px; font-weight:bold; letter-spacing:3px; text-shadow:0 0 15px cyan; }
+canvas { display: block; }
 
-.menu { position:absolute; top:50%; left:50%; transform:translate(-50%,-50%); display:flex; flex-direction:column; gap:20px; }
+.title {
+    position: absolute;
+    top: 40px;
+    width: 100%;
+    text-align: center;
+    font-size: 48px;
+    text-shadow: 0 0 15px cyan;
+}
 
-.btn { padding:15px 40px; font-size:20px; background:#111; border:2px solid #00ffff; color:white; cursor:pointer; }
+.menu {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%,-50%);
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
 
-.btn:hover { animation: flash var(--flash-speed,0.2s) infinite, shake 0.1s infinite; }
+.btn {
+    padding: 15px 40px;
+    background: #111;
+    border: 2px solid cyan;
+    color: white;
+    cursor: pointer;
+}
+
+.btn:hover {
+    animation: flash var(--flash-speed,0.2s) infinite, shake 0.1s infinite;
+}
 
 @keyframes flash {
-    0% { background:cyan; color:black; }
-    50% { background:blue; color:white; }
-    100% { background:cyan; color:black; }
+    0%{background:cyan;color:black;}
+    50%{background:blue;}
+    100%{background:cyan;}
 }
 
 @keyframes shake {
-    0% { transform:translate(2px,-2px); }
-    25% { transform:translate(-3px,3px); }
-    50% { transform:translate(3px,2px); }
-    75% { transform:translate(-2px,-3px); }
-    100% { transform:translate(2px,-2px); }
+    0%{transform:translate(2px,-2px);}
+    50%{transform:translate(-3px,3px);}
+    100%{transform:translate(2px,-2px);}
 }
 
-/* SETTINGS OVERLAY */
-#settingsOverlay {
-    position:fixed; top:0; left:0; width:100%; height:100%;
-    background:rgba(0,0,0,0.85); display:none;
-    flex-direction:column; justify-content:center; align-items:center;
-    color:cyan; z-index:1000;
+/* overlays */
+.overlay {
+    position: fixed;
+    top:0; left:0;
+    width:100%; height:100%;
+    background: rgba(0,0,0,0.9);
+    display:none;
+    flex-direction: column;
+    align-items:center;
+    justify-content:center;
+    color:cyan;
+    z-index:1000;
 }
-#settingsOverlay label { font-size:22px; margin:10px 0 5px 0; }
-#settingsOverlay input[type="range"], select { width:300px; margin-bottom:20px; }
-#closeSettings { margin-top:20px; padding:10px 25px; font-size:18px; cursor:pointer; }
-
-/* PAUSE MENU */
-#pauseOverlay {
-    position:fixed; top:0; left:0; width:100%; height:100%;
-    background:rgba(0,0,0,0.85); display:none;
-    flex-direction:column; justify-content:center; align-items:center;
-    color:cyan; z-index:1001;
+.overlay input, .overlay select {
+    width:300px;
+    margin-bottom:15px;
 }
-#pauseOverlay label { font-size:22px; margin:10px 0 5px 0; }
-#pauseOverlay input[type="range"], #pauseOverlay select { width:300px; margin-bottom:20px; }
-#pauseOverlay button { padding:10px 25px; font-size:18px; cursor:pointer; margin-top:10px; }
 </style>
 </head>
+
 <body>
 
 <div class="title" id="titleText">example gAME</div>
@@ -62,21 +88,22 @@ canvas { display:block; }
     <button class="btn" id="exitBtn">EXIT</button>
 </div>
 
-<div id="settingsOverlay">
-    <label for="flashSpeed">Button Flashing Speed (seconds)</label>
+<!-- SETTINGS -->
+<div class="overlay" id="settingsOverlay">
+    <label>Flash Speed</label>
     <input type="range" id="flashSpeed" min="0.05" max="1" step="0.01" value="0.2">
 
-    <label for="volume">Volume</label>
-    <input type="range" id="volume" min="0" max="1" step="0.01" value="0.5">
+    <label>Volume</label>
+    <input type="range" id="volume" min="0" max="1" step="0.01">
 
-    <label for="graphics">Graphics Quality</label>
+    <label>Graphics</label>
     <select id="graphics">
-        <option value="high">High</option>
-        <option value="medium">Medium</option>
-        <option value="low">Low</option>
+        <option>high</option>
+        <option>medium</option>
+        <option>low</option>
     </select>
 
-    <label for="ballMaterial">Ball Material</label>
+    <label>Ball Material</label>
     <select id="ballMaterial">
         <option value="normal">Normal</option>
         <option value="rubber">Rubber</option>
@@ -84,37 +111,34 @@ canvas { display:block; }
         <option value="wood">Wood</option>
     </select>
 
-    <label for="gravity">Gravity</label>
+    <label>Gravity</label>
     <input type="range" id="gravity" min="0" max="1" step="0.01" value="0.4">
+
+    <label>AI Difficulty</label>
+    <select id="aiDifficulty">
+        <option value="easy">Easy</option>
+        <option value="normal">Normal</option>
+        <option value="hard">Hard</option>
+        <option value="nightmare">Nightmare</option>
+    </select>
 
     <button id="closeSettings">CLOSE</button>
 </div>
 
-<div id="pauseOverlay">
+<!-- PAUSE -->
+<div class="overlay" id="pauseOverlay">
     <h1>PAUSED</h1>
-    <label for="flashSpeedPause">Button Flashing Speed (seconds)</label>
-    <input type="range" id="flashSpeedPause" min="0.05" max="1" step="0.01" value="0.2">
 
-    <label for="volumePause">Volume</label>
-    <input type="range" id="volumePause" min="0" max="1" step="0.01" value="0.5">
-
-    <label for="graphicsPause">Graphics Quality</label>
-    <select id="graphicsPause">
-        <option value="high">High</option>
-        <option value="medium">Medium</option>
-        <option value="low">Low</option>
-    </select>
-
-    <label for="ballMaterialPause">Ball Material</label>
-    <select id="ballMaterialPause">
-        <option value="normal">Normal</option>
-        <option value="rubber">Rubber</option>
-        <option value="steel">Steel</option>
-        <option value="wood">Wood</option>
-    </select>
-
-    <label for="gravityPause">Gravity</label>
+    <label>Gravity</label>
     <input type="range" id="gravityPause" min="0" max="1" step="0.01" value="0.4">
+
+    <label>AI Difficulty</label>
+    <select id="aiDifficultyPause">
+        <option value="easy">Easy</option>
+        <option value="normal">Normal</option>
+        <option value="hard">Hard</option>
+        <option value="nightmare">Nightmare</option>
+    </select>
 
     <button id="returnMenuBtn">Return to Menu</button>
 </div>
@@ -122,191 +146,268 @@ canvas { display:block; }
 <canvas id="gameCanvas"></canvas>
 
 <script>
+// ================= CANVAS =================
 const canvas = document.getElementById("gameCanvas");
 const ctx = canvas.getContext("2d");
+
 canvas.width = window.innerWidth;
 canvas.height = window.innerHeight;
 
-/* MATERIALS */
+// ================= STATES =================
+let pongActive = false;
+let pongPaused = false;
+let inMiniGame = false;
+
+let aiDifficulty = "normal";
+let bounceCount = 0;
+let glitchTimer = 0;
+let mazeLevel = 1;
+
+// ================= MATERIALS =================
 const materials = {
-    normal: {gravity:0.4, friction:0.99, bounce:0.8},
-    rubber: {gravity:0.35, friction:0.995, bounce:1.2},
-    steel: {gravity:0.45, friction:0.98, bounce:0.95},
-    wood: {gravity:0.4, friction:0.9, bounce:0.7}
+    normal:{g:0.4,f:0.99,b:0.8},
+    rubber:{g:0.35,f:0.995,b:1.2},
+    steel:{g:0.45,f:0.98,b:0.95},
+    wood:{g:0.4,f:0.9,b:0.7}
 };
 
-/* TITLE BALL */
+// ================= TITLE BALL =================
 let ball = {
     x: canvas.width/2,
     y: canvas.height/2,
-    radius:20, vx:0, vy:0,
-    material:"normal",
-    gravity: materials.normal.gravity,
-    friction: materials.normal.friction,
-    bounce: materials.normal.bounce
+    vx:0, vy:0,
+    r:20,
+    g:0.4, f:0.99, b:0.8,
+    material:"normal"
 };
 
-let dragging=false, prevMouse={x:0,y:0};
-let screenShake={x:0,y:0,duration:0};
+// ================= PONG =================
+let player = {x:50,y:200};
+let ai = {x:canvas.width-70,y:200};
 
-/* PONG GAME */
-let pongActive=false, pongPaused=false;
-const paddleWidth=20, paddleHeight=120;
-let player={x:50,y:canvas.height/2-paddleHeight/2};
-let ai={x:canvas.width-70,y:canvas.height/2-paddleHeight/2};
-let pongBall={x:canvas.width/2,y:canvas.height/2,vx:6,vy:4,radius:15};
-let score={player:0, ai:0};
+let pongBall = {
+    x:canvas.width/2,
+    y:canvas.height/2,
+    vx:6,
+    vy:4,
+    r:15
+};
 
-/* MOUSE EVENTS */
-canvas.addEventListener("mousedown", (e)=>{
-    if(Math.hypot(e.clientX-ball.x,e.clientY-ball.y)<ball.radius){ dragging=true; ball.vx=0; ball.vy=0; }
-});
-canvas.addEventListener("mouseup", ()=>dragging=false);
-canvas.addEventListener("mousemove",(e)=>{
-    if(dragging){ ball.vx=(e.clientX-prevMouse.x)*0.5; ball.vy=(e.clientY-prevMouse.y)*0.5; ball.x=e.clientX; ball.y=e.clientY; }
-    prevMouse.x=e.clientX; prevMouse.y=e.clientY;
-});
+let score = {p:0,a:0};
 
-/* LAB BACKGROUND */
-let glowOffset=0;
-function drawLabBackground(graphics){
-    let grad=ctx.createLinearGradient(0,0,0,canvas.height);
-    grad.addColorStop(0,"#0a0f1a"); grad.addColorStop(1,"#05080f");
-    ctx.fillStyle=grad; ctx.fillRect(0,0,canvas.width,canvas.height);
+// ================= MAZE =================
+let playerMaze = {x:100,y:100};
+let monsters = [];
 
-    if(graphics!=="low"){
-        ctx.strokeStyle="rgba(0,255,255,0.15)";
-        for(let i=0;i<canvas.width;i+=60){ ctx.beginPath(); ctx.moveTo(i,canvas.height); ctx.lineTo(canvas.width/2,canvas.height/2); ctx.stroke(); }
-        for(let i=0;i<canvas.width;i+=150){ ctx.fillStyle="rgba(0,255,255,0.05)"; ctx.fillRect(i,0,100,canvas.height); }
-        for(let i=0;i<6;i++){ let x=(i+1)*canvas.width/7; let h=200+Math.sin(glowOffset+i)*50;
-            ctx.fillStyle="rgba(0,255,255,0.2)"; ctx.fillRect(x-10,canvas.height-h-50,20,h);
-            ctx.shadowBlur=20; ctx.shadowColor="cyan"; ctx.fillStyle="rgba(0,255,255,0.6)";
-            ctx.fillRect(x-5,canvas.height-h-50,10,h); ctx.shadowBlur=0;
-        }
-        for(let i=0;i<5;i++){ let x=canvas.width*(i+1)/6; let y=canvas.height/3+Math.sin(glowOffset+i)*30;
-            ctx.strokeStyle="rgba(0,255,255,0.3)"; ctx.beginPath(); ctx.arc(x,y,40+Math.sin(glowOffset+i)*10,0,Math.PI*2); ctx.stroke();
-        }
-    }
-    glowOffset+=0.02;
+// ================= BACKGROUND =================
+function drawBackground(){
+    let g = ctx.createLinearGradient(0,0,0,canvas.height);
+    g.addColorStop(0,"#0a0f1a");
+    g.addColorStop(1,"#05080f");
+    ctx.fillStyle = g;
+    ctx.fillRect(0,0,canvas.width,canvas.height);
 }
 
-/* TITLE BALL UPDATE */
+// ================= TITLE BALL =================
 function updateTitleBall(){
-    if(!dragging){
-        ball.vy+=ball.gravity;
-        ball.x+=ball.vx; ball.y+=ball.vy;
-        ball.vx*=ball.friction; ball.vy*=ball.friction;
+    ball.vy += ball.g;
+    ball.x += ball.vx;
+    ball.y += ball.vy;
 
-        let hitGround=false;
-        if(ball.x+ball.radius>canvas.width){ ball.x=canvas.width-ball.radius; ball.vx*=-ball.bounce; }
-        if(ball.x-ball.radius<0){ ball.x=ball.radius; ball.vx*=-ball.bounce; }
-        if(ball.y+ball.radius>canvas.height){ ball.y=canvas.height-ball.radius; ball.vy*=-ball.bounce; hitGround=true; }
-        if(ball.y-ball.radius<0){ ball.y=ball.radius; ball.vy*=-ball.bounce; }
+    ball.vx *= ball.f;
+    ball.vy *= ball.f;
 
-        if(hitGround && ball.material==="steel" && screenShake.duration<=0){ screenShake.duration=60; }
+    if(ball.y+ball.r>canvas.height){
+        ball.y = canvas.height-ball.r;
+        ball.vy *= -ball.b;
+
+        if(ball.material==="steel"){
+            glitchTimer = 10;
+        }
     }
-    if(screenShake.duration>0){ screenShake.x=(Math.random()-0.5)*20; screenShake.y=(Math.random()-0.5)*20; screenShake.duration--; }
-    else{ screenShake.x=0; screenShake.y=0; }
 }
 
-/* PONG UPDATE */
+// ================= PONG =================
 function updatePong(){
     if(pongPaused) return;
-    document.onmousemove=(e)=>{ player.y=e.clientY-paddleHeight/2; }
-    ai.y+=(pongBall.y-paddleHeight/2-ai.y)*0.05;
-    pongBall.x+=pongBall.vx; pongBall.y+=pongBall.vy;
-    if(pongBall.y-pongBall.radius<0 || pongBall.y+pongBall.radius>canvas.height){ pongBall.vy*=-1; }
 
-    function paddleCollision(p){ if(pongBall.x+pongBall.radius>p.x && pongBall.x-pongBall.radius<p.x+paddleWidth &&
-        pongBall.y+pongBall.radius>p.y && pongBall.y-pongBall.radius<p.y+paddleHeight){
-        let rel=(pongBall.y-(p.y+paddleHeight/2))/(paddleHeight/2); let angle=rel*Math.PI/4;
-        let speed=Math.sqrt(pongBall.vx*pongBall.vx+pongBall.vy*pongBall.vy);
-        pongBall.vx=(pongBall.x<canvas.width/2?1:-1)*speed*Math.cos(angle);
-        pongBall.vy=speed*Math.sin(angle);
-    }}
-    paddleCollision(player); paddleCollision(ai);
-    if(pongBall.x<0){ score.ai++; resetPongBall(-1); }
-    if(pongBall.x>canvas.width){ score.player++; resetPongBall(1); }
-}
+    document.onmousemove = e => {
+        player.y = e.clientY - 60;
+    };
 
-function resetPongBall(dir){ pongBall.x=canvas.width/2; pongBall.y=canvas.height/2;
-    pongBall.vx=6*dir; pongBall.vy=4*(Math.random()>0.5?1:-1);
-}
+    let speed = 0.05;
+    if(aiDifficulty==="easy") speed=0.03;
+    if(aiDifficulty==="hard") speed=0.09;
+    if(aiDifficulty==="nightmare") speed=0.15;
 
-/* DRAW EVERYTHING */
-function draw(){
-    ctx.save(); ctx.translate(screenShake.x,screenShake.y);
-    drawLabBackground(document.getElementById("graphics").value);
+    ai.y += (pongBall.y-60 - ai.y)*speed;
 
-    if(!pongActive){ ctx.beginPath(); ctx.arc(ball.x,ball.y,ball.radius,0,Math.PI*2); ctx.fillStyle="red"; ctx.fill(); }
-    if(pongActive){
-        ctx.fillStyle="white"; ctx.fillRect(player.x,player.y,paddleWidth,paddleHeight);
-        ctx.fillRect(ai.x,ai.y,paddleWidth,paddleHeight);
-        ctx.beginPath(); ctx.arc(pongBall.x,pongBall.y,pongBall.radius,0,Math.PI*2); ctx.fill();
-        ctx.font="48px Arial"; ctx.fillStyle="cyan";
-        ctx.fillText(score.player,canvas.width/4,50); ctx.fillText(score.ai,3*canvas.width/4,50);
+    pongBall.x += pongBall.vx;
+    pongBall.y += pongBall.vy;
+
+    if(pongBall.y<0 || pongBall.y>canvas.height){
+        pongBall.vy *= -1;
     }
-    ctx.strokeStyle="cyan"; ctx.lineWidth=4; ctx.strokeRect(0,0,canvas.width,canvas.height);
-    ctx.restore();
+
+    function hit(p){
+        if(pongBall.x>p.x && pongBall.x<p.x+20 &&
+           pongBall.y>p.y && pongBall.y<p.y+120){
+            pongBall.vx *= -1;
+            bounceCount++;
+        }
+    }
+
+    hit(player);
+    hit(ai);
+
+    if(pongBall.x<0){score.a++; resetBall();}
+    if(pongBall.x>canvas.width){score.p++; resetBall();}
+
+    if(aiDifficulty==="nightmare" && bounceCount>=20 && !inMiniGame){
+        glitchTimer = 120;
+    }
 }
 
-/* MAIN LOOP */
-function loop(){ if(!pongActive) updateTitleBall(); else updatePong(); draw(); requestAnimationFrame(loop); }
+function resetBall(){
+    pongBall.x = canvas.width/2;
+    pongBall.y = canvas.height/2;
+    pongBall.vx = 6*(Math.random()>0.5?1:-1);
+    pongBall.vy = 4*(Math.random()>0.5?1:-1);
+}
+
+// ================= MINI GAME =================
+function startMiniGame(){
+    inMiniGame = true;
+    pongPaused = true;
+
+    monsters = [];
+    for(let i=0;i<mazeLevel;i++){
+        monsters.push({
+            x:Math.random()*canvas.width,
+            y:Math.random()*canvas.height
+        });
+    }
+}
+
+function updateMiniGame(){
+    monsters.forEach(m=>{
+        let dx = playerMaze.x-m.x;
+        let dy = playerMaze.y-m.y;
+        let d = Math.sqrt(dx*dx+dy*dy);
+
+        m.x += dx/d*(1+mazeLevel*0.3);
+        m.y += dy/d*(1+mazeLevel*0.3);
+
+        if(d<15){
+            endMini(false);
+        }
+    });
+}
+
+function endMini(win){
+    setTimeout(()=>{
+        inMiniGame=false;
+        pongPaused=false;
+        bounceCount=0;
+        mazeLevel=1;
+    },2000);
+}
+
+// ================= DRAW =================
+function draw(){
+    drawBackground();
+
+    if(glitchTimer>0){
+        glitchTimer--;
+        ctx.fillStyle="rgba(255,0,0,0.2)";
+        ctx.fillRect(0,0,canvas.width,canvas.height);
+        if(glitchTimer===0) startMiniGame();
+    }
+
+    if(!pongActive){
+        ctx.beginPath();
+        ctx.arc(ball.x,ball.y,ball.r,0,Math.PI*2);
+        ctx.fillStyle="red";
+        ctx.fill();
+    }
+
+    if(pongActive){
+        ctx.fillRect(player.x,player.y,20,120);
+        ctx.fillRect(ai.x,ai.y,20,120);
+
+        ctx.beginPath();
+        ctx.arc(pongBall.x,pongBall.y,15,0,Math.PI*2);
+        ctx.fill();
+
+        ctx.fillText(score.p,200,50);
+        ctx.fillText(score.a,canvas.width-200,50);
+    }
+
+    if(inMiniGame){
+        ctx.fillStyle="black";
+        ctx.fillRect(0,0,canvas.width,canvas.height);
+
+        let light = ctx.createRadialGradient(
+            playerMaze.x,playerMaze.y,20,
+            playerMaze.x,playerMaze.y,200
+        );
+        light.addColorStop(0,"white");
+        light.addColorStop(1,"black");
+
+        ctx.fillStyle=light;
+        ctx.fillRect(0,0,canvas.width,canvas.height);
+
+        ctx.fillStyle="white";
+        ctx.fillRect(playerMaze.x,playerMaze.y,10,10);
+
+        ctx.fillStyle="red";
+        monsters.forEach(m=>ctx.fillRect(m.x,m.y,10,10));
+    }
+}
+
+// ================= LOOP =================
+function loop(){
+    if(inMiniGame) updateMiniGame();
+    else if(pongActive) updatePong();
+    else updateTitleBall();
+
+    draw();
+    requestAnimationFrame(loop);
+}
 loop();
 
-/* SETTINGS LOGIC */
-const settingsBtn=document.getElementById("settingsBtn");
-const settingsOverlay=document.getElementById("settingsOverlay");
-const closeSettings=document.getElementById("closeSettings");
-const flashSpeedSlider=document.getElementById("flashSpeed");
-const volumeSlider=document.getElementById("volume");
-const graphicsSelect=document.getElementById("graphics");
-const ballMaterialSelect=document.getElementById("ballMaterial");
-const gravitySlider=document.getElementById("gravity");
+// ================= UI =================
+startBtn.onclick = ()=>{
+    titleText.style.display="none";
+    menuDiv.style.display="none";
+    pongActive=true;
+};
 
-settingsBtn.addEventListener("click",()=>{settingsOverlay.style.display="flex";});
-closeSettings.addEventListener("click",()=>{settingsOverlay.style.display="none";});
-flashSpeedSlider.addEventListener("input",()=>{document.documentElement.style.setProperty('--flash-speed',flashSpeedSlider.value+'s');});
-volumeSlider.addEventListener("input",()=>{console.log("Volume:",volumeSlider.value);});
-ballMaterialSelect.addEventListener("change", ()=>{
-    let mat=ballMaterialSelect.value;
-    ball.material=mat; ball.gravity=parseFloat(gravitySlider.value);
-    ball.friction=materials[mat].friction; ball.bounce=materials[mat].bounce;
-});
-gravitySlider.addEventListener("input",()=>{ ball.gravity=parseFloat(gravitySlider.value); materials[ball.material].gravity=parseFloat(gravitySlider.value); gravityPause.value=gravitySlider.value; });
+settingsBtn.onclick = ()=> settingsOverlay.style.display="flex";
+closeSettings.onclick = ()=> settingsOverlay.style.display="none";
 
-/* START & EXIT */
-const startBtn=document.getElementById("startBtn");
-const exitBtn=document.getElementById("exitBtn");
-const titleText=document.getElementById("titleText");
-const menuDiv=document.getElementById("menuDiv");
+exitBtn.onclick = ()=> window.close();
 
-startBtn.addEventListener("click",()=>{ titleText.style.display="none"; menuDiv.style.display="none"; pongActive=true; });
-exitBtn.addEventListener("click",()=>{ window.close(); setTimeout(()=>{if(!window.closed){alert("Cannot automatically close tab. Please close manually.");}},100); });
+document.addEventListener("keydown",e=>{
+    if(e.key==="Escape"){
+        pongPaused=!pongPaused;
+        pauseOverlay.style.display = pongPaused?"flex":"none";
+    }
 
-/* PAUSE MENU LOGIC */
-const pauseOverlay=document.getElementById("pauseOverlay");
-const flashSpeedPause=document.getElementById("flashSpeedPause");
-const volumePause=document.getElementById("volumePause");
-const graphicsPause=document.getElementById("graphicsPause");
-const ballMaterialPause=document.getElementById("ballMaterialPause");
-const returnMenuBtn=document.getElementById("returnMenuBtn");
-const gravityPause=document.getElementById("gravityPause");
-
-flashSpeedPause.addEventListener("input",()=>{document.documentElement.style.setProperty('--flash-speed',flashSpeedPause.value+'s');});
-volumePause.addEventListener("input",()=>{console.log("Volume:",volumePause.value);});
-graphicsPause.addEventListener("change",()=>{graphicsSelect.value=graphicsPause.value;});
-ballMaterialPause.addEventListener("change",()=>{ ballMaterialSelect.value=ballMaterialPause.value; ballMaterialSelect.dispatchEvent(new Event("change")); });
-gravityPause.addEventListener("input",()=>{ ball.gravity=parseFloat(gravityPause.value); materials[ball.material].gravity=parseFloat(gravityPause.value); gravitySlider.value=gravityPause.value; });
-
-returnMenuBtn.addEventListener("click",()=>{
-    pongActive=false; pongPaused=false; pauseOverlay.style.display="none";
-    titleText.style.display="block"; menuDiv.style.display="flex";
-    pongBall.x=canvas.width/2; pongBall.y=canvas.height/2; pongBall.vx=6*(Math.random()>0.5?1:-1); pongBall.vy=4*(Math.random()>0.5?1:-1);
-    score.player=0; score.ai=0;
+    if(inMiniGame){
+        if(e.key==="w") playerMaze.y-=5;
+        if(e.key==="s") playerMaze.y+=5;
+        if(e.key==="a") playerMaze.x-=5;
+        if(e.key==="d") playerMaze.x+=5;
+    }
 });
 
-document.addEventListener("keydown",(e)=>{ if(pongActive && e.key==="Escape"){ pongPaused=!pongPaused; pauseOverlay.style.display=pongPaused?"flex":"none"; }});
+returnMenuBtn.onclick = ()=>{
+    pongActive=false;
+    pongPaused=false;
+    titleText.style.display="block";
+    menuDiv.style.display="flex";
+};
 </script>
 </body>
 </html>

@@ -1,0 +1,56 @@
+/* Body Styling */
+body {
+    background-color: #1e1e2f; /* dark theme */
+    font-family: Arial, sans-serif;
+}
+
+/* Wrapper Styling */
+.wrapper {
+    background-color: #2c2c54;
+    color: white;
+    padding: 25px;
+    margin: 30px;
+    text-align: center;
+    border-radius: 10px;
+}
+
+/* Hero Image */
+#heroimg {
+    margin-left: 33%;
+    margin-right: 33%;
+    border: 2px solid black;
+    border-radius: 10px;
+    width: 34%; /* helps keep it visible */
+}
+
+/* Link Styling */
+a {
+    display: block;
+    color: white;
+    text-decoration: none;
+    font-size: 35px;
+    border: 2px solid black;
+    border-radius: 10px;
+    margin-bottom: 20px;
+    padding: 10px;
+    width: 25%;
+    margin-left: 37.5%;
+    background-color: #6652ff;
+}
+
+/* Hover effect */
+a:hover {
+    background-color: #1100ff;
+    color: black;
+}
+
+/* Active (when clicked) */
+a:active {
+    background-color: #9f8aff;
+    color: white;
+}
+
+/* Visited link */
+a:visited {
+    background-color: #090046;
+}
