@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Horror Scrolling Map</title>
+<style>
+body {
+  margin: 0;
+  overflow: hidden;
+  font-family: monospace;
+}
+
+#game {
+  width: 100vw;
+  height: 100vh;
+  position: relative;
+  overflow: hidden;
+  background: black;
+}
+
+#map {
+  position: absolute;
+  background-image: url('image.png');
+  background-size: cover;
+  width: 2000px; /* Match the size of your map image */
+  height: 1500px; /* Match the size of your map image */
+}
+
+.player {
+  width: 40px;
+  height: 40px;
+  position: absolute;
+  background: radial-gradient(circle, white 40%, #aaa);
+  border-radius: 50%;
+  box-shadow: 0 0 12px white;
+  transition: transform 0.1s;
+  z-index: 10;
+}
+
+.npc {
+  width: 40px;
+  height: 40px;
+  background: red;
+  position: absolute;
+  border-radius: 50%;
+  z-index: 9;
+}
+
+/* Dialogue box */
+#dialogueBox {
+  position: absolute;
+  bottom: 20px;
+  left: 50%;
+  transform: translateX(-50%) translateY(20px);
+  width: 60%;
+  max-width: 500px;
+  height: 90px;
+  background: #111;
+  border: 3px solid white;
+  border-radius: 6px;
+  color: white;
+  padding: 10px;
+  opacity: 0;
+  pointer-events: none;
+  transition: all 0.4s ease;
+  z-index: 20;
+}
+
+#dialogueBox.show {
+  opacity: 1;
+  transform: translateX(-50%) translateY(0);
+}
+
+#name { font-weight: bold; font-size: 14px; margin-bottom: 5px; }
+#text { font-size: 14px; }
+</style>
+</head>
+<body>
+
+<div id="game">
+  <div id="map">
+    <div class="npc" id="npc1" style="left:400px; top:300px;"></div>
+    <div class="npc" id="npc2" style="left:1200px; top:600px;"></div>
+  </div>
+  <div class="player" id="player"></div>
+  <div id="dialogueBox">
+    <div id="name"></div>
+    <div id="text"></div>
+  </div>
+</div>
+
+<script>
+const game = document.getElementById("game");
+const map = document.getElementById("map");
+const player = document.getElementById("player");
+const dialogueBox = document.getElementById("dialogueBox");
+const nameBox = document.getElementById("name");
+const textBox = document.getElementById("text");
+const npcs = [
+  {el: document.getElementById("npc1"), name: "???:", dialogue: ["...You shouldn't be here.","They are watching.","RUN."]},
+  {el: document.getElementById("npc2"), name: "Lost Kid:", dialogue: ["Have you seen my parents?","I think something followed me...","It's behind you."]}
+];
+
+let x = 100, y = 100;
+let vx = 0, vy = 0;
+let speed = 0.6;
+let friction = 0.85;
+let keys = {};
+let talking = false;
+let index = 0, charIndex = 0;
+let typingInterval;
+
+// INPUT
+window.addEventListener("keydown", e => {
+  keys[e.key.toLowerCase()] = true;
+
+  if (e.key === "e" && !talking) {
+    const npc = getNearbyNPC();
+    if(npc) startDialogue(npc);
+  }
+
+  if(e.key === "Enter" && talking) nextDialogue();
+});
+
+window.addEventListener("keyup", e => keys[e.key.toLowerCase()] = false);
+
+// TYPEWRITER
+function typeLetter() {
+  const npc = getNearbyNPC();
+  if (!npc) return;
+  if (charIndex < npc.dialogue[index].length) {
+    textBox.textContent += npc.dialogue[index][charIndex];
+    charIndex++;
+  } else clearInterval(typingInterval);
+}
+
+// DIALOGUE
+function getNearbyNPC() {
+  for(let npc of npcs){
+    const rect = npc.el.getBoundingClientRect();
+    const px = player.offsetLeft + 20; // center
+    const py = player.offsetTop + 20;
+    const nx = npc.el.offsetLeft + 20;
+    const ny = npc.el.offsetTop + 20;
+    if(Math.hypot(px - nx, py - ny) < 80) return npc;
+  }
+  return null;
+}
+
+function startDialogue(npc){
+  talking = true;
+  dialogueBox.classList.add("show");
+  nameBox.textContent = npc.name;
+  charIndex = 0;
+  textBox.textContent = "";
+  typingInterval = setInterval(typeLetter, 40);
+}
+
+function nextDialogue(){
+  clearInterval(typingInterval);
+  const npc = getNearbyNPC();
+  if(!npc) return;
+  index++;
+  if(index >= npc.dialogue.length){
+    dialogueBox.classList.remove("show");
+    talking = false;
+    index = 0;
+    textBox.textContent = "";
+  } else {
+    charIndex = 0;
+    textBox.textContent = "";
+    typingInterval = setInterval(typeLetter, 40);
+  }
+}
+
+// SCROLLING CAMERA LOOP
+function update(){
+  if(!talking){
+    if(keys["arrowup"]) vy -= speed;
+    if(keys["arrowdown"]) vy += speed;
+    if(keys["arrowleft"]) vx -= speed;
+    if(keys["arrowright"]) vx += speed;
+
+    vx *= friction;
+    vy *= friction;
+    x += vx;
+    y += vy;
+  }
+
+  // keep player inside map
+  x = Math.max(0, Math.min(2000 - 40, x));
+  y = Math.max(0, Math.min(1500 - 40, y));
+
+  player.style.left = x + "px";
+  player.style.top = y + "px";
+
+  // scroll map
+  let offsetX = game.clientWidth/2 - (x+20);
+  let offsetY = game.clientHeight/2 - (y+20);
+  offsetX = Math.min(0, Math.max(game.clientWidth - 2000, offsetX));
+  offsetY = Math.min(0, Math.max(game.clientHeight - 1500, offsetY));
+  map.style.transform = `translate(${offsetX}px, ${offsetY}px)`;
+
+  requestAnimationFrame(update);
+}
+
+update();
+</script>
+</body>
+</html>

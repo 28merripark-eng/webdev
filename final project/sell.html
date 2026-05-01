@@ -1,0 +1,59 @@
+<!Doctype html>
+<html>
+
+<head>
+    <title>Sell your cards</title>
+</head>
+
+<body>
+    <a href="cards.html">
+        <button>Shop Cards</button>
+    </a>
+    <a href="index.html">
+        <button>Home</button>
+    </a>
+    <form id="cardForm">
+        <input type="text" id="cardName" placeholder="Card Name" required>
+        <br><br>
+
+        <input type="number" id="cardPrice" placeholder="Price" required>
+        <br><br>
+
+        <input type="file" id="cardImage" accept="image/*" required>
+        <br><br>
+
+        <button type="submit">Upload Card</button>
+    </form>
+    <script>
+        document.getElementById("cardForm").addEventListener("submit", function (e) {
+            e.preventDefault();
+
+            const name = document.getElementById("cardName").value;
+            const price = document.getElementById("cardPrice").value; 
+            const file = document.getElementById("cardImage").files[0];
+
+            const reader = new FileReader();
+
+            reader.onload = function () {
+                const imageData = reader.result;
+
+                let cards = JSON.parse(localStorage.getItem("cards")) || [];
+
+                cards.push({
+                    name: name,
+                    price: price,
+                    image: imageData
+                });
+
+                localStorage.setItem("cards", JSON.stringify(cards));
+
+                window.location.href = "cards.html";
+            };
+
+            reader.readAsDataURL(file);
+        });
+    </script>
+
+</body>
+
+</html>
